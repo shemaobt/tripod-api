@@ -2,20 +2,19 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
 from app.core.database import Base
 
 
-class Testament(str, enum.Enum):
+class Testament(enum.StrEnum):
     OT = "OT"
     NT = "NT"
 
 
-class MeaningMapStatus(str, enum.Enum):
+class MeaningMapStatus(enum.StrEnum):
     DRAFT = "draft"
     CROSS_CHECK = "cross_check"
     APPROVED = "approved"
@@ -38,7 +37,9 @@ class Pericope(Base):
     __tablename__ = "pericopes"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    book_id: Mapped[str] = mapped_column(ForeignKey("bible_books.id", ondelete="RESTRICT"), index=True)
+    book_id: Mapped[str] = mapped_column(
+        ForeignKey("bible_books.id", ondelete="RESTRICT"), index=True
+    )
     chapter_start: Mapped[int] = mapped_column(Integer)
     verse_start: Mapped[int] = mapped_column(Integer)
     chapter_end: Mapped[int] = mapped_column(Integer)
@@ -52,7 +53,9 @@ class MeaningMap(Base):
     __tablename__ = "meaning_maps"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    pericope_id: Mapped[str] = mapped_column(ForeignKey("pericopes.id", ondelete="CASCADE"), index=True)
+    pericope_id: Mapped[str] = mapped_column(
+        ForeignKey("pericopes.id", ondelete="CASCADE"), index=True
+    )
     analyst_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), index=True)
     cross_checker_id: Mapped[str | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True
@@ -61,7 +64,7 @@ class MeaningMap(Base):
         Enum(MeaningMapStatus, name="meaning_map_status_enum"), default=MeaningMapStatus.DRAFT
     )
     version: Mapped[int] = mapped_column(Integer, default=1)
-    data: Mapped[dict] = mapped_column(JSONB, default=dict)
+    data: Mapped[dict] = mapped_column(JSON, default=dict)
     locked_by: Mapped[str | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )

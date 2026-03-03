@@ -9,7 +9,6 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = 'e8d6b0446bcf'
@@ -53,7 +52,7 @@ def upgrade() -> None:
     sa.Column('cross_checker_id', sa.String(length=36), nullable=True),
     sa.Column('status', sa.Enum('DRAFT', 'CROSS_CHECK', 'APPROVED', name='meaning_map_status_enum'), nullable=False),
     sa.Column('version', sa.Integer(), nullable=False),
-    sa.Column('data', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+    sa.Column('data', sa.JSON(), nullable=False),
     sa.Column('locked_by', sa.String(length=36), nullable=True),
     sa.Column('locked_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('date_approved', sa.DateTime(timezone=True), nullable=True),

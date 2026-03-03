@@ -26,7 +26,8 @@ capturing the overall narrative arc of the passage. Minimum 80 words.
 **Level 2 — Scenes:** One scene per logical unit (verse range). Each scene has:
 - 2A People: Every person present (Name, Role, Relationship, Wants, Carries)
 - 2B Places: Every location (Name, Role, Type, Meaning, Effect on scene)
-- 2C Objects & Elements: Physical objects/durations/natural elements (Name, What it is, Function in scene, Signals) plus Significant Absence
+- 2C Objects & Elements: Physical objects/durations/natural elements \
+(Name, What it is, Function in scene, Signals) plus Significant Absence
 - 2D What Happens: Prose narrative of scene events (minimum 15 words)
 - 2E Communicative Purpose: Why this scene exists (minimum 3 sentences, 10 words)
 

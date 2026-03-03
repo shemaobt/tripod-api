@@ -1,4 +1,4 @@
-from sqlalchemy import case, func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.meaning_map import MeaningMap, Pericope
@@ -15,9 +15,7 @@ async def get_chapter_summaries(db: AsyncSession, book_id: str) -> list[ChapterS
     result = await db.execute(stmt)
     rows = result.all()
 
-    # We need to determine the max chapter to return a continuous list 1..N
-    # Alternatively, the chapters can be sparse, but usually we want to return the chapters that exist
-    # Actually, BookPage frontend handles sparse returns by padding up to book.chapter_count.
+    # Build a dictionary of tallies per chapter.
     # We will build a dictionary of tallies per chapter.
     tallies: dict[int, dict[str, int]] = {}
 
