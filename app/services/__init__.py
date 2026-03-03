@@ -2,6 +2,7 @@ from app.services import (
     auth,
     authorization,
     language,
+    meaning_map,
     org,
     phase,
     project,
@@ -12,6 +13,7 @@ from app.services import (
 auth_service = auth
 authorization_service = authorization
 language_service = language
+meaning_map_service = meaning_map
 organization_service = org
 phase_service = phase
 project_service = project
@@ -24,6 +26,8 @@ __all__ = [
     "authorization_service",
     "language",
     "language_service",
+    "meaning_map",
+    "meaning_map_service",
     "org",
     "organization_service",
     "phase",
