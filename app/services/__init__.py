@@ -5,6 +5,7 @@ from app.services import (
     org,
     phase,
     project,
+    rag,
 )
 
 # Expose sub-packages under backward-compatible names
@@ -14,6 +15,7 @@ language_service = language
 organization_service = org
 phase_service = phase
 project_service = project
+rag_service = rag
 
 __all__ = [
     "auth",
@@ -28,4 +30,6 @@ __all__ = [
     "phase_service",
     "project",
     "project_service",
+    "rag",
+    "rag_service",
 ]
