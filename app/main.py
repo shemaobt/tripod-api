@@ -1,3 +1,4 @@
+import threading
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -16,12 +17,24 @@ from app.core.config import get_settings
 from app.core.database import close_db, init_db
 from app.core.exceptions import register_exception_handlers
 from app.core.qdrant import close_qdrant, init_qdrant
+from app.services.bhsa import loader
+
+
+def _load_bhsa_background() -> None:
+    """Load BHSA data in a background thread."""
+    try:
+        print("[STARTUP] Loading BHSA data in background...")
+        loader.load()
+        print("[STARTUP] BHSA data loaded successfully!")
+    except Exception as e:
+        print(f"[STARTUP] Failed to load BHSA data: {e}")
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     await init_db()
     await init_qdrant()
+    threading.Thread(target=_load_bhsa_background, daemon=True).start()
     try:
         yield
     finally:
