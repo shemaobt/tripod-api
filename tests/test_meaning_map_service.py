@@ -13,8 +13,10 @@ from app.services.meaning_map.export_json import export_json
 from app.services.meaning_map.export_prose import export_prose
 from app.services.meaning_map.get_book_or_404 import get_book_or_404
 from app.services.meaning_map.get_chapter_summaries import get_chapter_summaries
+from app.services.meaning_map.get_map_with_book import get_map_with_book
 from app.services.meaning_map.get_meaning_map_or_404 import get_meaning_map_or_404
 from app.services.meaning_map.get_pericope_or_404 import get_pericope_or_404
+from app.services.meaning_map.get_pericope_with_book import get_pericope_with_book
 from app.services.meaning_map.list_books import list_books
 from app.services.meaning_map.list_feedback import list_feedback
 from app.services.meaning_map.list_meaning_maps import list_meaning_maps
@@ -946,6 +948,45 @@ async def test_seed_books_ot_enabled_nt_disabled(db_session) -> None:
             assert book.is_enabled is True, f"{book.name} should be enabled"
         else:
             assert book.is_enabled is False, f"{book.name} should be disabled"
+
+
+# ---------------------------------------------------------------------------
+# Join lookups: get_map_with_book, get_pericope_with_book
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_map_with_book_success(db_session) -> None:
+    user = await make_user(db_session, email="join1@test.com")
+    book = await make_bible_book(db_session)
+    pericope = await make_pericope(db_session, book.id)
+    mm = await make_meaning_map(db_session, pericope.id, user.id)
+    found_mm, found_book = await get_map_with_book(db_session, mm.id)
+    assert found_mm.id == mm.id
+    assert found_book.id == book.id
+    assert found_book.name == "Genesis"
+
+
+@pytest.mark.asyncio
+async def test_get_map_with_book_raises_not_found(db_session) -> None:
+    with pytest.raises(NotFoundError, match=r"Meaning map .* not found"):
+        await get_map_with_book(db_session, "nonexistent-id")
+
+
+@pytest.mark.asyncio
+async def test_get_pericope_with_book_success(db_session) -> None:
+    book = await make_bible_book(db_session)
+    pericope = await make_pericope(db_session, book.id)
+    found_pericope, found_book = await get_pericope_with_book(db_session, pericope.id)
+    assert found_pericope.id == pericope.id
+    assert found_book.id == book.id
+    assert found_book.name == "Genesis"
+
+
+@pytest.mark.asyncio
+async def test_get_pericope_with_book_raises_not_found(db_session) -> None:
+    with pytest.raises(NotFoundError, match=r"Pericope .* not found"):
+        await get_pericope_with_book(db_session, "nonexistent-id")
 
 
 # ---------------------------------------------------------------------------

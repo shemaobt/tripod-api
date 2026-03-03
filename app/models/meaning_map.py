@@ -75,14 +75,13 @@ class MeaningMapStatusUpdate(BaseModel):
     status: MeaningMapStatus
 
 
-class MeaningMapResponse(BaseModel):
+class MeaningMapListResponse(BaseModel):
     id: str
     pericope_id: str
     analyst_id: str
     cross_checker_id: str | None
     status: MeaningMapStatus
     version: int
-    data: dict
     locked_by: str | None
     locked_at: datetime | None
     date_approved: datetime | None
@@ -91,6 +90,10 @@ class MeaningMapResponse(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class MeaningMapResponse(MeaningMapListResponse):
+    data: dict
 
 
 class FeedbackCreate(BaseModel):

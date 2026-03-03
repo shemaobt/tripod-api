@@ -14,6 +14,7 @@ from app.models.meaning_map import (
     FeedbackResponse,
     FeedbackUpdate,
     MeaningMapGenerateRequest,
+    MeaningMapListResponse,
     MeaningMapResponse,
     MeaningMapStatusUpdate,
     MeaningMapUpdateData,
@@ -25,18 +26,18 @@ router = APIRouter()
 _mm_access = require_app_access("meaning-map-generator")
 
 
-@router.get("", response_model=list[MeaningMapResponse], dependencies=[_mm_access])
+@router.get("", response_model=list[MeaningMapListResponse], dependencies=[_mm_access])
 async def list_meaning_maps(
     book_id: str | None = Query(default=None),
     chapter: int | None = Query(default=None),
     map_status: str | None = Query(default=None, alias="status"),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-) -> list[MeaningMapResponse]:
+) -> list[MeaningMapListResponse]:
     maps = await meaning_map_service.list_meaning_maps(
         db, book_id=book_id, chapter=chapter, status=map_status
     )
-    return [MeaningMapResponse.model_validate(m) for m in maps]
+    return [MeaningMapListResponse.model_validate(m) for m in maps]
 
 
 @router.get("/{map_id}", response_model=MeaningMapResponse, dependencies=[_mm_access])
@@ -56,9 +57,7 @@ async def update_meaning_map(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> MeaningMapResponse:
-    mm = await meaning_map_service.get_meaning_map_or_404(db, map_id)
-    pericope = await meaning_map_service.get_pericope_or_404(db, mm.pericope_id)
-    book = await meaning_map_service.get_book_or_404(db, pericope.book_id)
+    mm, book = await meaning_map_service.get_map_with_book(db, map_id)
     meaning_map_service.ensure_ot(book)
     mm = await meaning_map_service.update_meaning_map_data(db, mm, payload.data, user.id)
     return MeaningMapResponse.model_validate(mm)
@@ -119,8 +118,9 @@ async def generate_meaning_map(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> MeaningMapResponse:
-    pericope = await meaning_map_service.get_pericope_or_404(db, payload.pericope_id)
-    book = await meaning_map_service.get_book_or_404(db, pericope.book_id)
+    pericope, book = await meaning_map_service.get_pericope_with_book(
+        db, payload.pericope_id
+    )
     meaning_map_service.ensure_ot(book)
     try:
         qdrant = get_qdrant_client()
@@ -196,7 +196,6 @@ async def list_feedback(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[FeedbackResponse]:
-    await meaning_map_service.get_meaning_map_or_404(db, map_id)
     items = await meaning_map_service.list_feedback(db, map_id)
     return [FeedbackResponse.model_validate(fb) for fb in items]
 

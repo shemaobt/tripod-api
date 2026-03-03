@@ -27,7 +27,6 @@ async def list_chapters(
     book_id: str,
     db: AsyncSession = Depends(get_db),
 ) -> list[ChapterSummary]:
-    await meaning_map_service.get_book_or_404(db, book_id)
     return await meaning_map_service.get_chapter_summaries(db, book_id)
 
 
@@ -41,7 +40,6 @@ async def list_chapter_pericopes(
     chapter: int,
     db: AsyncSession = Depends(get_db),
 ) -> list[PericopeWithStatusResponse]:
-    await meaning_map_service.get_book_or_404(db, book_id)
     return await meaning_map_service.list_pericopes(db, book_id, chapter)
 
 
@@ -54,5 +52,4 @@ async def list_book_pericopes(
     book_id: str,
     db: AsyncSession = Depends(get_db),
 ) -> list[PericopeWithStatusResponse]:
-    await meaning_map_service.get_book_or_404(db, book_id)
     return await meaning_map_service.list_pericopes(db, book_id)

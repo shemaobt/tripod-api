@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
@@ -35,6 +35,9 @@ class BibleBook(Base):
 
 class Pericope(Base):
     __tablename__ = "pericopes"
+    __table_args__ = (
+        Index("ix_pericopes_book_chapter", "book_id", "chapter_start", "verse_start"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     book_id: Mapped[str] = mapped_column(
@@ -51,6 +54,7 @@ class Pericope(Base):
 
 class MeaningMap(Base):
     __tablename__ = "meaning_maps"
+    __table_args__ = (Index("ix_meaning_maps_status", "status"),)
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     pericope_id: Mapped[str] = mapped_column(

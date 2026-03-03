@@ -6,25 +6,19 @@ from app.models.meaning_map import ChapterSummary
 
 
 async def get_chapter_summaries(db: AsyncSession, book_id: str) -> list[ChapterSummary]:
-    # Fetch all pericopes and their meaning maps for the given book
+    """Return per-chapter pericope/status tallies, selecting only needed columns."""
     stmt = (
-        select(Pericope, MeaningMap.status)
+        select(Pericope.chapter_start, Pericope.chapter_end, MeaningMap.status)
         .outerjoin(MeaningMap, MeaningMap.pericope_id == Pericope.id)
         .where(Pericope.book_id == book_id)
     )
     result = await db.execute(stmt)
     rows = result.all()
 
-    # Build a dictionary of tallies per chapter.
-    # We will build a dictionary of tallies per chapter.
     tallies: dict[int, dict[str, int]] = {}
 
-    for row in rows:
-        pericope = row[0]
-        status = row[1]
-
-        # A pericope spans from chapter_start to chapter_end (inclusive)
-        for ch in range(pericope.chapter_start, pericope.chapter_end + 1):
+    for chapter_start, chapter_end, status in rows:
+        for ch in range(chapter_start, chapter_end + 1):
             if ch not in tallies:
                 tallies[ch] = {"pericope": 0, "draft": 0, "cross_check": 0, "approved": 0}
 
@@ -36,18 +30,13 @@ async def get_chapter_summaries(db: AsyncSession, book_id: str) -> list[ChapterS
             elif status == "approved":
                 tallies[ch]["approved"] += 1
 
-    # Convert the tallies dictionary to a sorted list of ChapterSummary objects
-    summaries = []
-    for ch in sorted(tallies.keys()):
-        t = tallies[ch]
-        summaries.append(
-            ChapterSummary(
-                chapter=ch,
-                pericope_count=t["pericope"],
-                draft_count=t["draft"],
-                cross_check_count=t["cross_check"],
-                approved_count=t["approved"],
-            )
+    return [
+        ChapterSummary(
+            chapter=ch,
+            pericope_count=t["pericope"],
+            draft_count=t["draft"],
+            cross_check_count=t["cross_check"],
+            approved_count=t["approved"],
         )
-
-    return summaries
+        for ch, t in sorted(tallies.items())
+    ]

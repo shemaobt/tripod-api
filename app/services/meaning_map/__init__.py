@@ -7,8 +7,10 @@ from app.services.meaning_map.export_json import export_json
 from app.services.meaning_map.export_prose import export_prose
 from app.services.meaning_map.get_book_or_404 import get_book_or_404
 from app.services.meaning_map.get_chapter_summaries import get_chapter_summaries
+from app.services.meaning_map.get_map_with_book import get_map_with_book
 from app.services.meaning_map.get_meaning_map_or_404 import get_meaning_map_or_404
 from app.services.meaning_map.get_pericope_or_404 import get_pericope_or_404
+from app.services.meaning_map.get_pericope_with_book import get_pericope_with_book
 from app.services.meaning_map.list_books import list_books
 from app.services.meaning_map.list_feedback import list_feedback
 from app.services.meaning_map.list_meaning_maps import list_meaning_maps
@@ -29,8 +31,10 @@ __all__ = [
     "export_prose",
     "get_book_or_404",
     "get_chapter_summaries",
+    "get_map_with_book",
     "get_meaning_map_or_404",
     "get_pericope_or_404",
+    "get_pericope_with_book",
     "list_books",
     "list_feedback",
     "list_meaning_maps",
