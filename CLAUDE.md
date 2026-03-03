@@ -113,9 +113,23 @@ tripod-backend/
 - Run tests:
   - `SECRETS_PROJECT_ID=<SECRETS_PROJECT_ID> docker compose run --rm backend sh -c "set -a && . /run/secrets/.env && set +a && uv run pytest tests"`
 
+## 8. Git Workflow & Pull Requests
+
+When the user says the code is ready, asks to "create a PR", or says "prepare the PR":
+
+1. **Create a new branch** from the current HEAD with a descriptive name (e.g. `feat/restructure-dashboard-books`).
+2. **Commit in small, scoped commits** — each commit should cover a single logical change (e.g. "Add BooksPage with book grid", "Rewrite DashboardPage as statistics overview", "Update routes in App.tsx"). Avoid lumping all changes into a single commit. Break them correctly by scope.
+3. **Push the branch** to the remote with `-u` to set upstream tracking.
+4. **Create a pull request** using `gh pr create` targeting `main` with:
+   - A concise title (under 70 characters)
+   - A detailed body with a `## Summary` section (bullet points of what changed and why) and a `## Test plan` section (how to verify the changes)
+5. **Return the PR URL** to the user.
+
+Use `gh` CLI for all GitHub operations (push, PR creation). Never force-push or amend published commits.
+
 ---
 
-## 8. Summary Checklist
+## 9. Summary Checklist
 
 - [ ] Keep `app/api` thin and service-driven.
 - [ ] Keep SQLAlchemy usage async and session-injected.
