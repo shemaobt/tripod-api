@@ -1,0 +1,219 @@
+from fastapi import APIRouter, Depends, Query, status
+from fastapi.responses import PlainTextResponse
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.access_control import require_app_access
+from app.core.auth_middleware import get_current_user
+from app.core.database import get_db
+from app.core.exceptions import AuthorizationError
+from app.core.qdrant import get_qdrant_client
+from app.db.models.auth import User
+from app.db.models.meaning_map import MeaningMapStatus
+from app.models.meaning_map import (
+    FeedbackCreate,
+    FeedbackResponse,
+    FeedbackUpdate,
+    MeaningMapGenerateRequest,
+    MeaningMapResponse,
+    MeaningMapStatusUpdate,
+    MeaningMapUpdateData,
+)
+from app.services import meaning_map_service
+from app.services.meaning_map.generator import generate_meaning_map as run_generation
+
+router = APIRouter()
+_mm_access = require_app_access("meaning-map-generator")
+
+
+@router.get("", response_model=list[MeaningMapResponse], dependencies=[_mm_access])
+async def list_meaning_maps(
+    book_id: str | None = Query(default=None),
+    chapter: int | None = Query(default=None),
+    map_status: str | None = Query(default=None, alias="status"),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[MeaningMapResponse]:
+    maps = await meaning_map_service.list_meaning_maps(
+        db, book_id=book_id, chapter=chapter, status=map_status
+    )
+    return [MeaningMapResponse.model_validate(m) for m in maps]
+
+
+@router.get("/{map_id}", response_model=MeaningMapResponse, dependencies=[_mm_access])
+async def get_meaning_map(
+    map_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> MeaningMapResponse:
+    mm = await meaning_map_service.get_meaning_map_or_404(db, map_id)
+    return MeaningMapResponse.model_validate(mm)
+
+
+@router.put("/{map_id}", response_model=MeaningMapResponse, dependencies=[_mm_access])
+async def update_meaning_map(
+    map_id: str,
+    payload: MeaningMapUpdateData,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> MeaningMapResponse:
+    mm = await meaning_map_service.get_meaning_map_or_404(db, map_id)
+    pericope = await meaning_map_service.get_pericope_or_404(db, mm.pericope_id)
+    book = await meaning_map_service.get_book_or_404(db, pericope.book_id)
+    meaning_map_service.ensure_ot(book)
+    mm = await meaning_map_service.update_meaning_map_data(db, mm, payload.data, user.id)
+    return MeaningMapResponse.model_validate(mm)
+
+
+@router.patch("/{map_id}/status", response_model=MeaningMapResponse, dependencies=[_mm_access])
+async def update_status(
+    map_id: str,
+    payload: MeaningMapStatusUpdate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> MeaningMapResponse:
+    mm = await meaning_map_service.get_meaning_map_or_404(db, map_id)
+    mm = await meaning_map_service.transition_status(db, mm, payload.status, user.id)
+    return MeaningMapResponse.model_validate(mm)
+
+
+@router.post("/{map_id}/lock", response_model=MeaningMapResponse, dependencies=[_mm_access])
+async def lock_map(
+    map_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> MeaningMapResponse:
+    mm = await meaning_map_service.get_meaning_map_or_404(db, map_id)
+    mm = await meaning_map_service.lock_map(db, mm, user.id)
+    return MeaningMapResponse.model_validate(mm)
+
+
+@router.post("/{map_id}/unlock", response_model=MeaningMapResponse, dependencies=[_mm_access])
+async def unlock_map(
+    map_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> MeaningMapResponse:
+    mm = await meaning_map_service.get_meaning_map_or_404(db, map_id)
+    mm = await meaning_map_service.unlock_map(
+        db, mm, user.id, is_admin=user.is_platform_admin
+    )
+    return MeaningMapResponse.model_validate(mm)
+
+
+@router.delete("/{map_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[_mm_access])
+async def delete_meaning_map(
+    map_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    mm = await meaning_map_service.get_meaning_map_or_404(db, map_id)
+    await meaning_map_service.delete_meaning_map(db, mm, user.id)
+
+
+@router.post(
+    "/generate",
+    response_model=MeaningMapResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[_mm_access],
+)
+async def generate_meaning_map(
+    payload: MeaningMapGenerateRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> MeaningMapResponse:
+    pericope = await meaning_map_service.get_pericope_or_404(db, payload.pericope_id)
+    book = await meaning_map_service.get_book_or_404(db, pericope.book_id)
+    meaning_map_service.ensure_ot(book)
+    try:
+        qdrant = get_qdrant_client()
+    except RuntimeError:
+        qdrant = None
+    generated_data = await run_generation(
+        pericope.reference,
+        qdrant_client=qdrant,
+    )
+    mm = await meaning_map_service.create_meaning_map(
+        db,
+        pericope_id=payload.pericope_id,
+        analyst_id=user.id,
+        data=generated_data,
+    )
+    return MeaningMapResponse.model_validate(mm)
+
+
+@router.get("/{map_id}/export/json", dependencies=[_mm_access])
+async def export_json(
+    map_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> PlainTextResponse:
+    mm = await meaning_map_service.get_meaning_map_or_404(db, map_id)
+    if mm.status != MeaningMapStatus.APPROVED:
+        raise AuthorizationError("Only approved meaning maps can be exported")
+    content = meaning_map_service.export_json(mm)
+    return PlainTextResponse(content, media_type="application/json")
+
+
+@router.get("/{map_id}/export/prose", dependencies=[_mm_access])
+async def export_prose(
+    map_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> PlainTextResponse:
+    mm = await meaning_map_service.get_meaning_map_or_404(db, map_id)
+    if mm.status != MeaningMapStatus.APPROVED:
+        raise AuthorizationError("Only approved meaning maps can be exported")
+    content = meaning_map_service.export_prose(mm)
+    return PlainTextResponse(content, media_type="text/markdown")
+
+
+@router.post(
+    "/{map_id}/feedback",
+    response_model=FeedbackResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[_mm_access],
+)
+async def add_feedback(
+    map_id: str,
+    payload: FeedbackCreate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> FeedbackResponse:
+    mm = await meaning_map_service.get_meaning_map_or_404(db, map_id)
+    if mm.status != "cross_check":
+        raise AuthorizationError("Feedback can only be added during cross-check phase")
+    if mm.locked_by and mm.locked_by != user.id:
+        raise AuthorizationError("Only the cross-checker can add feedback")
+    fb = await meaning_map_service.add_feedback(
+        db, map_id, payload.section_key, user.id, payload.content
+    )
+    resp = FeedbackResponse.model_validate(fb)
+    resp.author_name = user.full_name
+    return resp
+
+
+@router.get("/{map_id}/feedback", response_model=list[FeedbackResponse], dependencies=[_mm_access])
+async def list_feedback(
+    map_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[FeedbackResponse]:
+    await meaning_map_service.get_meaning_map_or_404(db, map_id)
+    items = await meaning_map_service.list_feedback(db, map_id)
+    return [FeedbackResponse.model_validate(fb) for fb in items]
+
+
+@router.patch(
+    "/{map_id}/feedback/{feedback_id}",
+    response_model=FeedbackResponse,
+    dependencies=[_mm_access],
+)
+async def resolve_feedback(
+    map_id: str,
+    feedback_id: str,
+    payload: FeedbackUpdate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> FeedbackResponse:
+    fb = await meaning_map_service.resolve_feedback(db, map_id, feedback_id)
+    return FeedbackResponse.model_validate(fb)
