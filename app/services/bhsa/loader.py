@@ -12,12 +12,14 @@ logger = logging.getLogger(__name__)
 
 _tf_api: Any = None
 _is_loaded: bool = False
+_is_loading: bool = False
 _message: str = "Not loaded"
 
 
 def get_status() -> dict[str, Any]:
     return {
         "is_loaded": _is_loaded,
+        "is_loading": _is_loading,
         "message": _message,
     }
 
@@ -25,12 +27,16 @@ def get_status() -> dict[str, Any]:
 def load(*, settings: Settings | None = None, force: bool = False) -> None:
     from tf.app import use
 
-    global _tf_api, _is_loaded, _message
+    global _tf_api, _is_loaded, _is_loading, _message
 
     if _is_loaded and not force:
         _message = "Data already loaded"
         return
 
+    if _is_loading:
+        return
+
+    _is_loading = True
     settings = settings or get_settings()
 
     try:
@@ -53,6 +59,8 @@ def load(*, settings: Settings | None = None, force: bool = False) -> None:
     except Exception as exc:
         _message = f"Error loading data: {exc}"
         raise RuntimeError(f"Failed to load BHSA: {exc}") from exc
+    finally:
+        _is_loading = False
 
 
 def _download_from_gcs(bucket_name: str) -> None:

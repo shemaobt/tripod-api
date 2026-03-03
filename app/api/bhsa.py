@@ -9,18 +9,28 @@ router = APIRouter()
 @router.get("/status", response_model=BHSAStatusResponse)
 async def get_bhsa_status() -> BHSAStatusResponse | Response:
     status = loader.get_status()
-    response = BHSAStatusResponse(
-        status="loaded" if status["is_loaded"] else "not_loaded",
-        bhsa_loaded=status["is_loaded"],
-        message=status["message"],
-    )
-    if not status["is_loaded"]:
+
+    if status["is_loaded"]:
+        return BHSAStatusResponse(
+            status="loaded", bhsa_loaded=True, message=status["message"]
+        )
+
+    if status["is_loading"]:
         return Response(
-            content=response.model_dump_json(),
-            status_code=503,
+            content=BHSAStatusResponse(
+                status="loading", bhsa_loaded=False, message=status["message"]
+            ).model_dump_json(),
+            status_code=202,
             media_type="application/json",
         )
-    return response
+
+    return Response(
+        content=BHSAStatusResponse(
+            status="not_loaded", bhsa_loaded=False, message=status["message"]
+        ).model_dump_json(),
+        status_code=503,
+        media_type="application/json",
+    )
 
 
 @router.post("/load")
@@ -28,6 +38,8 @@ async def load_bhsa_data(background_tasks: BackgroundTasks) -> dict[str, str]:
     status = loader.get_status()
     if status["is_loaded"]:
         return {"status": "already_loaded", "message": "BHSA data is already loaded"}
+    if status["is_loading"]:
+        return {"status": "loading", "message": "BHSA data is already loading"}
 
     background_tasks.add_task(loader.load)
     return {
@@ -39,6 +51,11 @@ async def load_bhsa_data(background_tasks: BackgroundTasks) -> dict[str, str]:
 @router.get("/passage", response_model=PassageResponse)
 async def fetch_passage(ref: str) -> PassageResponse:
     status = loader.get_status()
+    if status["is_loading"]:
+        raise HTTPException(
+            status_code=202,
+            detail="BHSA data is still loading. Please try again shortly.",
+        )
     if not status["is_loaded"]:
         raise HTTPException(
             status_code=503,
