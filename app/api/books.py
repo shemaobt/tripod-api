@@ -22,6 +22,13 @@ async def list_books(
     return [BibleBookResponse.model_validate(b) for b in books]
 
 
+@router.get("/dashboard-summary", dependencies=[_mm_access])
+async def dashboard_summary(
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    return await meaning_map_service.get_dashboard_summary(db)
+
+
 @router.get("/{book_id}/chapters", response_model=list[ChapterSummary], dependencies=[_mm_access])
 async def list_chapters(
     book_id: str,
