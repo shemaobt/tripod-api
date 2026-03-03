@@ -37,9 +37,7 @@ def require_role(app_key: str, role_key: str) -> Depends:
             return user
         ok = await authorization_service.has_role(db, user.id, app_key, role_key)
         if not ok:
-            raise AuthorizationError(
-                f"Role '{role_key}' is required for this action."
-            )
+            raise AuthorizationError(f"Role '{role_key}' is required for this action.")
         return user
 
     return Depends(_check)

@@ -4,9 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models.meaning_map import MeaningMapFeedback
 
 
-async def list_feedback(
-    db: AsyncSession, meaning_map_id: str
-) -> list[MeaningMapFeedback]:
+async def list_feedback(db: AsyncSession, meaning_map_id: str) -> list[MeaningMapFeedback]:
     stmt = (
         select(MeaningMapFeedback)
         .where(MeaningMapFeedback.meaning_map_id == meaning_map_id)

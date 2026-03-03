@@ -9,18 +9,16 @@ from app.db.models.auth import App, Role, User, UserAppRole
 
 
 async def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Grant a role to a user for a specific app."
-    )
+    parser = argparse.ArgumentParser(description="Grant a role to a user for a specific app.")
+    parser.add_argument("email", type=str, help="The email of the user to grant the role to.")
     parser.add_argument(
-        "email", type=str, help="The email of the user to grant the role to."
-    )
-    parser.add_argument(
-        "app_key", type=str,
+        "app_key",
+        type=str,
         help="The unique key of the app (e.g., 'meaning-map-generator').",
     )
     parser.add_argument(
-        "role_key", type=str,
+        "role_key",
+        type=str,
         help="The role to grant (e.g., 'admin', 'annotator').",
     )
 
@@ -28,9 +26,7 @@ async def main() -> None:
 
     async with AsyncSessionLocal() as db:
         # 1. Find user
-        user = (
-            await db.execute(select(User).where(User.email == args.email))
-        ).scalar_one_or_none()
+        user = (await db.execute(select(User).where(User.email == args.email))).scalar_one_or_none()
         if not user:
             print(f"Error: User with email '{args.email}' not found.")
             sys.exit(1)
@@ -44,20 +40,23 @@ async def main() -> None:
             sys.exit(1)
 
         # 3. Find role in that app
-        role = (await db.execute(
-            select(Role).where(Role.app_id == app.id, Role.role_key == args.role_key)
-        )).scalar_one_or_none()
+        role = (
+            await db.execute(
+                select(Role).where(Role.app_id == app.id, Role.role_key == args.role_key)
+            )
+        ).scalar_one_or_none()
         if not role:
             print(f"Error: Role '{args.role_key}' not found for app '{args.app_key}'.")
             sys.exit(1)
 
         # 4. Upsert UserAppRole
-        existing = (await db.execute(
-            select(UserAppRole).where(
-                UserAppRole.user_id == user.id,
-                UserAppRole.app_id == app.id
+        existing = (
+            await db.execute(
+                select(UserAppRole).where(
+                    UserAppRole.user_id == user.id, UserAppRole.app_id == app.id
+                )
             )
-        )).scalar_one_or_none()
+        ).scalar_one_or_none()
 
         if existing:
             existing.role_id = role.id
@@ -74,6 +73,7 @@ async def main() -> None:
             )
 
         await db.commit()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

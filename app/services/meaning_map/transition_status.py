@@ -17,9 +17,7 @@ async def transition_status(
 ) -> MeaningMap:
     transition = (mm.status, new_status)
     if transition not in VALID_TRANSITIONS:
-        raise ConflictError(
-            f"Invalid status transition: {mm.status} -> {new_status}"
-        )
+        raise ConflictError(f"Invalid status transition: {mm.status} -> {new_status}")
 
     if mm.locked_by and mm.locked_by != user_id:
         raise AuthorizationError("This meaning map is locked by another user")

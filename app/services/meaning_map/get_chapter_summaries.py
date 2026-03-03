@@ -22,12 +22,12 @@ async def get_chapter_summaries(db: AsyncSession, book_id: str) -> list[ChapterS
     for row in rows:
         pericope = row[0]
         status = row[1]
-        
+
         # A pericope spans from chapter_start to chapter_end (inclusive)
         for ch in range(pericope.chapter_start, pericope.chapter_end + 1):
             if ch not in tallies:
                 tallies[ch] = {"pericope": 0, "draft": 0, "cross_check": 0, "approved": 0}
-            
+
             tallies[ch]["pericope"] += 1
             if status == "draft":
                 tallies[ch]["draft"] += 1

@@ -94,9 +94,7 @@ async def unlock_map(
     db: AsyncSession = Depends(get_db),
 ) -> MeaningMapResponse:
     mm = await meaning_map_service.get_meaning_map_or_404(db, map_id)
-    mm = await meaning_map_service.unlock_map(
-        db, mm, user.id, is_admin=user.is_platform_admin
-    )
+    mm = await meaning_map_service.unlock_map(db, mm, user.id, is_admin=user.is_platform_admin)
     return MeaningMapResponse.model_validate(mm)
 
 

@@ -88,9 +88,7 @@ def _build_generation_prompt(
         parts.append(rag_context)
         parts.append("")
 
-    parts.append(
-        "Now generate the complete Prose Meaning Map as a single JSON object.\n"
-    )
+    parts.append("Now generate the complete Prose Meaning Map as a single JSON object.\n")
 
     return "\n".join(parts)
 

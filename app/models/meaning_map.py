@@ -25,6 +25,7 @@ class ChapterSummary(BaseModel):
     cross_check_count: int = 0
     approved_count: int = 0
 
+
 class PericopeCreate(BaseModel):
     book_id: str
     chapter_start: int = Field(ge=1)
@@ -55,6 +56,7 @@ class PericopeWithStatusResponse(PericopeResponse):
     locked_by: str | None = None
     locked_by_name: str | None = None
     analyst_name: str | None = None
+
 
 class MeaningMapCreate(BaseModel):
     pericope_id: str
