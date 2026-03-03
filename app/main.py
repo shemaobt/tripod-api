@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.auth import router as auth_router
+from app.api.bhsa import router as bhsa_router
 from app.api.health import router as health_router
 from app.api.languages import router as languages_router
 from app.api.organizations import router as organizations_router
@@ -48,6 +49,7 @@ def create_app() -> FastAPI:
     app.include_router(projects_router, prefix="/api/projects", tags=["projects"])
     app.include_router(phases_router, prefix="/api/phases", tags=["phases"])
     app.include_router(rag_router, prefix="/api/rag", tags=["rag"])
+    app.include_router(bhsa_router, prefix="/api/bhsa", tags=["bhsa"])
 
     register_exception_handlers(app)
 

@@ -8,15 +8,15 @@ Shared API backend for Tripod — a platform powering multiple language and tran
 
 ```
 app/
-├── api/           # FastAPI routers (one file per domain: auth, languages, orgs, projects, phases, roles)
+├── api/           # FastAPI routers (auth, languages, orgs, projects, phases, roles, rag, bhsa)
 ├── core/          # Config, database engine, middleware, exceptions
 ├── db/
-│   └── models/    # SQLAlchemy ORM models, one file per domain:
-│                  #   auth.py · language.py · org.py · phase.py · project.py
-├── models/        # Pydantic request/response schemas, mirroring db/models structure
+│   └── models/    # SQLAlchemy ORM models (auth · language · org · phase · project)
+├── models/        # Pydantic request/response schemas
 └── services/      # Business logic, one package per domain:
                    #   auth/ · authorization/ · language/ · org/ · phase/ · project/
-                   # Each package exposes one function per file.
+                   #   rag/ (document upload, query, embeddings)
+                   #   bhsa/ (Hebrew text-fabric passage extraction)
 alembic/           # Database migrations
 scripts/           # One-off scripts (e.g. seed_apps_roles.py)
 tests/             # Async pytest suite, one file per service domain
@@ -31,14 +31,6 @@ Each layer has a single responsibility: routers call services, services use db m
 |---|---|
 | Pull request | ruff check + ruff format + pytest |
 | Push to `main` | Build image → `alembic upgrade head` → deploy to Cloud Run |
-
-Secrets required in GitHub Actions (Settings → Secrets):
-
-| Secret | Purpose |
-|---|---|
-| `GCP_PROJECT_ID` | Artifact Registry & Cloud Run project |
-| `GCP_SA_KEY` | Service account JSON (Cloud Run Admin, Artifact Registry Writer, Secret Manager Accessor) |
-| `SECRETS_PROJECT_NUMBER` | Project number for Secret Manager (`tripod_backend_neon_database_url`, `tripod_backend_jwt_secret`) |
 
 Config is pulled from GCP Secret Manager at container startup — no env vars are set manually in production or CI.
 
@@ -60,6 +52,23 @@ docker compose exec backend sh -c "set -a && . /run/secrets/.env && set +a && uv
 ```
 
 > Use a Neon dev branch for local work to avoid touching production data.
+
+### BHSA (Hebrew text data)
+
+BHSA passage extraction requires text-fabric data (~300MB download on first run). Use the `bhsa` Docker profile:
+
+```bash
+# Start backend + download BHSA data + auto-load into memory
+docker compose --profile bhsa up -d --build
+
+# Check status
+curl http://localhost:8000/api/bhsa/status
+
+# Fetch a passage
+curl 'http://localhost:8000/api/bhsa/passage?ref=Ruth%201:1-6'
+```
+
+The `bhsa-fetcher` sidecar downloads text-fabric data into a shared volume (`tf_data`), then `bhsa-load` triggers the backend to load it into memory. Data persists across restarts via the Docker volume.
 
 ## Migrations
 

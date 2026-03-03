@@ -1,0 +1,19 @@
+@baseUrl = http://localhost:8000
+
+### ——— BHSA ———
+
+### BHSA: Check status
+GET {{baseUrl}}/api/bhsa/status
+
+### BHSA: Load data (background task)
+POST {{baseUrl}}/api/bhsa/load
+Content-Type: application/json
+
+### BHSA: Fetch passage (Ruth 1:1-6)
+GET {{baseUrl}}/api/bhsa/passage?ref=Ruth%201:1-6
+
+### BHSA: Fetch passage (single verse)
+GET {{baseUrl}}/api/bhsa/passage?ref=Gen%201:1
+
+### BHSA: Fetch passage (Psalm 23)
+GET {{baseUrl}}/api/bhsa/passage?ref=Ps%2023:1-6

@@ -1,0 +1,9 @@
+FROM python:3.11-slim
+
+RUN apt-get update && apt-get install -y gcc && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir text-fabric>=12.6.0
+
+ENV TF_DATA=/root/text-fabric-data
+
+CMD ["python", "-c", "from tf.app import use; use('ETCBC/bhsa', silent=False)"]
