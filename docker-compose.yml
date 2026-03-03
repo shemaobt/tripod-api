@@ -32,6 +32,7 @@ services:
     volumes:
       - ./:/app
       - backend_venv:/opt/venv
+      - tf_data:/root/text-fabric-data
       - gcp_secrets_env:/run/secrets:ro
     dns:
       - 8.8.8.8
@@ -39,10 +40,39 @@ services:
     depends_on:
       gcp-secrets:
         condition: service_completed_successfully
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; r=urllib.request.urlopen('http://127.0.0.1:8000/health'); assert r.getcode()==200" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
     command: >
-      sh -c "set -a && . /run/secrets/.env && set +a &&
-      uv run alembic upgrade head &&
-      uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+      sh -c "set -a && . /run/secrets/.env && set +a && uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  bhsa-fetcher:
+    build:
+      context: .
+      dockerfile: Dockerfile.bhsa
+    image: tripod_bhsa
+    container_name: tripod_bhsa_fetcher
+    volumes:
+      - tf_data:/root/text-fabric-data
+    restart: "no"
+    profiles:
+      - bhsa
+
+  bhsa-load:
+    image: python:3.11-slim
+    container_name: tripod_bhsa_load
+    depends_on:
+      backend:
+        condition: service_healthy
+      bhsa-fetcher:
+        condition: service_completed_successfully
+    restart: "no"
+    command: [ "python", "-c", "import urllib.request; req=urllib.request.Request('http://backend:8000/api/bhsa/load', method='POST'); urllib.request.urlopen(req)" ]
+    profiles:
+      - bhsa
 
   lint:
     build:
@@ -60,3 +90,4 @@ services:
 volumes:
   backend_venv:
   gcp_secrets_env:
+  tf_data:
