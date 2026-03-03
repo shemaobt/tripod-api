@@ -1,6 +1,7 @@
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth_cache import get_cached_roles, set_cached_roles
 from app.core.auth_middleware import get_current_user
 from app.core.database import get_db
 from app.core.exceptions import AuthorizationError
@@ -16,7 +17,10 @@ def require_app_access(app_key: str) -> Depends:
     ) -> User:
         if user.is_platform_admin:
             return user
-        roles = await authorization_service.list_roles(db, user.id, app_key)
+        roles = get_cached_roles(user.id, app_key)
+        if roles is None:
+            roles = await authorization_service.list_roles(db, user.id, app_key)
+            set_cached_roles(user.id, app_key, roles)
         if not roles:
             raise AuthorizationError(
                 f"You don't have access to the '{app_key}' application. "

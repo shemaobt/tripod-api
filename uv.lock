@@ -123,6 +123,15 @@ wheels = [
 ]
 
 [[package]]
+name = "cachetools"
+version = "7.0.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/6c/c7/342b33cc6877eebc6c9bb45cb9f78e170e575839699f6f3cc96050176431/cachetools-7.0.2.tar.gz", hash = "sha256:7e7f09a4ca8b791d8bb4864afc71e9c17e607a28e6839ca1a644253c97dbeae0", size = 36983, upload-time = "2026-03-02T19:45:16.926Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ef/04/4b6968e77c110f12da96fdbfcb39c6557c2e5e81bd7afcf8ed893d5bc588/cachetools-7.0.2-py3-none-any.whl", hash = "sha256:938dcad184827c5e94928c4fd5526e2b46692b7fb1ae94472da9131d0299343c", size = 13793, upload-time = "2026-03-02T19:45:15.495Z" },
+]
+
+[[package]]
 name = "certifi"
 version = "2026.2.25"
 source = { registry = "https://pypi.org/simple" }
@@ -1728,6 +1737,7 @@ source = { editable = "." }
 dependencies = [
     { name = "alembic" },
     { name = "asyncpg" },
+    { name = "cachetools" },
     { name = "fastapi" },
     { name = "gunicorn" },
     { name = "httpx" },
@@ -1757,6 +1767,7 @@ dev = [
 requires-dist = [
     { name = "alembic", specifier = "==1.14.0" },
     { name = "asyncpg", specifier = "==0.30.0" },
+    { name = "cachetools", specifier = ">=7.0.2" },
     { name = "fastapi", specifier = "==0.115.0" },
     { name = "gunicorn", specifier = "==22.0.0" },
     { name = "httpx", specifier = ">=0.28.1" },
