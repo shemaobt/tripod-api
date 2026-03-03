@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import FieldCondition, Filter, MatchValue
 
-from app.core.config import get_settings
+from app.core.config import Settings, get_settings
 from app.models.rag import RagNamespace
 
 
@@ -9,12 +11,10 @@ async def delete_document(
     client: AsyncQdrantClient,
     namespace: RagNamespace,
     doc_id: str,
+    *,
+    settings: Settings | None = None,
 ) -> int:
-    """Delete all Qdrant points belonging to a document in a namespace.
-
-    Returns the number of deleted points (best-effort count via pre-scroll).
-    """
-    settings = get_settings()
+    settings = settings or get_settings()
 
     existing = await client.scroll(
         collection_name=settings.qdrant_collection,

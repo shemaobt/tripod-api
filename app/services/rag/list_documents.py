@@ -1,16 +1,19 @@
+from __future__ import annotations
+
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import FieldCondition, Filter, MatchValue
 
-from app.core.config import get_settings
+from app.core.config import Settings, get_settings
 from app.models.rag import DocumentInfo, RagNamespace
 
 
 async def list_documents(
     client: AsyncQdrantClient,
     namespace: RagNamespace,
+    *,
+    settings: Settings | None = None,
 ) -> list[DocumentInfo]:
-    """List all unique documents in a namespace by scrolling and grouping by doc_id."""
-    settings = get_settings()
+    settings = settings or get_settings()
 
     points, _ = await client.scroll(
         collection_name=settings.qdrant_collection,

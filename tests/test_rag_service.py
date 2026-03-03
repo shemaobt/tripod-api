@@ -1,5 +1,6 @@
 import uuid
-from unittest.mock import AsyncMock, MagicMock, patch
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -21,54 +22,47 @@ def qdrant():
     return client
 
 
-@pytest.fixture(autouse=True)
-def _settings():
-    settings = MagicMock()
-    settings.qdrant_collection = "meaning_map_test"
-    settings.google_api_key = "fake-key"
-    settings.google_embedding_model = "gemini-embedding-001"
-    settings.google_llm_model = "gemini-3.1-pro-preview"
-    settings.rag_chunk_size = 200
-    settings.rag_chunk_overlap = 50
-    settings.rag_top_k = 3
-    with (
-        patch("app.services.rag.upload_document.get_settings", return_value=settings),
-        patch("app.services.rag.query.get_settings", return_value=settings),
-        patch("app.services.rag.delete_document.get_settings", return_value=settings),
-        patch("app.services.rag.list_documents.get_settings", return_value=settings),
-    ):
-        yield settings
+@pytest.fixture()
+def settings():
+    return SimpleNamespace(
+        qdrant_collection="meaning_map_test",
+        google_api_key="fake-key",
+        google_embedding_model="gemini-embedding-001",
+        google_llm_model="gemini-3.1-pro-preview",
+        rag_chunk_size=200,
+        rag_chunk_overlap=50,
+        rag_top_k=3,
+    )
 
 
 @pytest.fixture()
-def mock_embeddings():
-    with patch("app.services.rag.upload_document.GoogleGenerativeAIEmbeddings") as cls:
-        cls.return_value.aembed_documents = AsyncMock(
-            side_effect=lambda texts: [[0.1] * VECTOR_DIM for _ in texts]
-        )
-        yield cls
+def embeddings():
+    mock = AsyncMock()
+    mock.aembed_documents = AsyncMock(side_effect=lambda texts: [[0.1] * VECTOR_DIM for _ in texts])
+    mock.aembed_query = AsyncMock(return_value=[0.5] * VECTOR_DIM)
+    return mock
 
 
 @pytest.fixture()
-def mock_query_embeddings():
-    with patch("app.services.rag.query.GoogleGenerativeAIEmbeddings") as cls:
-        cls.return_value.aembed_query = AsyncMock(return_value=[0.5] * VECTOR_DIM)
-        yield cls
-
-
-@pytest.fixture()
-def mock_llm():
-    with patch("app.services.rag.query.ChatGoogleGenerativeAI") as cls:
-        response = MagicMock()
-        response.content = "The project uses FastAPI as its web framework."
-        cls.return_value.ainvoke = AsyncMock(return_value=response)
-        yield cls
+def llm():
+    mock = AsyncMock()
+    response = MagicMock()
+    response.content = "The project uses FastAPI as its web framework."
+    mock.ainvoke = AsyncMock(return_value=response)
+    return mock
 
 
 @pytest.mark.asyncio
-async def test_upload_splits_embeds_and_upserts(qdrant, mock_embeddings) -> None:
+async def test_upload_splits_embeds_and_upserts(qdrant, settings, embeddings) -> None:
     content = "# Title\n\n" + ("Lorem ipsum dolor sit amet. " * 30)
-    result = await upload_document(qdrant, NAMESPACE, "guide.md", content)
+    result = await upload_document(
+        qdrant,
+        NAMESPACE,
+        "guide.md",
+        content,
+        settings=settings,
+        embeddings=embeddings,
+    )
 
     assert result.filename == "guide.md"
     assert result.namespace == "meaning-map-docs"
@@ -90,19 +84,32 @@ async def test_upload_splits_embeds_and_upserts(qdrant, mock_embeddings) -> None
 
 
 @pytest.mark.asyncio
-async def test_upload_rejects_non_md(qdrant) -> None:
+async def test_upload_rejects_non_md(qdrant, settings) -> None:
     with pytest.raises(ValueError, match=r"Only \.md files"):
-        await upload_document(qdrant, NAMESPACE, "readme.txt", "content")
+        await upload_document(
+            qdrant,
+            NAMESPACE,
+            "readme.txt",
+            "content",
+            settings=settings,
+        )
 
 
 @pytest.mark.asyncio
-async def test_upload_rejects_empty_content(qdrant, mock_embeddings) -> None:
+async def test_upload_rejects_empty_content(qdrant, settings, embeddings) -> None:
     with pytest.raises(ValueError, match="empty"):
-        await upload_document(qdrant, NAMESPACE, "empty.md", "")
+        await upload_document(
+            qdrant,
+            NAMESPACE,
+            "empty.md",
+            "",
+            settings=settings,
+            embeddings=embeddings,
+        )
 
 
 @pytest.mark.asyncio
-async def test_query_returns_answer_and_sources(qdrant, mock_query_embeddings, mock_llm) -> None:
+async def test_query_returns_answer_and_sources(qdrant, settings, embeddings, llm) -> None:
     point = MagicMock()
     point.payload = {
         "namespace": "meaning-map-docs",
@@ -116,7 +123,15 @@ async def test_query_returns_answer_and_sources(qdrant, mock_query_embeddings, m
     result_obj.points = [point]
     qdrant.query_points = AsyncMock(return_value=result_obj)
 
-    result = await query(qdrant, NAMESPACE, "What stack?", top_k=3)
+    result = await query(
+        qdrant,
+        NAMESPACE,
+        "What stack?",
+        top_k=3,
+        settings=settings,
+        embeddings=embeddings,
+        llm=llm,
+    )
 
     assert result.answer == "The project uses FastAPI as its web framework."
     assert len(result.sources) == 1
@@ -129,24 +144,30 @@ async def test_query_returns_answer_and_sources(qdrant, mock_query_embeddings, m
 
 
 @pytest.mark.asyncio
-async def test_query_empty_collection_returns_fallback(qdrant, mock_query_embeddings) -> None:
+async def test_query_empty_collection_returns_fallback(qdrant, settings, embeddings) -> None:
     result_obj = MagicMock()
     result_obj.points = []
     qdrant.query_points = AsyncMock(return_value=result_obj)
 
-    result = await query(qdrant, NAMESPACE, "Any question?")
+    result = await query(
+        qdrant,
+        NAMESPACE,
+        "Any question?",
+        settings=settings,
+        embeddings=embeddings,
+    )
 
     assert "don't have enough information" in result.answer.lower()
     assert result.sources == []
 
 
 @pytest.mark.asyncio
-async def test_delete_filters_by_namespace_and_doc_id(qdrant) -> None:
+async def test_delete_filters_by_namespace_and_doc_id(qdrant, settings) -> None:
     mock_points = [MagicMock() for _ in range(3)]
     qdrant.scroll = AsyncMock(return_value=(mock_points, None))
 
     doc_id = str(uuid.uuid4())
-    deleted = await delete_document(qdrant, NAMESPACE, doc_id)
+    deleted = await delete_document(qdrant, NAMESPACE, doc_id, settings=settings)
 
     assert deleted == 3
     qdrant.delete.assert_called_once()
@@ -158,15 +179,15 @@ async def test_delete_filters_by_namespace_and_doc_id(qdrant) -> None:
 
 
 @pytest.mark.asyncio
-async def test_delete_returns_zero_when_not_found(qdrant) -> None:
+async def test_delete_returns_zero_when_not_found(qdrant, settings) -> None:
     qdrant.scroll = AsyncMock(return_value=([], None))
 
-    deleted = await delete_document(qdrant, NAMESPACE, str(uuid.uuid4()))
+    deleted = await delete_document(qdrant, NAMESPACE, str(uuid.uuid4()), settings=settings)
     assert deleted == 0
 
 
 @pytest.mark.asyncio
-async def test_list_groups_by_doc_id(qdrant) -> None:
+async def test_list_groups_by_doc_id(qdrant, settings) -> None:
     doc_id_a = str(uuid.uuid4())
     doc_id_b = str(uuid.uuid4())
 
@@ -185,7 +206,7 @@ async def test_list_groups_by_doc_id(qdrant) -> None:
 
     qdrant.scroll = AsyncMock(return_value=(points, None))
 
-    result = await list_documents(qdrant, NAMESPACE)
+    result = await list_documents(qdrant, NAMESPACE, settings=settings)
 
     assert len(result) == 2
     by_id = {d.doc_id: d for d in result}
@@ -195,8 +216,8 @@ async def test_list_groups_by_doc_id(qdrant) -> None:
 
 
 @pytest.mark.asyncio
-async def test_list_empty_namespace(qdrant) -> None:
+async def test_list_empty_namespace(qdrant, settings) -> None:
     qdrant.scroll = AsyncMock(return_value=([], None))
 
-    result = await list_documents(qdrant, NAMESPACE)
+    result = await list_documents(qdrant, NAMESPACE, settings=settings)
     assert result == []

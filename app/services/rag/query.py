@@ -1,10 +1,18 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import FieldCondition, Filter, MatchValue
 
-from app.core.config import get_settings
+from app.core.config import Settings, get_settings
 from app.models.rag import QueryResponse, RagNamespace, SourceChunk
 from app.services.rag.prompts import NO_CONTEXT_ANSWER, build_rag_prompt
+
+if TYPE_CHECKING:
+    from langchain_core.embeddings import Embeddings
+    from langchain_core.language_models import BaseChatModel
 
 
 async def query(
@@ -12,16 +20,19 @@ async def query(
     namespace: RagNamespace,
     question: str,
     top_k: int | None = None,
+    *,
+    settings: Settings | None = None,
+    embeddings: Embeddings | None = None,
+    llm: BaseChatModel | None = None,
 ) -> QueryResponse:
-    """Search for relevant chunks in a namespace and generate an answer with Gemini."""
-    settings = get_settings()
+    settings = settings or get_settings()
     k = top_k or settings.rag_top_k
 
-    embeddings_model = GoogleGenerativeAIEmbeddings(
+    embeddings = embeddings or GoogleGenerativeAIEmbeddings(
         model=settings.google_embedding_model,
         google_api_key=settings.google_api_key,
     )
-    question_vector = await embeddings_model.aembed_query(question)
+    question_vector = await embeddings.aembed_query(question)
 
     results = await client.query_points(
         collection_name=settings.qdrant_collection,
@@ -53,7 +64,7 @@ async def query(
     if not context_parts:
         return QueryResponse(answer=NO_CONTEXT_ANSWER, sources=[])
 
-    llm = ChatGoogleGenerativeAI(
+    llm = llm or ChatGoogleGenerativeAI(
         model=settings.google_llm_model,
         google_api_key=settings.google_api_key,
     )

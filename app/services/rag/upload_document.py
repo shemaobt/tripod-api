@@ -1,13 +1,19 @@
+from __future__ import annotations
+
 import uuid
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import PointStruct
 
-from app.core.config import get_settings
+from app.core.config import Settings, get_settings
 from app.models.rag import DocumentUploadResponse, RagNamespace
 from app.services.rag.splitters import split_markdown
+
+if TYPE_CHECKING:
+    from langchain_core.embeddings import Embeddings
 
 
 async def upload_document(
@@ -15,8 +21,11 @@ async def upload_document(
     namespace: RagNamespace,
     filename: str,
     content: str,
+    *,
+    settings: Settings | None = None,
+    embeddings: Embeddings | None = None,
 ) -> DocumentUploadResponse:
-    settings = get_settings()
+    settings = settings or get_settings()
 
     if not filename.lower().endswith(".md"):
         raise ValueError("Only .md files are supported")
@@ -28,11 +37,11 @@ async def upload_document(
 
     chunk_texts = [chunk.page_content for chunk in chunks]
 
-    embeddings_model = GoogleGenerativeAIEmbeddings(
+    embeddings = embeddings or GoogleGenerativeAIEmbeddings(
         model=settings.google_embedding_model,
         google_api_key=settings.google_api_key,
     )
-    vectors = await embeddings_model.aembed_documents(chunk_texts)
+    vectors = await embeddings.aembed_documents(chunk_texts)
 
     doc_id = str(uuid.uuid4())
     now = datetime.now(UTC).isoformat()
