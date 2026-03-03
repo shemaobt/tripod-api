@@ -1,0 +1,59 @@
+@baseUrl = http://localhost:8000
+@accessToken = <paste_access_token_here>
+
+### ——— Phases ———
+
+### Phases: Create
+POST {{baseUrl}}/api/phases
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "Drafting",
+  "description": "Initial drafting phase"
+}
+
+### Phases: List all
+GET {{baseUrl}}/api/phases
+Authorization: Bearer {{accessToken}}
+
+### Phases: List by project
+GET {{baseUrl}}/api/phases?project_id=PROJECT_ID
+Authorization: Bearer {{accessToken}}
+
+### Phases: Get by id
+GET {{baseUrl}}/api/phases/PHASE_ID
+Authorization: Bearer {{accessToken}}
+
+### Phases: Update
+PATCH {{baseUrl}}/api/phases/PHASE_ID
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "Drafting (revised)",
+  "description": "Updated description"
+}
+
+### Phases: Delete
+DELETE {{baseUrl}}/api/phases/PHASE_ID
+Authorization: Bearer {{accessToken}}
+
+### ——— Dependencies ———
+
+### Dependencies: Add
+POST {{baseUrl}}/api/phases/PHASE_ID/dependencies
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "depends_on_id": "OTHER_PHASE_ID"
+}
+
+### Dependencies: List
+GET {{baseUrl}}/api/phases/PHASE_ID/dependencies
+Authorization: Bearer {{accessToken}}
+
+### Dependencies: Remove
+DELETE {{baseUrl}}/api/phases/PHASE_ID/dependencies/OTHER_PHASE_ID
+Authorization: Bearer {{accessToken}}

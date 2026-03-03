@@ -1,0 +1,35 @@
+@baseUrl = http://localhost:8000
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmNzg1YWJmMC1iOWQ2LTQ5YjYtOWNhZC0zYWQyOTYwMWFmOGIiLCJ0eXBlIjoiYWNjZXNzIiwianRpIjoiOTQ3MjEyMDgtZWVmZC00NDU1LTg5OWItNDI1YjFmZTI1MmY1IiwiaWF0IjoxNzcyNDkyMTQxLCJleHAiOjE3NzI0OTM5NDF9.-xdVa1QC_ENAureIDiSuT9NjM0Nbi54NP2WXPznBEDY
+@namespace = meaning-map-docs
+
+### ——— RAG ———
+
+### RAG: Upload .md document (from local file)
+POST {{baseUrl}}/api/rag/{{namespace}}/upload
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="01_methodology_guide.md"
+Content-Type: text/markdown
+
+< /Users/joao/Desktop/work/shema/01_methodology_guide.md
+------Boundary--
+
+### RAG: Query documents
+POST {{baseUrl}}/api/rag/{{namespace}}/query
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "question": "How the methodology works?",
+  "top_k": 5
+}
+
+### RAG: List documents in namespace
+GET {{baseUrl}}/api/rag/{{namespace}}/documents
+Authorization: Bearer {{accessToken}}
+
+### RAG: Delete document (replace DOC_ID with real id from upload/list response)
+DELETE {{baseUrl}}/api/rag/{{namespace}}/documents/3cb5ae37-4fd1-4d93-8c2f-3e339d1c1039
+Authorization: Bearer {{accessToken}}

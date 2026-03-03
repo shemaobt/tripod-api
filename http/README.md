@@ -10,7 +10,9 @@ Use these with VS Code [REST Client](https://marketplace.visualstudio.com/items?
 - **roles.http** – Role check, assign, revoke. Requires a valid `access_token`: run **Auth: Login** in `auth.http`, copy `tokens.access_token` from the response, and set `@accessToken` at the top of `roles.http`.
 - **languages.http** – List, create, get by id/code. Set `@accessToken` after login.
 - **organizations.http** – List, create, get by id/slug, add member. Set `@accessToken` after login.
+- **phases.http** – Create, list (all or by project), get, update, delete. Also: add, list, and remove dependencies. Set `@accessToken` after login; replace `PHASE_ID`, `PROJECT_ID`, `OTHER_PHASE_ID` with real IDs.
 - **projects.http** – List, create, get by id, update location, grant user/org access. Set `@accessToken` after login; replace `LANGUAGE_ID`, `PROJECT_ID`, `ORGANIZATION_ID`, `USER_ID` with real IDs.
+- **rag.http** – Upload `.md` document, query, list documents, delete document. Set `@accessToken` after login; replace `DOC_ID` with real id from upload/list response.
 - **errors.http** – Examples that trigger 401, 409, etc.
 
 ## Base URL
