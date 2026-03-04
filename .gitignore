@@ -10,3 +10,4 @@ __pycache__/
 htmlcov/
 alembic/__pycache__/
 test.db
+scripts/seed_initial_users.py
