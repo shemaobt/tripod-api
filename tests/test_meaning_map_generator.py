@@ -65,9 +65,7 @@ def test_build_prompt_includes_reference() -> None:
 
 def test_build_prompt_includes_bhsa_data() -> None:
     bhsa_data = {
-        "clauses": [
-            {"text_plain": "bereshit", "clause_type": "NC", "gloss": "in the beginning"}
-        ]
+        "clauses": [{"text_plain": "bereshit", "clause_type": "NC", "gloss": "in the beginning"}]
     }
     prompt = _build_generation_prompt("Genesis 1:1", bhsa_data, None)
     assert "Hebrew Linguistic Data" in prompt

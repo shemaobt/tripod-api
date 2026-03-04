@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.auth import App, RefreshToken, Role, User, UserAppRole
+from app.db.models.auth import AccessRequest, App, RefreshToken, Role, User, UserAppRole
 from app.db.models.language import Language
 from app.db.models.meaning_map import (
     BibleBook,
@@ -18,6 +18,62 @@ from app.db.models.project import (
     ProjectUserAccess,
 )
 from app.services.auth.hash_password import hash_password
+
+SAMPLE_MM_DATA: dict = {
+    "level_1": {"arc": "God creates the heavens and the earth."},
+    "level_2_scenes": [
+        {
+            "scene_number": 1,
+            "verses": "1-5",
+            "title": "Creation of light",
+            "people": [
+                {
+                    "name": "God",
+                    "role": "Creator",
+                    "relationship": "",
+                    "wants": "to create",
+                    "carries": "",
+                }
+            ],
+            "places": [
+                {
+                    "name": "The void",
+                    "role": "setting",
+                    "type": "cosmic",
+                    "meaning": "emptiness",
+                    "effect_on_scene": "sets stage",
+                }
+            ],
+            "objects": [
+                {
+                    "name": "Light",
+                    "what_it_is": "illumination",
+                    "function_in_scene": "first creation",
+                    "signals": "goodness",
+                }
+            ],
+            "significant_absence": "",
+            "what_happens": ("God speaks light into existence and separates it from darkness."),
+            "communicative_purpose": (
+                "Establishes God as sovereign creator."
+                " Shows the power of divine speech."
+                " Introduces the pattern of creation by word."
+            ),
+        }
+    ],
+    "level_3_propositions": [
+        {
+            "proposition_number": 1,
+            "verse": "1",
+            "content": [
+                {
+                    "question": "What happens?",
+                    "answer": "God creates the heavens and the earth.",
+                }
+            ],
+        }
+    ],
+}
 
 
 async def make_user(
@@ -351,3 +407,23 @@ async def make_meaning_map_feedback(
     await db.commit()
     await db.refresh(fb)
     return fb
+
+
+async def make_access_request(
+    db: AsyncSession,
+    user_id: str,
+    app_id: str,
+    *,
+    status: str = "pending",
+    note: str | None = None,
+) -> AccessRequest:
+    req = AccessRequest(
+        user_id=user_id,
+        app_id=app_id,
+        status=status,
+        note=note,
+    )
+    db.add(req)
+    await db.commit()
+    await db.refresh(req)
+    return req
