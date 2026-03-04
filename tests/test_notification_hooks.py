@@ -11,9 +11,7 @@ from tests.baker import make_bible_book, make_meaning_map, make_pericope, make_u
 @pytest.fixture
 async def mm_app(db_session):
     """Fetch the pre-seeded meaning-map-generator app."""
-    result = await db_session.execute(
-        select(App).where(App.app_key == "meaning-map-generator")
-    )
+    result = await db_session.execute(select(App).where(App.app_key == "meaning-map-generator"))
     return result.scalar_one()
 
 
@@ -37,9 +35,7 @@ async def test_approve_creates_notification_for_analyst(db_session, mm_app) -> N
     checker = await make_user(db_session, email="hook-checker1@test.com")
     book = await make_bible_book(db_session)
     pericope = await make_pericope(db_session, book.id, reference="Ruth 1:1-5")
-    mm = await make_meaning_map(
-        db_session, pericope.id, analyst.id, status="cross_check"
-    )
+    mm = await make_meaning_map(db_session, pericope.id, analyst.id, status="cross_check")
 
     await transition_status(db_session, mm, "approved", checker.id)
 
@@ -58,9 +54,7 @@ async def test_revisions_requested_creates_notification(db_session, mm_app) -> N
     checker = await make_user(db_session, email="hook-checker2@test.com")
     book = await make_bible_book(db_session)
     pericope = await make_pericope(db_session, book.id, reference="Gen 1:1-5")
-    mm = await make_meaning_map(
-        db_session, pericope.id, analyst.id, status="cross_check"
-    )
+    mm = await make_meaning_map(db_session, pericope.id, analyst.id, status="cross_check")
 
     await transition_status(db_session, mm, "draft", checker.id)
 
@@ -94,9 +88,7 @@ async def test_add_feedback_creates_notification_for_analyst(db_session, mm_app)
     checker = await make_user(db_session, email="hook-checker4@test.com")
     book = await make_bible_book(db_session)
     pericope = await make_pericope(db_session, book.id, reference="Exod 2:1-10")
-    mm = await make_meaning_map(
-        db_session, pericope.id, analyst.id, status="cross_check"
-    )
+    mm = await make_meaning_map(db_session, pericope.id, analyst.id, status="cross_check")
 
     await add_feedback(db_session, mm.id, "level_1.arc", checker.id, "Needs revision")
 
@@ -111,9 +103,7 @@ async def test_add_feedback_no_notification_when_self(db_session, mm_app) -> Non
     analyst = await make_user(db_session, email="hook-analyst5@test.com")
     book = await make_bible_book(db_session)
     pericope = await make_pericope(db_session, book.id)
-    mm = await make_meaning_map(
-        db_session, pericope.id, analyst.id, status="cross_check"
-    )
+    mm = await make_meaning_map(db_session, pericope.id, analyst.id, status="cross_check")
 
     await add_feedback(db_session, mm.id, "level_1.arc", analyst.id, "Self feedback")
 

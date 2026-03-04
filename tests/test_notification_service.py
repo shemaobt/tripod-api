@@ -115,12 +115,20 @@ async def test_list_notifications_returns_all(db_session) -> None:
     app = await make_app(db_session, app_key="notif-app-5")
 
     n1 = await create_notification(
-        db_session, user_id=user.id, app_id=app.id,
-        event_type="e1", title="First", body="First",
+        db_session,
+        user_id=user.id,
+        app_id=app.id,
+        event_type="e1",
+        title="First",
+        body="First",
     )
     n2 = await create_notification(
-        db_session, user_id=user.id, app_id=app.id,
-        event_type="e2", title="Second", body="Second",
+        db_session,
+        user_id=user.id,
+        app_id=app.id,
+        event_type="e2",
+        title="Second",
+        body="Second",
     )
 
     results = await list_notifications(db_session, user.id, app.id)
@@ -135,13 +143,21 @@ async def test_list_notifications_unread_only(db_session) -> None:
     app = await make_app(db_session, app_key="notif-app-6")
 
     n1 = await create_notification(
-        db_session, user_id=user.id, app_id=app.id,
-        event_type="e1", title="Read", body="Read",
+        db_session,
+        user_id=user.id,
+        app_id=app.id,
+        event_type="e1",
+        title="Read",
+        body="Read",
     )
     await mark_as_read(db_session, n1.id, user.id)
     await create_notification(
-        db_session, user_id=user.id, app_id=app.id,
-        event_type="e2", title="Unread", body="Unread",
+        db_session,
+        user_id=user.id,
+        app_id=app.id,
+        event_type="e2",
+        title="Unread",
+        body="Unread",
     )
 
     results = await list_notifications(db_session, user.id, app.id, unread_only=True)
@@ -156,8 +172,12 @@ async def test_list_notifications_respects_limit(db_session) -> None:
 
     for i in range(5):
         await create_notification(
-            db_session, user_id=user.id, app_id=app.id,
-            event_type="e", title=f"N{i}", body=f"B{i}",
+            db_session,
+            user_id=user.id,
+            app_id=app.id,
+            event_type="e",
+            title=f"N{i}",
+            body=f"B{i}",
         )
 
     results = await list_notifications(db_session, user.id, app.id, limit=3)
@@ -171,12 +191,20 @@ async def test_list_notifications_filters_by_app(db_session) -> None:
     app2 = await make_app(db_session, app_key="notif-app-8b")
 
     await create_notification(
-        db_session, user_id=user.id, app_id=app1.id,
-        event_type="e", title="App1", body="App1",
+        db_session,
+        user_id=user.id,
+        app_id=app1.id,
+        event_type="e",
+        title="App1",
+        body="App1",
     )
     await create_notification(
-        db_session, user_id=user.id, app_id=app2.id,
-        event_type="e", title="App2", body="App2",
+        db_session,
+        user_id=user.id,
+        app_id=app2.id,
+        event_type="e",
+        title="App2",
+        body="App2",
     )
 
     results = await list_notifications(db_session, user.id, app1.id)
@@ -203,12 +231,20 @@ async def test_unread_count_increments(db_session) -> None:
     app = await make_app(db_session, app_key="notif-app-10")
 
     await create_notification(
-        db_session, user_id=user.id, app_id=app.id,
-        event_type="e", title="T", body="B",
+        db_session,
+        user_id=user.id,
+        app_id=app.id,
+        event_type="e",
+        title="T",
+        body="B",
     )
     await create_notification(
-        db_session, user_id=user.id, app_id=app.id,
-        event_type="e", title="T2", body="B2",
+        db_session,
+        user_id=user.id,
+        app_id=app.id,
+        event_type="e",
+        title="T2",
+        body="B2",
     )
 
     count = await unread_count(db_session, user.id, app.id)
@@ -221,8 +257,12 @@ async def test_unread_count_decrements_after_mark_read(db_session) -> None:
     app = await make_app(db_session, app_key="notif-app-11")
 
     n = await create_notification(
-        db_session, user_id=user.id, app_id=app.id,
-        event_type="e", title="T", body="B",
+        db_session,
+        user_id=user.id,
+        app_id=app.id,
+        event_type="e",
+        title="T",
+        body="B",
     )
     await mark_as_read(db_session, n.id, user.id)
 
@@ -241,8 +281,12 @@ async def test_mark_as_read_success(db_session) -> None:
     app = await make_app(db_session, app_key="notif-app-12")
 
     n = await create_notification(
-        db_session, user_id=user.id, app_id=app.id,
-        event_type="e", title="T", body="B",
+        db_session,
+        user_id=user.id,
+        app_id=app.id,
+        event_type="e",
+        title="T",
+        body="B",
     )
     assert n.is_read is False
 
@@ -257,8 +301,12 @@ async def test_mark_as_read_wrong_user_raises(db_session) -> None:
     app = await make_app(db_session, app_key="notif-app-13")
 
     n = await create_notification(
-        db_session, user_id=user.id, app_id=app.id,
-        event_type="e", title="T", body="B",
+        db_session,
+        user_id=user.id,
+        app_id=app.id,
+        event_type="e",
+        title="T",
+        body="B",
     )
 
     with pytest.raises(NotFoundError):
@@ -284,12 +332,20 @@ async def test_mark_all_as_read_success(db_session) -> None:
     app = await make_app(db_session, app_key="notif-app-15")
 
     await create_notification(
-        db_session, user_id=user.id, app_id=app.id,
-        event_type="e", title="T1", body="B1",
+        db_session,
+        user_id=user.id,
+        app_id=app.id,
+        event_type="e",
+        title="T1",
+        body="B1",
     )
     await create_notification(
-        db_session, user_id=user.id, app_id=app.id,
-        event_type="e", title="T2", body="B2",
+        db_session,
+        user_id=user.id,
+        app_id=app.id,
+        event_type="e",
+        title="T2",
+        body="B2",
     )
 
     count = await mark_all_as_read(db_session, user.id)
@@ -305,8 +361,12 @@ async def test_mark_all_as_read_idempotent(db_session) -> None:
     app = await make_app(db_session, app_key="notif-app-16")
 
     await create_notification(
-        db_session, user_id=user.id, app_id=app.id,
-        event_type="e", title="T", body="B",
+        db_session,
+        user_id=user.id,
+        app_id=app.id,
+        event_type="e",
+        title="T",
+        body="B",
     )
 
     await mark_all_as_read(db_session, user.id)

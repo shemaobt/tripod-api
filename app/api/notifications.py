@@ -25,7 +25,8 @@ async def _get_app_id(db: AsyncSession) -> str:
 
 
 async def _enrich_with_details(
-    db: AsyncSession, notifications: list,
+    db: AsyncSession,
+    notifications: list,
 ) -> list[NotificationResponse]:
     """Build response list with meaning-map detail joined in."""
     if not notifications:

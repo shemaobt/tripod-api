@@ -28,13 +28,9 @@ router = APIRouter()
 _mm_access = require_app_access("meaning-map-generator")
 
 
-async def _enrich_response(
-    db: AsyncSession, mm: MeaningMapModel
-) -> MeaningMapResponse:
+async def _enrich_response(db: AsyncSession, mm: MeaningMapModel) -> MeaningMapResponse:
     """Build MeaningMapResponse with book/pericope context."""
-    pericope, book = await meaning_map_service.get_pericope_with_book(
-        db, mm.pericope_id
-    )
+    pericope, book = await meaning_map_service.get_pericope_with_book(db, mm.pericope_id)
     resp = MeaningMapResponse.model_validate(mm)
     resp.book_id = book.id
     resp.book_name = book.name
@@ -134,9 +130,7 @@ async def generate_meaning_map(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> MeaningMapResponse:
-    pericope, book = await meaning_map_service.get_pericope_with_book(
-        db, payload.pericope_id
-    )
+    pericope, book = await meaning_map_service.get_pericope_with_book(db, payload.pericope_id)
     meaning_map_service.ensure_ot(book)
     try:
         qdrant = get_qdrant_client()

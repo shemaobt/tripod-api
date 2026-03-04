@@ -13,9 +13,9 @@ async def get_dashboard_summary(db: AsyncSession) -> dict:
         select(
             func.count(distinct(Pericope.id)).label("total"),
             func.count(distinct(case((MeaningMap.status == "draft", Pericope.id)))).label("draft"),
-            func.count(
-                distinct(case((MeaningMap.status == "cross_check", Pericope.id)))
-            ).label("cross_check"),
+            func.count(distinct(case((MeaningMap.status == "cross_check", Pericope.id)))).label(
+                "cross_check"
+            ),
             func.count(distinct(case((MeaningMap.status == "approved", Pericope.id)))).label(
                 "approved"
             ),

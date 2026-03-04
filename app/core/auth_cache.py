@@ -13,6 +13,7 @@ _roles_cache: TTLCache = TTLCache(maxsize=512, ttl=300)
 
 # -- User cache -------------------------------------------------------------
 
+
 def get_cached_user(user_id: str):
     return _user_cache.get(user_id)
 
@@ -26,6 +27,7 @@ def invalidate_user(user_id: str) -> None:
 
 
 # -- Roles cache ------------------------------------------------------------
+
 
 def _roles_key(user_id: str, app_key: str | None) -> str:
     return f"{user_id}:{app_key or '*'}"

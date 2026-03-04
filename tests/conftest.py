@@ -40,7 +40,9 @@ async def db_session(test_engine) -> AsyncGenerator[AsyncSession, None]:
         from app.db.models.auth import App
 
         mm_app = App(
-            app_key="meaning-map-generator", name="Meaning Map Generator", is_active=True,
+            app_key="meaning-map-generator",
+            name="Meaning Map Generator",
+            is_active=True,
         )
         session.add(mm_app)
         await session.commit()
