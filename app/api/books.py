@@ -18,8 +18,7 @@ _mm_access = require_app_access("meaning-map-generator")
 async def list_books(
     db: AsyncSession = Depends(get_db),
 ) -> list[BibleBookResponse]:
-    books = await meaning_map_service.list_books(db)
-    return [BibleBookResponse.model_validate(b) for b in books]
+    return await meaning_map_service.list_books(db)
 
 
 @router.get("/dashboard-summary", dependencies=[_mm_access])
