@@ -118,7 +118,7 @@ def normalize_book_name(book: str) -> str:
 
 
 def parse_reference(ref: str) -> tuple[str, int, int, int]:
-    ref = ref.strip()
+    ref = ref.strip().replace("\u2013", "-").replace("\u2014", "-")
 
     match = re.match(r"^(.+?)\s+(\d+):(\d+)[a-zA-Z]?-(\d+)[a-zA-Z]?$", ref)
     if match:

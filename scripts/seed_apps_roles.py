@@ -9,7 +9,7 @@ SEED_APPS = [
     ("tripod-studio", "Tripod Studio"),
     ("meaning-map-generator", "Meaning Map Generator"),
     ("oral-bridge", "Oral Bridge"),
-    ("data-collection", "Data Collection"),
+    ("oral-collector", "Oral Collector"),
     ("avita", "AViTA"),
 ]
 

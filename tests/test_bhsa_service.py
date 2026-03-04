@@ -29,6 +29,11 @@ async def test_parse_numbered_book() -> None:
 
 
 @pytest.mark.asyncio
+async def test_parse_en_dash_range() -> None:
+    assert parse_reference("Ruth 1:1\u20135") == ("Ruth", 1, 1, 5)
+
+
+@pytest.mark.asyncio
 async def test_parse_invalid_reference() -> None:
     with pytest.raises(ValueError, match="Could not parse"):
         parse_reference("invalid")

@@ -22,6 +22,7 @@ dependencies = [
     "langchain-google-genai>=4.0.0",
     "qdrant-client>=1.15.0,<1.17.0",
     "text-fabric>=12.6.0",
+    "cachetools>=7.0.2",
 ]
 
 [build-system]

@@ -1,6 +1,7 @@
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth_cache import invalidate_roles
 from app.core.exceptions import RoleError
 from app.db.models.auth import User, UserAppRole
 from app.services.authorization.assert_can_manage_roles import assert_can_manage_roles
@@ -46,4 +47,5 @@ async def assign_role(
     db.add(assignment)
     await db.commit()
     await db.refresh(assignment)
+    invalidate_roles(target_user_id)
     return assignment

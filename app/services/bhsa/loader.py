@@ -106,3 +106,26 @@ def fetch_passage(ref: str) -> dict[str, Any]:
     if not _is_loaded or _tf_api is None:
         raise RuntimeError("BHSA not loaded — call /api/bhsa/load first")
     return extract_passage(_tf_api, ref)
+
+
+def get_verse_counts(book: str) -> dict[int, int]:
+    """Return {chapter_number: verse_count} for every chapter of *book*."""
+    if not _is_loaded or _tf_api is None:
+        raise RuntimeError("BHSA not loaded — call /api/bhsa/load first")
+
+    from app.services.bhsa.reference import normalize_book_name
+
+    bhsa_book = normalize_book_name(book)
+    T = _tf_api.api.T
+    L = _tf_api.api.L
+    F = _tf_api.api.F
+
+    counts: dict[int, int] = {}
+    for node in F.otype.s("book"):
+        if T.sectionFromNode(node)[0] == bhsa_book:
+            for ch_node in L.d(node, otype="chapter"):
+                ch_num = T.sectionFromNode(ch_node)[1]
+                verse_count = len(L.d(ch_node, otype="verse"))
+                counts[ch_num] = verse_count
+            break
+    return counts

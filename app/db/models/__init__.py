@@ -1,4 +1,5 @@
 from app.db.models.auth import (
+    AccessRequest,
     App,
     Permission,
     RefreshToken,
@@ -8,6 +9,13 @@ from app.db.models.auth import (
     UserAppRole,
 )
 from app.db.models.language import Language
+from app.db.models.meaning_map import (
+    BibleBook,
+    MeaningMap,
+    MeaningMapFeedback,
+    Pericope,
+)
+from app.db.models.notification import Notification, NotificationMeaningMapDetail
 from app.db.models.org import Organization, OrganizationMember
 from app.db.models.phase import Phase, PhaseDependency, ProjectPhase
 from app.db.models.project import (
@@ -17,10 +25,17 @@ from app.db.models.project import (
 )
 
 __all__ = [
+    "AccessRequest",
     "App",
+    "BibleBook",
     "Language",
+    "MeaningMap",
+    "MeaningMapFeedback",
+    "Notification",
+    "NotificationMeaningMapDetail",
     "Organization",
     "OrganizationMember",
+    "Pericope",
     "Permission",
     "Phase",
     "PhaseDependency",

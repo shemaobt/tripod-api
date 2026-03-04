@@ -2,8 +2,14 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.auth import App, RefreshToken, Role, User, UserAppRole
+from app.db.models.auth import AccessRequest, App, RefreshToken, Role, User, UserAppRole
 from app.db.models.language import Language
+from app.db.models.meaning_map import (
+    BibleBook,
+    MeaningMap,
+    MeaningMapFeedback,
+    Pericope,
+)
 from app.db.models.org import Organization, OrganizationMember
 from app.db.models.phase import Phase, PhaseDependency, ProjectPhase
 from app.db.models.project import (
@@ -12,6 +18,62 @@ from app.db.models.project import (
     ProjectUserAccess,
 )
 from app.services.auth.hash_password import hash_password
+
+SAMPLE_MM_DATA: dict = {
+    "level_1": {"arc": "God creates the heavens and the earth."},
+    "level_2_scenes": [
+        {
+            "scene_number": 1,
+            "verses": "1-5",
+            "title": "Creation of light",
+            "people": [
+                {
+                    "name": "God",
+                    "role": "Creator",
+                    "relationship": "",
+                    "wants": "to create",
+                    "carries": "",
+                }
+            ],
+            "places": [
+                {
+                    "name": "The void",
+                    "role": "setting",
+                    "type": "cosmic",
+                    "meaning": "emptiness",
+                    "effect_on_scene": "sets stage",
+                }
+            ],
+            "objects": [
+                {
+                    "name": "Light",
+                    "what_it_is": "illumination",
+                    "function_in_scene": "first creation",
+                    "signals": "goodness",
+                }
+            ],
+            "significant_absence": "",
+            "what_happens": ("God speaks light into existence and separates it from darkness."),
+            "communicative_purpose": (
+                "Establishes God as sovereign creator."
+                " Shows the power of divine speech."
+                " Introduces the pattern of creation by word."
+            ),
+        }
+    ],
+    "level_3_propositions": [
+        {
+            "proposition_number": 1,
+            "verse": "1",
+            "content": [
+                {
+                    "question": "What happens?",
+                    "answer": "God creates the heavens and the earth.",
+                }
+            ],
+        }
+    ],
+}
 
 
 async def make_user(
@@ -247,3 +309,121 @@ async def make_refresh_token(
     await db.commit()
     await db.refresh(record)
     return record
+
+
+async def make_bible_book(
+    db: AsyncSession,
+    *,
+    name: str = "Genesis",
+    abbreviation: str = "Gen",
+    testament: str = "OT",
+    order: int = 1,
+    chapter_count: int = 50,
+    is_enabled: bool = True,
+) -> BibleBook:
+    book = BibleBook(
+        name=name,
+        abbreviation=abbreviation,
+        testament=testament,
+        order=order,
+        chapter_count=chapter_count,
+        is_enabled=is_enabled,
+    )
+    db.add(book)
+    await db.commit()
+    await db.refresh(book)
+    return book
+
+
+async def make_pericope(
+    db: AsyncSession,
+    book_id: str,
+    *,
+    chapter_start: int = 1,
+    verse_start: int = 1,
+    chapter_end: int = 1,
+    verse_end: int = 5,
+    reference: str = "Gen 1:1-5",
+    title: str | None = None,
+) -> Pericope:
+    pericope = Pericope(
+        book_id=book_id,
+        chapter_start=chapter_start,
+        verse_start=verse_start,
+        chapter_end=chapter_end,
+        verse_end=verse_end,
+        reference=reference,
+        title=title,
+    )
+    db.add(pericope)
+    await db.commit()
+    await db.refresh(pericope)
+    return pericope
+
+
+async def make_meaning_map(
+    db: AsyncSession,
+    pericope_id: str,
+    analyst_id: str,
+    *,
+    data: dict | None = None,
+    status: str = "draft",
+    locked_by: str | None = None,
+    locked_at: datetime | None = None,
+    version: int = 1,
+) -> MeaningMap:
+    mm = MeaningMap(
+        pericope_id=pericope_id,
+        analyst_id=analyst_id,
+        data=data if data is not None else {},
+        status=status,
+        locked_by=locked_by,
+        locked_at=locked_at,
+        version=version,
+    )
+    db.add(mm)
+    await db.commit()
+    await db.refresh(mm)
+    return mm
+
+
+async def make_meaning_map_feedback(
+    db: AsyncSession,
+    meaning_map_id: str,
+    author_id: str,
+    *,
+    section_key: str = "level_1.arc",
+    content: str = "Needs more detail",
+    resolved: bool = False,
+) -> MeaningMapFeedback:
+    fb = MeaningMapFeedback(
+        meaning_map_id=meaning_map_id,
+        section_key=section_key,
+        author_id=author_id,
+        content=content,
+        resolved=resolved,
+    )
+    db.add(fb)
+    await db.commit()
+    await db.refresh(fb)
+    return fb
+
+
+async def make_access_request(
+    db: AsyncSession,
+    user_id: str,
+    app_id: str,
+    *,
+    status: str = "pending",
+    note: str | None = None,
+) -> AccessRequest:
+    req = AccessRequest(
+        user_id=user_id,
+        app_id=app_id,
+        status=status,
+        note=note,
+    )
+    db.add(req)
+    await db.commit()
+    await db.refresh(req)
+    return req

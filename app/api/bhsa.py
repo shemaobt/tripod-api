@@ -72,3 +72,17 @@ async def fetch_passage(ref: str) -> PassageResponse:
         source_lang=data["source_lang"],
         clauses=[ClauseData(**c) for c in data["clauses"]],
     )
+
+
+@router.get("/books/{book_name}/verse-counts")
+async def get_verse_counts(book_name: str) -> dict[str, int]:
+    """Return ``{chapter: verse_count}`` for every chapter of *book_name*."""
+    status = loader.get_status()
+    if not status["is_loaded"]:
+        raise HTTPException(status_code=503, detail="BHSA not loaded")
+    try:
+        counts = loader.get_verse_counts(book_name)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    # JSON keys must be strings
+    return {str(k): v for k, v in counts.items()}
