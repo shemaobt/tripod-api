@@ -2,14 +2,13 @@ import pytest
 from sqlalchemy import select
 
 from app.core.exceptions import NotFoundError
-from app.db.models.notification import Notification, NotificationMeaningMapDetail
+from app.db.models.notification import NotificationMeaningMapDetail
 from app.services.notifications.create_notification import create_notification
 from app.services.notifications.list_notifications import list_notifications
 from app.services.notifications.mark_all_as_read import mark_all_as_read
 from app.services.notifications.mark_as_read import mark_as_read
 from app.services.notifications.unread_count import unread_count
 from tests.baker import make_app, make_user
-
 
 # ---------------------------------------------------------------------------
 # create_notification

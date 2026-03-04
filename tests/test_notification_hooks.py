@@ -1,16 +1,20 @@
 import pytest
 from sqlalchemy import select
 
+from app.db.models.auth import App
 from app.db.models.notification import Notification
 from app.services.meaning_map.add_feedback import add_feedback
 from app.services.meaning_map.transition_status import transition_status
-from tests.baker import make_app, make_bible_book, make_meaning_map, make_pericope, make_user
+from tests.baker import make_bible_book, make_meaning_map, make_pericope, make_user
 
 
 @pytest.fixture
 async def mm_app(db_session):
-    """Create the meaning-map-generator app required by notification hooks."""
-    return await make_app(db_session, app_key="meaning-map-generator", name="Meaning Map Generator")
+    """Fetch the pre-seeded meaning-map-generator app."""
+    result = await db_session.execute(
+        select(App).where(App.app_key == "meaning-map-generator")
+    )
+    return result.scalar_one()
 
 
 async def _get_notifications(db_session, user_id: str) -> list[Notification]:

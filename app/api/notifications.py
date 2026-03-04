@@ -73,7 +73,11 @@ async def unread_count(
     return UnreadCountResponse(count=count)
 
 
-@router.patch("/{notification_id}/read", response_model=NotificationResponse, dependencies=[_mm_access])
+@router.patch(
+    "/{notification_id}/read",
+    response_model=NotificationResponse,
+    dependencies=[_mm_access],
+)
 async def mark_as_read(
     notification_id: str,
     user: User = Depends(get_current_user),

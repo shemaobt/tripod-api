@@ -8,6 +8,7 @@ from app.core.database import get_db
 from app.core.exceptions import AuthorizationError
 from app.core.qdrant import get_qdrant_client
 from app.db.models.auth import User
+from app.db.models.meaning_map import MeaningMap as MeaningMapModel
 from app.db.models.meaning_map import MeaningMapStatus
 from app.models.meaning_map import (
     FeedbackCreate,
@@ -22,8 +23,6 @@ from app.models.meaning_map import (
 from app.services import meaning_map_service, notification_service
 from app.services.meaning_map.generator import generate_meaning_map as run_generation
 from app.services.notifications.get_mm_app_id import get_mm_app_id
-
-from app.db.models.meaning_map import MeaningMap as MeaningMapModel
 
 router = APIRouter()
 _mm_access = require_app_access("meaning-map-generator")

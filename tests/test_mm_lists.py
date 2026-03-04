@@ -33,8 +33,8 @@ async def test_list_books_ordered(db_session) -> None:
     await make_bible_book(db_session, name="Genesis", abbreviation="Gen", order=1)
     result = await list_books(db_session)
     assert len(result) == 2
-    assert result[0].name == "Genesis"
-    assert result[1].name == "Exodus"
+    assert result[0]["name"] == "Genesis"
+    assert result[1]["name"] == "Exodus"
 
 
 # ---------------------------------------------------------------------------

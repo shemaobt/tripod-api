@@ -1,6 +1,8 @@
 import pytest
+from sqlalchemy import select
 
 from app.core.exceptions import NotFoundError, RoleError
+from app.db.models.auth import App
 from app.services.access_request.create_access_request import create_access_request
 from app.services.access_request.get_user_access_request import get_user_access_request
 from app.services.access_request.list_access_requests import list_access_requests
@@ -12,8 +14,9 @@ APP_KEY = "meaning-map-generator"
 
 
 async def _setup_app(db):
-    """Create the app and analyst role used by access request tests."""
-    app = await make_app(db, app_key=APP_KEY, name="Meaning Map Generator")
+    """Fetch the pre-seeded MM app and ensure the analyst role exists."""
+    result = await db.execute(select(App).where(App.app_key == APP_KEY))
+    app = result.scalar_one()
     role = await make_role(db, app.id, role_key="analyst", label="Analyst")
     return app, role
 

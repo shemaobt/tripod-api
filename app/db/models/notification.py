@@ -13,7 +13,10 @@ class Notification(Base):
 
     __tablename__ = "notifications"
     __table_args__ = (
-        Index("ix_notifications_user_app_unread_created", "user_id", "app_id", "is_read", "created_at"),
+        Index(
+            "ix_notifications_user_app_unread_created",
+            "user_id", "app_id", "is_read", "created_at",
+        ),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
