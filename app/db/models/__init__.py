@@ -15,6 +15,7 @@ from app.db.models.meaning_map import (
     MeaningMapFeedback,
     Pericope,
 )
+from app.db.models.notification import Notification, NotificationMeaningMapDetail
 from app.db.models.org import Organization, OrganizationMember
 from app.db.models.phase import Phase, PhaseDependency, ProjectPhase
 from app.db.models.project import (
@@ -30,6 +31,8 @@ __all__ = [
     "Language",
     "MeaningMap",
     "MeaningMapFeedback",
+    "Notification",
+    "NotificationMeaningMapDetail",
     "Organization",
     "OrganizationMember",
     "Pericope",

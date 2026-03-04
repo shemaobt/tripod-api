@@ -4,6 +4,7 @@ from app.services import (
     authorization,
     language,
     meaning_map,
+    notifications,
     org,
     phase,
     project,
@@ -16,6 +17,7 @@ auth_service = auth
 authorization_service = authorization
 language_service = language
 meaning_map_service = meaning_map
+notification_service = notifications
 organization_service = org
 phase_service = phase
 project_service = project
@@ -32,6 +34,8 @@ __all__ = [
     "language_service",
     "meaning_map",
     "meaning_map_service",
+    "notification_service",
+    "notifications",
     "org",
     "organization_service",
     "phase",
