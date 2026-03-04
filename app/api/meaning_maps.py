@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,7 +21,7 @@ from app.models.meaning_map import (
     MeaningMapUpdateData,
 )
 from app.services import meaning_map_service, notification_service
-from app.services.meaning_map.generator import generate_meaning_map as run_generation
+from app.services.meaning_map.generator import GenerationError, generate_meaning_map as run_generation
 from app.services.notifications.get_mm_app_id import get_mm_app_id
 
 router = APIRouter()
@@ -134,12 +134,15 @@ async def generate_meaning_map(
     meaning_map_service.ensure_ot(book)
     try:
         qdrant = get_qdrant_client()
-    except RuntimeError:
-        qdrant = None
-    generated_data = await run_generation(
-        pericope.reference,
-        qdrant_client=qdrant,
-    )
+    except RuntimeError as exc:
+        raise GenerationError("RAG service is not available. Contact an administrator.") from exc
+    try:
+        generated_data = await run_generation(
+            pericope.reference,
+            qdrant_client=qdrant,
+        )
+    except GenerationError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
     mm = await meaning_map_service.create_meaning_map(
         db,
         pericope_id=payload.pericope_id,

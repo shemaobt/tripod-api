@@ -14,6 +14,10 @@ from app.services.rag.query import query as rag_query
 
 logger = logging.getLogger(__name__)
 
+
+class GenerationError(Exception):
+    """Raised when a required generation data source is unavailable."""
+
 GENERATION_PROMPT_TEMPLATE = """\
 You are an expert biblical exegete and mapper for the "Tripod Method for AI-Assisted \
 Oral Bible Translation." Your task is to produce a complete, flawless Bible Meaning Map \
@@ -144,14 +148,6 @@ def _build_generation_prompt(
     )
 
 
-def _empty_map() -> dict[str, Any]:
-    return ProseMeaningMap(
-        level_1=PMMLevel1(arc=""),
-        level_2_scenes=[],
-        level_3_propositions=[],
-    ).model_dump()
-
-
 async def generate_meaning_map(
     reference: str,
     *,
@@ -160,29 +156,40 @@ async def generate_meaning_map(
 ) -> dict[str, Any]:
     settings = settings or get_settings()
 
-    bhsa_data: dict[str, Any] | None = None
-    if bhsa_loader.get_status()["is_loaded"]:
-        try:
-            bhsa_data = bhsa_loader.fetch_passage(reference)
-        except Exception as e:
-            logger.warning("BHSA extraction failed for %s: %s", reference, e)
+    # --- BHSA (required) ---
+    if not bhsa_loader.get_status()["is_loaded"]:
+        raise GenerationError("BHSA data is not loaded. Contact an administrator.")
 
-    rag_context: str | None = None
-    if qdrant_client:
-        try:
-            rag_result = await rag_query(
-                qdrant_client,
-                RagNamespace.MEANING_MAP_DOCS,
-                f"How to create a Bible Meaning Map for {reference}",
-                settings=settings,
-            )
-            if rag_result.answer:
-                rag_context = rag_result.answer
-        except Exception as e:
-            logger.warning("RAG query failed for %s: %s", reference, e)
+    try:
+        bhsa_data = bhsa_loader.fetch_passage(reference)
+    except Exception as e:
+        raise GenerationError(f"BHSA extraction failed for {reference}: {e}") from e
+
+    if not bhsa_data or not bhsa_data.get("clauses"):
+        raise GenerationError(f"BHSA returned no clause data for {reference}.")
+
+    # --- RAG (required) ---
+    if qdrant_client is None:
+        raise GenerationError("RAG service is not available. Contact an administrator.")
+
+    try:
+        rag_result = await rag_query(
+            qdrant_client,
+            RagNamespace.MEANING_MAP_DOCS,
+            f"How to create a Bible Meaning Map for {reference}",
+            settings=settings,
+        )
+    except Exception as e:
+        raise GenerationError(f"RAG query failed for {reference}: {e}") from e
+
+    if not rag_result.answer:
+        raise GenerationError(f"RAG returned no methodology context for {reference}.")
+
+    rag_context = rag_result.answer
 
     prompt = _build_generation_prompt(reference, bhsa_data, rag_context)
 
+    # --- LLM ---
     try:
         llm = ChatGoogleGenerativeAI(
             model=settings.google_llm_model,
@@ -192,5 +199,4 @@ async def generate_meaning_map(
         result = await structured_llm.ainvoke(prompt)
         return result.model_dump()
     except Exception as e:
-        logger.error("LLM generation failed for %s: %s", reference, e)
-        return _empty_map()
+        raise GenerationError(f"LLM generation failed: {e}") from e
