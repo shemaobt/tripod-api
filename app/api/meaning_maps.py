@@ -21,7 +21,12 @@ from app.models.meaning_map import (
     MeaningMapUpdateData,
 )
 from app.services import meaning_map_service, notification_service
-from app.services.meaning_map.generator import GenerationError, generate_meaning_map as run_generation
+from app.services.meaning_map.generator import (
+    GenerationError,
+)
+from app.services.meaning_map.generator import (
+    generate_meaning_map as run_generation,
+)
 from app.services.notifications.get_mm_app_id import get_mm_app_id
 
 router = APIRouter()

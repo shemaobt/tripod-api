@@ -7,7 +7,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from qdrant_client import AsyncQdrantClient
 
 from app.core.config import Settings, get_settings
-from app.models.meaning_map import PMMLevel1, ProseMeaningMap
+from app.models.meaning_map import ProseMeaningMap
 from app.models.rag import RagNamespace
 from app.services.bhsa import loader as bhsa_loader
 from app.services.rag.query import query as rag_query

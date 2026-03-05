@@ -5,8 +5,8 @@ import pytest
 
 from app.models.meaning_map import PMMLevel1, ProseMeaningMap
 from app.services.meaning_map.generator import (
+    GenerationError,
     _build_generation_prompt,
-    _empty_map,
     generate_meaning_map,
 )
 
@@ -17,18 +17,25 @@ VALID_MAP_MODEL = ProseMeaningMap(
 )
 VALID_MAP = VALID_MAP_MODEL.model_dump()
 
-
-# ---------------------------------------------------------------------------
-# _empty_map
-# ---------------------------------------------------------------------------
-
-
-def test_empty_map_structure() -> None:
-    result = _empty_map()
-    assert "level_1" in result
-    assert result["level_1"]["arc"] == ""
-    assert result["level_2_scenes"] == []
-    assert result["level_3_propositions"] == []
+FAKE_BHSA_DATA = {
+    "clauses": [
+        {
+            "verse": 1,
+            "text": "bereshit",
+            "clause_type": "NC",
+            "gloss": "in the beginning",
+            "is_mainline": True,
+            "chain_position": 1,
+            "subjects": ["God"],
+            "objects": [],
+            "names": [],
+            "lemma": "BRJ",
+            "binyan": "qal",
+            "tense": "perf",
+            "has_ki": False,
+        }
+    ]
+}
 
 
 # ---------------------------------------------------------------------------
@@ -42,26 +49,7 @@ def test_build_prompt_includes_reference() -> None:
 
 
 def test_build_prompt_includes_bhsa_data() -> None:
-    bhsa_data = {
-        "clauses": [
-            {
-                "verse": 1,
-                "text": "bereshit",
-                "clause_type": "NC",
-                "gloss": "in the beginning",
-                "is_mainline": True,
-                "chain_position": 1,
-                "subjects": ["God"],
-                "objects": [],
-                "names": [],
-                "lemma": "BRJ",
-                "binyan": "qal",
-                "tense": "perf",
-                "has_ki": False,
-            }
-        ]
-    }
-    prompt = _build_generation_prompt("Genesis 1:1", bhsa_data, None)
+    prompt = _build_generation_prompt("Genesis 1:1", FAKE_BHSA_DATA, None)
     assert "BHSA Linguistic Data" in prompt
     assert "bereshit" in prompt
     assert "in the beginning" in prompt
@@ -87,7 +75,7 @@ def test_build_prompt_excludes_rag_when_none() -> None:
 
 
 # ---------------------------------------------------------------------------
-# generate_meaning_map
+# generate_meaning_map — fail-fast behaviour
 # ---------------------------------------------------------------------------
 
 
@@ -106,28 +94,38 @@ def mock_settings():
 
 @pytest.mark.asyncio
 @patch("app.services.meaning_map.generator.bhsa_loader")
-@patch("app.services.meaning_map.generator.ChatGoogleGenerativeAI")
-async def test_generate_meaning_map_success(mock_llm_cls, mock_bhsa, mock_settings) -> None:
+async def test_generate_raises_when_bhsa_not_loaded(mock_bhsa, mock_settings) -> None:
     mock_bhsa.get_status.return_value = {"is_loaded": False}
 
-    mock_structured = AsyncMock()
-    mock_structured.ainvoke = AsyncMock(return_value=VALID_MAP_MODEL)
-    mock_llm = MagicMock()
-    mock_llm.with_structured_output = MagicMock(return_value=mock_structured)
-    mock_llm_cls.return_value = mock_llm
-
-    result = await generate_meaning_map("Genesis 1:1-5", settings=mock_settings)
-    assert result == VALID_MAP
-    mock_structured.ainvoke.assert_called_once()
+    with pytest.raises(GenerationError, match="BHSA data is not loaded"):
+        await generate_meaning_map("Genesis 1:1-5", settings=mock_settings)
 
 
 @pytest.mark.asyncio
 @patch("app.services.meaning_map.generator.bhsa_loader")
+async def test_generate_raises_when_qdrant_client_none(mock_bhsa, mock_settings) -> None:
+    mock_bhsa.get_status.return_value = {"is_loaded": True}
+    mock_bhsa.fetch_passage.return_value = FAKE_BHSA_DATA
+
+    with pytest.raises(GenerationError, match="RAG service is not available"):
+        await generate_meaning_map(
+            "Genesis 1:1-5", settings=mock_settings, qdrant_client=None
+        )
+
+
+@pytest.mark.asyncio
+@patch("app.services.meaning_map.generator.rag_query")
+@patch("app.services.meaning_map.generator.bhsa_loader")
 @patch("app.services.meaning_map.generator.ChatGoogleGenerativeAI")
-async def test_generate_meaning_map_fallback_on_failure(
-    mock_llm_cls, mock_bhsa, mock_settings
+async def test_generate_raises_on_llm_failure(
+    mock_llm_cls, mock_bhsa, mock_rag_query, mock_settings
 ) -> None:
-    mock_bhsa.get_status.return_value = {"is_loaded": False}
+    mock_bhsa.get_status.return_value = {"is_loaded": True}
+    mock_bhsa.fetch_passage.return_value = FAKE_BHSA_DATA
+
+    rag_result = MagicMock()
+    rag_result.answer = "Use the Tripod Method for OBT."
+    mock_rag_query.return_value = rag_result
 
     mock_structured = AsyncMock()
     mock_structured.ainvoke = AsyncMock(side_effect=RuntimeError("LLM unavailable"))
@@ -135,18 +133,22 @@ async def test_generate_meaning_map_fallback_on_failure(
     mock_llm.with_structured_output = MagicMock(return_value=mock_structured)
     mock_llm_cls.return_value = mock_llm
 
-    result = await generate_meaning_map("Genesis 1:1-5", settings=mock_settings)
-    assert result == _empty_map()
+    qdrant = AsyncMock()
+    with pytest.raises(GenerationError, match="LLM generation failed"):
+        await generate_meaning_map(
+            "Genesis 1:1-5", settings=mock_settings, qdrant_client=qdrant
+        )
 
 
 @pytest.mark.asyncio
 @patch("app.services.meaning_map.generator.rag_query")
 @patch("app.services.meaning_map.generator.bhsa_loader")
 @patch("app.services.meaning_map.generator.ChatGoogleGenerativeAI")
-async def test_generate_meaning_map_with_rag(
+async def test_generate_meaning_map_success(
     mock_llm_cls, mock_bhsa, mock_rag_query, mock_settings
 ) -> None:
-    mock_bhsa.get_status.return_value = {"is_loaded": False}
+    mock_bhsa.get_status.return_value = {"is_loaded": True}
+    mock_bhsa.fetch_passage.return_value = FAKE_BHSA_DATA
 
     rag_result = MagicMock()
     rag_result.answer = "Use the Tripod Method for OBT."
@@ -163,4 +165,5 @@ async def test_generate_meaning_map_with_rag(
         "Genesis 1:1-5", settings=mock_settings, qdrant_client=qdrant
     )
     assert result == VALID_MAP
+    mock_structured.ainvoke.assert_called_once()
     mock_rag_query.assert_called_once()
