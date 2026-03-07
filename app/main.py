@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.access_requests import router as access_requests_router
 from app.api.auth import router as auth_router
+from app.api.book_context import router as book_context_router
 from app.api.bhsa import router as bhsa_router
 from app.api.books import router as books_router
 from app.api.health import router as health_router
@@ -21,6 +22,7 @@ from app.api.roles import router as roles_router
 from app.core.config import get_settings
 from app.core.database import AsyncSessionLocal, close_db, init_db
 from app.core.exceptions import register_exception_handlers
+from app.core.logging import setup_logging
 from app.core.qdrant import close_qdrant, init_qdrant
 from app.services.bhsa import loader
 from app.services.meaning_map.seed_books import seed_books
@@ -38,6 +40,7 @@ def _load_bhsa_background() -> None:
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    setup_logging()
     await init_db()
     async with AsyncSessionLocal() as db:
         seeded = await seed_books(db)
@@ -82,6 +85,11 @@ def create_app() -> FastAPI:
     app.include_router(notifications_router, prefix="/api/notifications", tags=["notifications"])
     app.include_router(rag_router, prefix="/api/rag", tags=["rag"])
     app.include_router(bhsa_router, prefix="/api/bhsa", tags=["bhsa"])
+    app.include_router(
+        book_context_router,
+        prefix="/api/book-context",
+        tags=["book-context"],
+    )
 
     register_exception_handlers(app)
 
