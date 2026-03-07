@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.access_requests import router as access_requests_router
+from app.api.apps import router as apps_router
 from app.api.auth import router as auth_router
 from app.api.bhsa import router as bhsa_router
 from app.api.book_context import router as book_context_router
@@ -74,6 +75,7 @@ def create_app() -> FastAPI:
         prefix="/api/access-requests",
         tags=["access-requests"],
     )
+    app.include_router(apps_router, prefix="/api/apps", tags=["apps"])
     app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
     app.include_router(roles_router, prefix="/api/roles", tags=["roles"])
     app.include_router(users_router, prefix="/api/users", tags=["users"])

@@ -1,0 +1,46 @@
+@baseUrl = http://localhost:8000
+# Set after running Auth: Login in auth.http
+@accessToken =
+
+### List all apps (admin only)
+GET {{baseUrl}}/api/apps
+Authorization: Bearer {{accessToken}}
+
+### Get my apps (any authenticated user)
+GET {{baseUrl}}/api/apps/my-apps
+Authorization: Bearer {{accessToken}}
+
+### Create app (admin only)
+POST {{baseUrl}}/api/apps
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "app_key": "my-new-app",
+  "name": "My New App",
+  "description": "A brand new application",
+  "platform": "web",
+  "app_url": "https://my-new-app.example.com",
+  "is_active": true
+}
+
+### Get app by ID
+GET {{baseUrl}}/api/apps/APP_ID
+Authorization: Bearer {{accessToken}}
+
+### Update app (admin only)
+PATCH {{baseUrl}}/api/apps/APP_ID
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "Updated App Name",
+  "description": "Updated description",
+  "platform": "mobile",
+  "ios_url": "https://apps.apple.com/app/my-app",
+  "android_url": "https://play.google.com/store/apps/details?id=com.myapp"
+}
+
+### List app roles
+GET {{baseUrl}}/api/apps/APP_ID/roles
+Authorization: Bearer {{accessToken}}
