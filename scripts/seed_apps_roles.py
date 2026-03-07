@@ -13,7 +13,16 @@ SEED_APPS = [
     ("avita", "AViTA"),
 ]
 
-SEED_ROLES = ["admin", "facilitator", "reviewer", "annotator", "viewer"]
+SEED_ROLES = [
+    "admin",
+    "facilitator",
+    "reviewer",
+    "annotator",
+    "viewer",
+    "exegete",
+    "biblical_language_specialist",
+    "translation_specialist",
+]
 
 
 async def seed() -> None:
