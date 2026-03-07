@@ -9,6 +9,7 @@ from app.services import (
     phase,
     project,
     rag,
+    user,
 )
 
 # Expose sub-packages under backward-compatible names
@@ -22,6 +23,7 @@ organization_service = org
 phase_service = phase
 project_service = project
 rag_service = rag
+user_service = user
 
 __all__ = [
     "access_request",
@@ -44,4 +46,6 @@ __all__ = [
     "project_service",
     "rag",
     "rag_service",
+    "user",
+    "user_service",
 ]

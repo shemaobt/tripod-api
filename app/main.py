@@ -19,6 +19,7 @@ from app.api.phases import router as phases_router
 from app.api.projects import router as projects_router
 from app.api.rag import router as rag_router
 from app.api.roles import router as roles_router
+from app.api.users import router as users_router
 from app.core.config import get_settings
 from app.core.database import AsyncSessionLocal, close_db, init_db
 from app.core.exceptions import register_exception_handlers
@@ -75,6 +76,7 @@ def create_app() -> FastAPI:
     )
     app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
     app.include_router(roles_router, prefix="/api/roles", tags=["roles"])
+    app.include_router(users_router, prefix="/api/users", tags=["users"])
     app.include_router(languages_router, prefix="/api/languages", tags=["languages"])
     app.include_router(organizations_router, prefix="/api/organizations", tags=["organizations"])
     app.include_router(projects_router, prefix="/api/projects", tags=["projects"])

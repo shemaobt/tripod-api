@@ -1,0 +1,25 @@
+@baseUrl = http://localhost:8000
+# Set after running Auth: Login in auth.http
+@accessToken =
+
+### List all users (admin only)
+GET {{baseUrl}}/api/users
+Authorization: Bearer {{accessToken}}
+
+### Get user by ID
+GET {{baseUrl}}/api/users/USER_ID
+Authorization: Bearer {{accessToken}}
+
+### Update user (admin only)
+PATCH {{baseUrl}}/api/users/USER_ID
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "is_active": false,
+  "is_platform_admin": true
+}
+
+### List user roles
+GET {{baseUrl}}/api/users/USER_ID/roles
+Authorization: Bearer {{accessToken}}
