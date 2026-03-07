@@ -196,3 +196,144 @@ async def test_grant_organization_access_creates_access(db_session) -> None:
     access = await project_service.grant_organization_access(db_session, project.id, org.id)
     assert access.project_id == project.id
     assert access.organization_id == org.id
+
+
+@pytest.mark.asyncio
+async def test_update_project_name_and_description(db_session) -> None:
+    lang = await make_language(db_session, name="English", code="eng")
+    project = await make_project(
+        db_session, lang.id, name="Old Name", description="Old desc"
+    )
+    updated = await project_service.update_project(
+        db_session, project.id, name="New Name", description="New desc"
+    )
+    assert updated.name == "New Name"
+    assert updated.description == "New desc"
+    assert updated.language_id == lang.id
+
+
+@pytest.mark.asyncio
+async def test_update_project_changes_language(db_session) -> None:
+    lang1 = await make_language(db_session, name="English", code="eng")
+    lang2 = await make_language(db_session, name="French", code="fra")
+    project = await make_project(db_session, lang1.id, name="Project")
+    updated = await project_service.update_project(
+        db_session, project.id, language_id=lang2.id
+    )
+    assert updated.language_id == lang2.id
+
+
+@pytest.mark.asyncio
+async def test_update_project_raises_not_found_for_missing_project(db_session) -> None:
+    with pytest.raises(NotFoundError, match="Project not found"):
+        await project_service.update_project(
+            db_session, "00000000-0000-0000-0000-000000000000", name="X"
+        )
+
+
+@pytest.mark.asyncio
+async def test_update_project_raises_not_found_for_invalid_language(db_session) -> None:
+    lang = await make_language(db_session, name="English", code="eng")
+    project = await make_project(db_session, lang.id, name="Project")
+    with pytest.raises(NotFoundError, match="Language not found"):
+        await project_service.update_project(
+            db_session,
+            project.id,
+            language_id="00000000-0000-0000-0000-000000000000",
+        )
+
+
+@pytest.mark.asyncio
+async def test_list_project_user_access_returns_users(db_session) -> None:
+    lang = await make_language(db_session, name="English", code="eng")
+    project = await make_project(db_session, lang.id, name="Project")
+    user1 = await make_user(db_session, email="ua1@example.com", display_name="User One")
+    user2 = await make_user(db_session, email="ua2@example.com", display_name="User Two")
+    await make_project_user_access(db_session, project.id, user1.id)
+    await make_project_user_access(db_session, project.id, user2.id)
+    results = await project_service.list_project_user_access(db_session, project.id)
+    assert len(results) == 2
+    access_obj, user_obj = results[0]
+    assert access_obj.project_id == project.id
+    assert user_obj.email in ("ua1@example.com", "ua2@example.com")
+
+
+@pytest.mark.asyncio
+async def test_list_project_user_access_returns_empty_when_none(db_session) -> None:
+    lang = await make_language(db_session, name="English", code="eng")
+    project = await make_project(db_session, lang.id, name="Empty Project")
+    results = await project_service.list_project_user_access(db_session, project.id)
+    assert results == []
+
+
+@pytest.mark.asyncio
+async def test_list_project_organization_access_returns_orgs(db_session) -> None:
+    lang = await make_language(db_session, name="English", code="eng")
+    project = await make_project(db_session, lang.id, name="Project")
+    org1 = await make_organization(db_session, name="Org One", slug="org-one")
+    org2 = await make_organization(db_session, name="Org Two", slug="org-two")
+    await make_project_organization_access(db_session, project.id, org1.id)
+    await make_project_organization_access(db_session, project.id, org2.id)
+    results = await project_service.list_project_organization_access(
+        db_session, project.id
+    )
+    assert len(results) == 2
+    access_obj, org_obj = results[0]
+    assert access_obj.project_id == project.id
+    assert org_obj.slug in ("org-one", "org-two")
+
+
+@pytest.mark.asyncio
+async def test_list_project_organization_access_returns_empty_when_none(
+    db_session,
+) -> None:
+    lang = await make_language(db_session, name="English", code="eng")
+    project = await make_project(db_session, lang.id, name="Empty Project")
+    results = await project_service.list_project_organization_access(
+        db_session, project.id
+    )
+    assert results == []
+
+
+@pytest.mark.asyncio
+async def test_revoke_user_access_removes_grant(db_session) -> None:
+    lang = await make_language(db_session, name="English", code="eng")
+    project = await make_project(db_session, lang.id, name="Project")
+    user = await make_user(db_session, email="revoke@example.com")
+    await make_project_user_access(db_session, project.id, user.id)
+    await project_service.revoke_user_access(db_session, project.id, user.id)
+    results = await project_service.list_project_user_access(db_session, project.id)
+    assert len(results) == 0
+
+
+@pytest.mark.asyncio
+async def test_revoke_user_access_raises_not_found(db_session) -> None:
+    lang = await make_language(db_session, name="English", code="eng")
+    project = await make_project(db_session, lang.id, name="Project")
+    user = await make_user(db_session, email="norv@example.com")
+    with pytest.raises(NotFoundError, match="User access not found"):
+        await project_service.revoke_user_access(db_session, project.id, user.id)
+
+
+@pytest.mark.asyncio
+async def test_revoke_organization_access_removes_grant(db_session) -> None:
+    lang = await make_language(db_session, name="English", code="eng")
+    project = await make_project(db_session, lang.id, name="Project")
+    org = await make_organization(db_session, name="Org", slug="org-rev")
+    await make_project_organization_access(db_session, project.id, org.id)
+    await project_service.revoke_organization_access(db_session, project.id, org.id)
+    results = await project_service.list_project_organization_access(
+        db_session, project.id
+    )
+    assert len(results) == 0
+
+
+@pytest.mark.asyncio
+async def test_revoke_organization_access_raises_not_found(db_session) -> None:
+    lang = await make_language(db_session, name="English", code="eng")
+    project = await make_project(db_session, lang.id, name="Project")
+    org = await make_organization(db_session, name="Org", slug="org-norv")
+    with pytest.raises(NotFoundError, match="Organization access not found"):
+        await project_service.revoke_organization_access(
+            db_session, project.id, org.id
+        )
