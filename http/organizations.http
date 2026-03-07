@@ -24,6 +24,16 @@ Authorization: Bearer {{accessToken}}
 GET {{baseUrl}}/api/organizations/ORGANIZATION_ID
 Authorization: Bearer {{accessToken}}
 
+### Update organization
+PATCH {{baseUrl}}/api/organizations/ORGANIZATION_ID
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "Acme Corporation",
+  "slug": "acme-corporation"
+}
+
 ### Add member to organization
 POST {{baseUrl}}/api/organizations/ORGANIZATION_ID/members
 Content-Type: application/json
@@ -33,3 +43,11 @@ Authorization: Bearer {{accessToken}}
   "user_id": "USER_ID",
   "role": "member"
 }
+
+### List organization members
+GET {{baseUrl}}/api/organizations/ORGANIZATION_ID/members
+Authorization: Bearer {{accessToken}}
+
+### Remove member from organization
+DELETE {{baseUrl}}/api/organizations/ORGANIZATION_ID/members/USER_ID
+Authorization: Bearer {{accessToken}}

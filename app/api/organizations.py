@@ -8,8 +8,10 @@ from app.db.models.auth import User
 from app.models.org import (
     OrganizationCreate,
     OrganizationMemberAdd,
+    OrganizationMemberDetailResponse,
     OrganizationMemberResponse,
     OrganizationResponse,
+    OrganizationUpdate,
 )
 from app.services import organization_service
 
@@ -57,6 +59,19 @@ async def get_organization_by_id(
     return OrganizationResponse.model_validate(org)
 
 
+@router.patch("/{organization_id}", response_model=OrganizationResponse)
+async def update_organization(
+    organization_id: str,
+    payload: OrganizationUpdate,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_user),
+) -> OrganizationResponse:
+    org = await organization_service.update_organization(
+        db, organization_id, name=payload.name, slug=payload.slug
+    )
+    return OrganizationResponse.model_validate(org)
+
+
 @router.post(
     "/{organization_id}/members",
     response_model=OrganizationMemberResponse,
@@ -73,3 +88,42 @@ async def add_organization_member(
         db, organization_id, payload.user_id, payload.role
     )
     return OrganizationMemberResponse.model_validate(member)
+
+
+@router.get(
+    "/{organization_id}/members",
+    response_model=list[OrganizationMemberDetailResponse],
+)
+async def list_organization_members(
+    organization_id: str,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_user),
+) -> list[OrganizationMemberDetailResponse]:
+    await organization_service.get_organization_or_404(db, organization_id)
+    rows = await organization_service.list_members(db, organization_id)
+    return [
+        OrganizationMemberDetailResponse(
+            id=member.id,
+            user_id=member.user_id,
+            organization_id=member.organization_id,
+            role=member.role,
+            joined_at=member.joined_at,
+            email=user.email,
+            display_name=user.display_name,
+        )
+        for member, user in rows
+    ]
+
+
+@router.delete(
+    "/{organization_id}/members/{user_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def remove_organization_member(
+    organization_id: str,
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_user),
+) -> None:
+    await organization_service.get_organization_or_404(db, organization_id)
+    await organization_service.remove_member(db, organization_id, user_id)

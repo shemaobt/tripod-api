@@ -4,7 +4,10 @@ from app.services.org.get_organization_by_id import get_organization_by_id
 from app.services.org.get_organization_by_slug import get_organization_by_slug
 from app.services.org.get_organization_or_404 import get_organization_or_404
 from app.services.org.is_member import is_member
+from app.services.org.list_members import list_members
 from app.services.org.list_organizations import list_organizations
+from app.services.org.remove_member import remove_member
+from app.services.org.update_organization import update_organization
 
 __all__ = [
     "add_member",
@@ -13,5 +16,8 @@ __all__ = [
     "get_organization_by_slug",
     "get_organization_or_404",
     "is_member",
+    "list_members",
     "list_organizations",
+    "remove_member",
+    "update_organization",
 ]
