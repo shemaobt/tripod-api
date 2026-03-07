@@ -74,18 +74,28 @@ SAMPLE_INSTITUTIONS = [
 async def test_first_pericope_returns_opening_brief(db_session):
     user = await make_user(db_session, email="eb1@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     await make_bcd(
-        db_session, book.id, user.id,
-        status="approved", version=1,
+        db_session,
+        book.id,
+        user.id,
+        status="approved",
+        version=1,
         participant_register=SAMPLE_PARTICIPANTS,
         discourse_threads=SAMPLE_THREADS,
     )
     pericope = await make_pericope(
-        db_session, book.id,
-        chapter_start=1, verse_start=1, chapter_end=1, verse_end=5,
+        db_session,
+        book.id,
+        chapter_start=1,
+        verse_start=1,
+        chapter_end=1,
+        verse_end=5,
         reference="Ruth 1:1-5",
     )
 
@@ -101,24 +111,38 @@ async def test_first_pericope_returns_opening_brief(db_session):
 async def test_non_first_pericope_slices_by_entry_verse(db_session):
     user = await make_user(db_session, email="eb2@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     await make_bcd(
-        db_session, book.id, user.id,
-        status="approved", version=2,
+        db_session,
+        book.id,
+        user.id,
+        status="approved",
+        version=2,
         participant_register=SAMPLE_PARTICIPANTS,
         discourse_threads=SAMPLE_THREADS,
         institutions=SAMPLE_INSTITUTIONS,
     )
     await make_pericope(
-        db_session, book.id,
-        chapter_start=1, verse_start=1, chapter_end=1, verse_end=5,
+        db_session,
+        book.id,
+        chapter_start=1,
+        verse_start=1,
+        chapter_end=1,
+        verse_end=5,
         reference="Ruth 1:1-5",
     )
     pericope2 = await make_pericope(
-        db_session, book.id,
-        chapter_start=1, verse_start=6, chapter_end=1, verse_end=18,
+        db_session,
+        book.id,
+        chapter_start=1,
+        verse_start=6,
+        chapter_end=1,
+        verse_end=18,
         reference="Ruth 1:6-18",
     )
 
@@ -136,22 +160,36 @@ async def test_non_first_pericope_slices_by_entry_verse(db_session):
 async def test_entry_brief_filters_threads_by_opened_at(db_session):
     user = await make_user(db_session, email="eb3@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     await make_bcd(
-        db_session, book.id, user.id,
-        status="approved", version=1,
+        db_session,
+        book.id,
+        user.id,
+        status="approved",
+        version=1,
         discourse_threads=SAMPLE_THREADS,
     )
     await make_pericope(
-        db_session, book.id,
-        chapter_start=1, verse_start=1, chapter_end=1, verse_end=5,
+        db_session,
+        book.id,
+        chapter_start=1,
+        verse_start=1,
+        chapter_end=1,
+        verse_end=5,
         reference="Ruth 1:1-5",
     )
     pericope2 = await make_pericope(
-        db_session, book.id,
-        chapter_start=1, verse_start=6, chapter_end=1, verse_end=7,
+        db_session,
+        book.id,
+        chapter_start=1,
+        verse_start=6,
+        chapter_end=1,
+        verse_end=7,
         reference="Ruth 1:6-7",
     )
 
@@ -166,22 +204,36 @@ async def test_entry_brief_filters_threads_by_opened_at(db_session):
 async def test_entry_brief_resolved_thread_excluded_from_established(db_session):
     user = await make_user(db_session, email="eb4@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     await make_bcd(
-        db_session, book.id, user.id,
-        status="approved", version=1,
+        db_session,
+        book.id,
+        user.id,
+        status="approved",
+        version=1,
         discourse_threads=SAMPLE_THREADS,
     )
     await make_pericope(
-        db_session, book.id,
-        chapter_start=1, verse_start=1, chapter_end=1, verse_end=5,
+        db_session,
+        book.id,
+        chapter_start=1,
+        verse_start=1,
+        chapter_end=1,
+        verse_end=5,
         reference="Ruth 1:1-5",
     )
     pericope2 = await make_pericope(
-        db_session, book.id,
-        chapter_start=1, verse_start=8, chapter_end=1, verse_end=18,
+        db_session,
+        book.id,
+        chapter_start=1,
+        verse_start=8,
+        chapter_end=1,
+        verse_end=18,
         reference="Ruth 1:8-18",
     )
 
@@ -195,22 +247,36 @@ async def test_entry_brief_resolved_thread_excluded_from_established(db_session)
 async def test_entry_brief_institutions_filtered(db_session):
     user = await make_user(db_session, email="eb5@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     await make_bcd(
-        db_session, book.id, user.id,
-        status="approved", version=1,
+        db_session,
+        book.id,
+        user.id,
+        status="approved",
+        version=1,
         institutions=SAMPLE_INSTITUTIONS,
     )
     await make_pericope(
-        db_session, book.id,
-        chapter_start=1, verse_start=1, chapter_end=1, verse_end=5,
+        db_session,
+        book.id,
+        chapter_start=1,
+        verse_start=1,
+        chapter_end=1,
+        verse_end=5,
         reference="Ruth 1:1-5",
     )
     pericope2 = await make_pericope(
-        db_session, book.id,
-        chapter_start=1, verse_start=6, chapter_end=2, verse_end=19,
+        db_session,
+        book.id,
+        chapter_start=1,
+        verse_start=6,
+        chapter_end=2,
+        verse_end=19,
         reference="Ruth 1:6-2:19",
     )
 
@@ -223,13 +289,20 @@ async def test_entry_brief_institutions_filtered(db_session):
 async def test_entry_brief_no_approved_bcd_raises(db_session):
     user = await make_user(db_session, email="eb6@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     await make_bcd(db_session, book.id, user.id, status="draft", version=1)
     pericope = await make_pericope(
-        db_session, book.id,
-        chapter_start=1, verse_start=1, chapter_end=1, verse_end=5,
+        db_session,
+        book.id,
+        chapter_start=1,
+        verse_start=1,
+        chapter_end=1,
+        verse_end=5,
         reference="Ruth 1:1-5",
     )
 

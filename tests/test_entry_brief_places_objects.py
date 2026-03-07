@@ -154,19 +154,30 @@ def test_build_established_items_all_categories():
 async def test_entry_brief_places_in_established_items(db_session):
     user = await make_user(db_session, email="eb_places@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     await make_bcd(db_session, book.id, user.id, status="approved", **SAMPLE_BCD_DATA)
     await make_pericope(
-        db_session, book.id,
-        chapter_start=1, verse_start=1,
-        chapter_end=1, verse_end=5, reference="Ruth 1:1-5",
+        db_session,
+        book.id,
+        chapter_start=1,
+        verse_start=1,
+        chapter_end=1,
+        verse_end=5,
+        reference="Ruth 1:1-5",
     )
     p2 = await make_pericope(
-        db_session, book.id,
-        chapter_start=2, verse_start=1,
-        chapter_end=2, verse_end=7, reference="Ruth 2:1-7",
+        db_session,
+        book.id,
+        chapter_start=2,
+        verse_start=1,
+        chapter_end=2,
+        verse_end=7,
+        reference="Ruth 2:1-7",
     )
 
     brief = await compute_entry_brief(db_session, p2.id)
@@ -184,19 +195,30 @@ async def test_entry_brief_places_in_established_items(db_session):
 async def test_entry_brief_objects_in_established_items(db_session):
     user = await make_user(db_session, email="eb_objects@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     await make_bcd(db_session, book.id, user.id, status="approved", **SAMPLE_BCD_DATA)
     await make_pericope(
-        db_session, book.id,
-        chapter_start=1, verse_start=1,
-        chapter_end=1, verse_end=5, reference="Ruth 1:1-5",
+        db_session,
+        book.id,
+        chapter_start=1,
+        verse_start=1,
+        chapter_end=1,
+        verse_end=5,
+        reference="Ruth 1:1-5",
     )
     p2 = await make_pericope(
-        db_session, book.id,
-        chapter_start=2, verse_start=4,
-        chapter_end=2, verse_end=10, reference="Ruth 2:4-10",
+        db_session,
+        book.id,
+        chapter_start=2,
+        verse_start=4,
+        chapter_end=2,
+        verse_end=10,
+        reference="Ruth 2:4-10",
     )
 
     brief = await compute_entry_brief(db_session, p2.id)

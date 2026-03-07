@@ -324,9 +324,7 @@ async def generate_bcd(
     try:
         target = await start_generation(db, bcd_id, user.id, user_feedback=feedback)
     except GenerationAlreadyInProgress as err:
-        raise HTTPException(
-            status_code=409, detail="Generation is already in progress."
-        ) from err
+        raise HTTPException(status_code=409, detail="Generation is already in progress.") from err
 
     new_bcd_id = target.target_bcd.id
     user_feedback = target.user_feedback
@@ -337,12 +335,16 @@ async def generate_bcd(
         async with AsyncSessionLocal() as gen_db:
             try:
                 await run_bcd_generation(
-                    gen_db, new_bcd_id, book_name=target.book_name,
-                    genre=target.genre, chapter_count=target.chapter_count,
+                    gen_db,
+                    new_bcd_id,
+                    book_name=target.book_name,
+                    genre=target.genre,
+                    chapter_count=target.chapter_count,
                     user_feedback=user_feedback,
                 )
             except Exception:
                 import logging
+
                 logging.getLogger(__name__).exception("BCD generation failed for %s", new_bcd_id)
 
     background_tasks.add_task(_run_generation)

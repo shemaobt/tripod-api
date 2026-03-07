@@ -22,9 +22,7 @@ async def request_revision(
     if bcd.status == BCDStatus.GENERATING:
         raise ConflictError("Cannot request revision on a document being generated.")
 
-    await db.execute(
-        delete(BCDApproval).where(BCDApproval.bcd_id == bcd_id)
-    )
+    await db.execute(delete(BCDApproval).where(BCDApproval.bcd_id == bcd_id))
 
     bcd.status = BCDStatus.DRAFT
     await db.commit()

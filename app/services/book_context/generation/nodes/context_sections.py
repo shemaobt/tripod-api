@@ -76,9 +76,7 @@ async def generate_context_sections(state: BCDGenerationState) -> dict:
     bhsa_entities = state.get("bhsa_entities", [])
 
     # Pre-filter to place entities only
-    place_entities = [
-        e for e in bhsa_entities if e.get("entity_type") == "place"
-    ]
+    place_entities = [e for e in bhsa_entities if e.get("entity_type") == "place"]
 
     prompt = CONTEXT_SECTIONS_PROMPT.format(
         book_name=state["book_name"],

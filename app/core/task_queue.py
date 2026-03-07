@@ -22,9 +22,7 @@ def get_task_app() -> procrastinate.App:
         settings = get_settings()
         _app = proc.App(
             connector=proc.PsycopgConnector(
-                conninfo=settings.database_url.replace(
-                    "postgresql+asyncpg://", "postgresql://"
-                ),
+                conninfo=settings.database_url.replace("postgresql+asyncpg://", "postgresql://"),
             ),
             import_paths=["app.tasks"],
         )

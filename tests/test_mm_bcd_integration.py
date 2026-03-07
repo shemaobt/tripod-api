@@ -8,8 +8,11 @@ from tests.baker import make_bible_book, make_pericope, make_user
 async def test_create_meaning_map_with_bcd_version(db_session):
     user = await make_user(db_session, email="mmint1@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     pericope = await make_pericope(db_session, book.id, reference="Ruth 1:1-5")
 
@@ -28,8 +31,11 @@ async def test_create_meaning_map_with_bcd_version(db_session):
 async def test_create_meaning_map_without_bcd_version(db_session):
     user = await make_user(db_session, email="mmint2@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     pericope = await make_pericope(db_session, book.id, reference="Ruth 1:1-5")
 

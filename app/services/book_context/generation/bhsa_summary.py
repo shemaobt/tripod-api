@@ -31,9 +31,7 @@ def build_bhsa_summary(tf_api: Any, book_name: str, chapter_count: int) -> str:
                 all_names.add(name)
 
             if c.get("lemma"):
-                verbs.append(
-                    f"{c['lemma']} ({c.get('binyan', '?')}/{c.get('tense', '?')})"
-                )
+                verbs.append(f"{c['lemma']} ({c.get('binyan', '?')}/{c.get('tense', '?')})")
 
         if all_names:
             lines.append(f"  Names: {', '.join(sorted(all_names))}")

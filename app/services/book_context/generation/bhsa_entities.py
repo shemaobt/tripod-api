@@ -26,9 +26,7 @@ def _classify_nametype(nametype: str) -> str:
     return "ambiguous"
 
 
-def extract_bhsa_entities(
-    tf_api: Any, book_name: str, chapter_count: int
-) -> dict[str, Any]:
+def extract_bhsa_entities(tf_api: Any, book_name: str, chapter_count: int) -> dict[str, Any]:
     """Extract all proper nouns and their verse appearances deterministically from BHSA."""
     name_appearances: dict[str, list[dict[str, int]]] = {}
     name_first: dict[str, dict[str, int]] = {}
@@ -71,14 +69,16 @@ def extract_bhsa_entities(
         if entity_type == "skip":
             continue
 
-        entities.append({
-            "name": name,
-            "english_gloss": name_glosses.get(name, ""),
-            "entity_type": entity_type,
-            "entry_verse": name_first[name],
-            "exit_verse": name_last[name],
-            "appears_in": name_appearances[name],
-            "appearance_count": len(name_appearances[name]),
-        })
+        entities.append(
+            {
+                "name": name,
+                "english_gloss": name_glosses.get(name, ""),
+                "entity_type": entity_type,
+                "entry_verse": name_first[name],
+                "exit_verse": name_last[name],
+                "appears_in": name_appearances[name],
+                "appearance_count": len(name_appearances[name]),
+            }
+        )
 
     return {"bhsa_entities": entities}

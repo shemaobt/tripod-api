@@ -9,8 +9,11 @@ from tests.baker import make_bcd, make_bible_book, make_user
 async def test_track_step_creates_log_on_start(db_session):
     user = await make_user(db_session, email="log1@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id)
 
@@ -25,8 +28,11 @@ async def test_track_step_creates_log_on_start(db_session):
 async def test_track_step_marks_completed_on_success(db_session):
     user = await make_user(db_session, email="log2@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id)
 
@@ -43,8 +49,11 @@ async def test_track_step_marks_completed_on_success(db_session):
 async def test_track_step_marks_failed_on_exception(db_session):
     user = await make_user(db_session, email="log3@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id)
 
@@ -61,8 +70,11 @@ async def test_track_step_marks_failed_on_exception(db_session):
 async def test_list_generation_logs_ordered_by_step(db_session):
     user = await make_user(db_session, email="log4@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id)
 

@@ -39,10 +39,13 @@ async def call_llm(
         except Exception as exc:
             last_exc = exc
             if attempt < MAX_RETRIES:
-                delay = RETRY_BASE_DELAY ** attempt
+                delay = RETRY_BASE_DELAY**attempt
                 logger.warning(
                     "LLM call attempt %d/%d failed (%s), retrying in %ds...",
-                    attempt, MAX_RETRIES, exc, delay,
+                    attempt,
+                    MAX_RETRIES,
+                    exc,
+                    delay,
                 )
                 await asyncio.sleep(delay)
             else:

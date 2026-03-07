@@ -26,6 +26,7 @@ def test_generate_bcd_task_is_async():
 def test_get_task_app_requires_psycopg():
     try:
         import psycopg  # noqa: F401
+
         has_psycopg = True
     except ImportError:
         has_psycopg = False
@@ -33,4 +34,5 @@ def test_get_task_app_requires_psycopg():
     if not has_psycopg:
         with pytest.raises(ImportError):
             from app.core.task_queue import get_task_app
+
             get_task_app()

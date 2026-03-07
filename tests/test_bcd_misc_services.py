@@ -13,8 +13,11 @@ from tests.baker import make_bcd, make_bible_book, make_user
 async def test_create_bcd_stores_genre_context(db_session):
     user = await make_user(db_session, email="genre1@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
 
     bcd = await create_bcd(db_session, book.id, user.id, "poetry")
@@ -26,8 +29,11 @@ async def test_create_bcd_stores_genre_context(db_session):
 async def test_create_bcd_increments_version(db_session):
     user = await make_user(db_session, email="ver1@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
 
     bcd1 = await create_bcd(db_session, book.id, user.id, "narrative")
@@ -41,8 +47,11 @@ async def test_create_bcd_increments_version(db_session):
 async def test_update_section_unknown_key_raises_not_found(db_session):
     user = await make_user(db_session, email="unk1@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id)
 
@@ -54,8 +63,11 @@ async def test_update_section_unknown_key_raises_not_found(db_session):
 async def test_update_section_rejects_generating(db_session):
     user = await make_user(db_session, email="gen2@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id, status="generating")
 
@@ -67,8 +79,11 @@ async def test_update_section_rejects_generating(db_session):
 async def test_create_new_version_rejects_draft(db_session):
     user = await make_user(db_session, email="nv1@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id, status="draft")
 
@@ -80,8 +95,11 @@ async def test_create_new_version_rejects_draft(db_session):
 async def test_track_step_success(db_session):
     user = await make_user(db_session, email="ts1@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id)
 
@@ -97,8 +115,11 @@ async def test_track_step_success(db_session):
 async def test_track_step_failure(db_session):
     user = await make_user(db_session, email="ts2@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id)
 
@@ -114,8 +135,11 @@ async def test_track_step_failure(db_session):
 async def test_list_generation_logs_ordered(db_session):
     user = await make_user(db_session, email="lg1@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id)
 
@@ -129,5 +153,7 @@ async def test_list_generation_logs_ordered(db_session):
     logs = await list_generation_logs(db_session, bcd.id)
     assert len(logs) == 3
     assert [log_entry.step_name for log_entry in logs] == [
-        "collect_bhsa", "structural_outline", "participants",
+        "collect_bhsa",
+        "structural_outline",
+        "participants",
     ]

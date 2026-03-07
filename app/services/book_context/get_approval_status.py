@@ -8,9 +8,7 @@ from app.services.book_context.approve_bcd import SPECIALIST_ROLES
 
 async def get_approval_status(db: AsyncSession, bcd_id: str) -> dict:
     """Return the current approval progress for a BCD."""
-    result = await db.execute(
-        select(BCDApproval).where(BCDApproval.bcd_id == bcd_id)
-    )
+    result = await db.execute(select(BCDApproval).where(BCDApproval.bcd_id == bcd_id))
     approvals = list(result.scalars().all())
 
     user_ids = {a.user_id for a in approvals}
@@ -28,14 +26,16 @@ async def get_approval_status(db: AsyncSession, bcd_id: str) -> dict:
         roles = a.roles_at_approval or [a.role_at_approval]
         specialties = [r for r in roles if r in SPECIALIST_ROLES]
         covered.update(specialties)
-        approval_entries.append({
-            "id": a.id,
-            "user_id": a.user_id,
-            "user_name": user_names.get(a.user_id, "Unknown"),
-            "role_at_approval": a.role_at_approval,
-            "roles_at_approval": roles,
-            "approved_at": a.approved_at.isoformat() if a.approved_at else None,
-        })
+        approval_entries.append(
+            {
+                "id": a.id,
+                "user_id": a.user_id,
+                "user_name": user_names.get(a.user_id, "Unknown"),
+                "role_at_approval": a.role_at_approval,
+                "roles_at_approval": roles,
+                "approved_at": a.approved_at.isoformat() if a.approved_at else None,
+            }
+        )
 
     missing = sorted(SPECIALIST_ROLES - covered)
     distinct_users = len({a.user_id for a in approvals})

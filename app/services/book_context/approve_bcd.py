@@ -18,9 +18,7 @@ async def approve_bcd(
     """Approve a BCD using multi-specialist workflow."""
     capable_roles = [r for r in user_roles if r in APPROVE_CAPABLE]
     if not capable_roles:
-        raise AuthorizationError(
-            "You need an admin, facilitator, or specialist role to approve."
-        )
+        raise AuthorizationError("You need an admin, facilitator, or specialist role to approve.")
 
     bcd = await get_bcd_or_404(db, bcd_id)
 
@@ -29,9 +27,7 @@ async def approve_bcd(
             raise ConflictError("This document is already approved.")
         raise ConflictError("Only draft or in-review documents can be approved.")
 
-    existing = await db.execute(
-        select(BCDApproval).where(BCDApproval.bcd_id == bcd_id)
-    )
+    existing = await db.execute(select(BCDApproval).where(BCDApproval.bcd_id == bcd_id))
     approvals = list(existing.scalars().all())
 
     if any(a.user_id == user_id for a in approvals):
@@ -47,8 +43,7 @@ async def approve_bcd(
 
     is_admin = "admin" in capable_roles
     has_prior_admin = any(
-        "admin" in (a.roles_at_approval or [a.role_at_approval])
-        for a in approvals
+        "admin" in (a.roles_at_approval or [a.role_at_approval]) for a in approvals
     )
 
     if is_admin or has_prior_admin:

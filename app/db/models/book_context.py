@@ -40,9 +40,7 @@ class BookContextDocument(Base):
         Index("ix_bcd_book_status", "book_id", "status"),
     )
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     book_id: Mapped[str] = mapped_column(
         ForeignKey("bible_books.id", ondelete="RESTRICT"), index=True
     )
@@ -66,12 +64,8 @@ class BookContextDocument(Base):
     maintenance_notes: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     generation_metadata: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     regeneration_feedback: Mapped[str | None] = mapped_column(Text, nullable=True)
-    prepared_by: Mapped[str] = mapped_column(
-        ForeignKey("users.id", ondelete="RESTRICT")
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    prepared_by: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -79,19 +73,13 @@ class BookContextDocument(Base):
 
 class BCDApproval(Base):
     __tablename__ = "bcd_approvals"
-    __table_args__ = (
-        UniqueConstraint("bcd_id", "user_id", name="uq_bcd_approval_user"),
-    )
+    __table_args__ = (UniqueConstraint("bcd_id", "user_id", name="uq_bcd_approval_user"),)
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     bcd_id: Mapped[str] = mapped_column(
         ForeignKey("book_context_documents.id", ondelete="CASCADE"), index=True
     )
-    user_id: Mapped[str] = mapped_column(
-        ForeignKey("users.id", ondelete="RESTRICT")
-    )
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
     role_at_approval: Mapped[str] = mapped_column(String(50))
     roles_at_approval: Mapped[list | None] = mapped_column(JSON, nullable=True)
     approved_at: Mapped[datetime] = mapped_column(
@@ -102,21 +90,15 @@ class BCDApproval(Base):
 class BCDSectionFeedback(Base):
     __tablename__ = "bcd_section_feedback"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     bcd_id: Mapped[str] = mapped_column(
         ForeignKey("book_context_documents.id", ondelete="CASCADE"), index=True
     )
     section_key: Mapped[str] = mapped_column(String(50))
-    author_id: Mapped[str] = mapped_column(
-        ForeignKey("users.id", ondelete="RESTRICT")
-    )
+    author_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
     content: Mapped[str] = mapped_column(Text)
     resolved: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -125,26 +107,18 @@ class BCDSectionFeedback(Base):
 class BCDGenerationLog(Base):
     __tablename__ = "bcd_generation_logs"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     bcd_id: Mapped[str] = mapped_column(
         ForeignKey("book_context_documents.id", ondelete="CASCADE"), index=True
     )
     step_name: Mapped[str] = mapped_column(String(100))
     step_order: Mapped[int] = mapped_column(Integer)
     status: Mapped[str] = mapped_column(String(20), default="pending")
-    started_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    completed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     input_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     output_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     token_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     error_detail: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

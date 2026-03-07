@@ -36,9 +36,7 @@ async def start_generation(
     if source.status == BCDStatus.GENERATING:
         raise GenerationAlreadyInProgress("Generation is already in progress.")
 
-    result = await db.execute(
-        select(BibleBook).where(BibleBook.id == source.book_id)
-    )
+    result = await db.execute(select(BibleBook).where(BibleBook.id == source.book_id))
     book = result.scalar_one_or_none()
     if not book:
         raise NotFoundError(f"Bible book for BCD {bcd_id} not found.")
@@ -50,8 +48,7 @@ async def start_generation(
     )
 
     source_has_content = (
-        source.structural_outline is not None
-        or source.participant_register is not None
+        source.structural_outline is not None or source.participant_register is not None
     )
 
     if not source_has_content:

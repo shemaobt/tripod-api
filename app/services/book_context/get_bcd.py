@@ -6,9 +6,7 @@ from app.db.models.book_context import BookContextDocument
 
 
 async def get_bcd(db: AsyncSession, bcd_id: str) -> BookContextDocument | None:
-    result = await db.execute(
-        select(BookContextDocument).where(BookContextDocument.id == bcd_id)
-    )
+    result = await db.execute(select(BookContextDocument).where(BookContextDocument.id == bcd_id))
     return result.scalar_one_or_none()
 
 

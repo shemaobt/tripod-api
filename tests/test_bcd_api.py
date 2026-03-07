@@ -11,8 +11,11 @@ from tests.baker import make_bcd, make_bible_book, make_user
 async def test_list_bcds_returns_all(db_session):
     user = await make_user(db_session, email="api1@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     await make_bcd(db_session, book.id, user.id, version=1)
     await make_bcd(db_session, book.id, user.id, version=2)
@@ -25,12 +28,18 @@ async def test_list_bcds_returns_all(db_session):
 async def test_list_bcds_filter_by_book(db_session):
     user = await make_user(db_session, email="api2@test.com")
     book1 = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     book2 = await make_bible_book(
-        db_session, name="Esther", abbreviation="Est",
-        order=17, chapter_count=10,
+        db_session,
+        name="Esther",
+        abbreviation="Est",
+        order=17,
+        chapter_count=10,
     )
     await make_bcd(db_session, book1.id, user.id)
     await make_bcd(db_session, book2.id, user.id)
@@ -44,8 +53,11 @@ async def test_list_bcds_filter_by_book(db_session):
 async def test_add_feedback_creates_entry(db_session):
     user = await make_user(db_session, email="api3@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id)
 
@@ -59,8 +71,11 @@ async def test_add_feedback_creates_entry(db_session):
 async def test_list_feedback_returns_ordered(db_session):
     user = await make_user(db_session, email="api4@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id)
     await add_feedback(db_session, bcd.id, "places", user.id, "First")
@@ -75,8 +90,11 @@ async def test_list_feedback_returns_ordered(db_session):
 async def test_resolve_feedback_marks_resolved(db_session):
     user = await make_user(db_session, email="api5@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id)
     fb = await add_feedback(db_session, bcd.id, "discourse_threads", user.id, "Fix thread")
@@ -89,11 +107,15 @@ async def test_resolve_feedback_marks_resolved(db_session):
 async def test_resolve_feedback_raises_not_found(db_session):
     user = await make_user(db_session, email="api6@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id)
 
     from app.core.exceptions import NotFoundError
+
     with pytest.raises(NotFoundError):
         await resolve_feedback(db_session, bcd.id, "nonexistent-id")

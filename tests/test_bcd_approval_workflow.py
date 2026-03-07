@@ -10,8 +10,11 @@ from tests.baker import make_bcd, make_bible_book, make_user
 async def test_admin_approval_auto_approves(db_session):
     user = await make_user(db_session, email="admin1@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id, status="draft")
 
@@ -23,8 +26,11 @@ async def test_admin_approval_auto_approves(db_session):
 async def test_single_facilitator_sets_review(db_session):
     user = await make_user(db_session, email="fac1@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id, status="draft")
 
@@ -37,8 +43,11 @@ async def test_two_facilitators_without_specialist_stay_review(db_session):
     fac1 = await make_user(db_session, email="fac2a@test.com")
     fac2 = await make_user(db_session, email="fac2b@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, fac1.id, status="draft")
 
@@ -51,8 +60,11 @@ async def test_two_facilitators_without_specialist_stay_review(db_session):
 async def test_duplicate_approval_rejected(db_session):
     user = await make_user(db_session, email="dup1@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id, status="draft")
 
@@ -65,8 +77,11 @@ async def test_duplicate_approval_rejected(db_session):
 async def test_approval_rejects_unauthorized_role(db_session):
     user = await make_user(db_session, email="analyst1@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id, status="draft")
 
@@ -78,8 +93,11 @@ async def test_approval_rejects_unauthorized_role(db_session):
 async def test_approval_rejects_already_approved(db_session):
     user = await make_user(db_session, email="appr1@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id, status="approved")
 
@@ -91,8 +109,11 @@ async def test_approval_rejects_already_approved(db_session):
 async def test_approval_rejects_generating(db_session):
     user = await make_user(db_session, email="gen1@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id, status="generating")
 
@@ -104,8 +125,11 @@ async def test_approval_rejects_generating(db_session):
 async def test_request_revision_resets_to_draft(db_session):
     user = await make_user(db_session, email="rev1@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id, status="review")
 
@@ -117,8 +141,11 @@ async def test_request_revision_resets_to_draft(db_session):
 async def test_request_revision_rejects_generating(db_session):
     user = await make_user(db_session, email="rev2@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id, status="generating")
 
@@ -130,8 +157,11 @@ async def test_request_revision_rejects_generating(db_session):
 async def test_request_revision_rejects_unauthorized_role(db_session):
     user = await make_user(db_session, email="rev3@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id, status="draft")
 

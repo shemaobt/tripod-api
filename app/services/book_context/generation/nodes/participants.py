@@ -57,9 +57,7 @@ async def generate_participants(state: BCDGenerationState) -> dict:
     bhsa_entities = state.get("bhsa_entities", [])
 
     # Pre-filter to person entities only (+ ambiguous defaults to person)
-    person_entities = [
-        e for e in bhsa_entities if e.get("entity_type") in ("person", "ambiguous")
-    ]
+    person_entities = [e for e in bhsa_entities if e.get("entity_type") in ("person", "ambiguous")]
 
     prompt = PARTICIPANT_PROMPT.format(
         book_name=state["book_name"],

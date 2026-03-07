@@ -20,8 +20,7 @@ def _slice_participants(register: list, target_chapter: int, target_verse: int) 
         if not _is_before(entry, target_chapter, target_verse):
             continue
         sliced_arc = [
-            a for a in p.get("arc", [])
-            if _is_before(a.get("at", {}), target_chapter, target_verse)
+            a for a in p.get("arc", []) if _is_before(a.get("at", {}), target_chapter, target_verse)
         ]
         result.append({**p, "arc": sliced_arc})
     return result
@@ -34,25 +33,28 @@ def _slice_threads(threads: list, target_chapter: int, target_verse: int) -> lis
         if not _is_before(opened, target_chapter, target_verse):
             continue
         sliced_status = [
-            s for s in t.get("status_by_episode", [])
+            s
+            for s in t.get("status_by_episode", [])
             if _is_before(s.get("at", {}), target_chapter, target_verse)
         ]
         resolved_at = t.get("resolved_at")
-        is_resolved = (
-            resolved_at is not None
-            and _is_before(resolved_at, target_chapter, target_verse)
+        is_resolved = resolved_at is not None and _is_before(
+            resolved_at, target_chapter, target_verse
         )
-        result.append({
-            **t,
-            "status_by_episode": sliced_status,
-            "is_resolved_at_entry": is_resolved,
-        })
+        result.append(
+            {
+                **t,
+                "status_by_episode": sliced_status,
+                "is_resolved_at_entry": is_resolved,
+            }
+        )
     return result
 
 
 def _filter_by_first_appears(items: list, key: str, target_chapter: int, target_verse: int) -> list:
     return [
-        item for item in (items or [])
+        item
+        for item in (items or [])
         if _is_before(item.get(key, {}), target_chapter, target_verse)
     ]
 
@@ -95,13 +97,15 @@ def _build_established_items(
             latest_state = p["arc"][-1].get("state", "")
         entry = p.get("entry_verse", {})
         ref = f"{entry.get('chapter', '')}:{entry.get('verse', '')}"
-        items.append(EstablishedItem(
-            category="participant",
-            name=p.get("name", ""),
-            english_gloss=p.get("english_gloss", ""),
-            description=f"{p.get('name', '')}: {latest_state}",
-            verse_reference=ref,
-        ))
+        items.append(
+            EstablishedItem(
+                category="participant",
+                name=p.get("name", ""),
+                english_gloss=p.get("english_gloss", ""),
+                description=f"{p.get('name', '')}: {latest_state}",
+                verse_reference=ref,
+            )
+        )
 
     for t in threads:
         if t.get("is_resolved_at_entry"):
@@ -111,43 +115,51 @@ def _build_established_items(
         latest_status = ""
         if t.get("status_by_episode"):
             latest_status = t["status_by_episode"][-1].get("status", "")
-        items.append(EstablishedItem(
-            category="event",
-            name=t.get("label", ""),
-            description=latest_status,
-            verse_reference=ref,
-        ))
+        items.append(
+            EstablishedItem(
+                category="event",
+                name=t.get("label", ""),
+                description=latest_status,
+                verse_reference=ref,
+            )
+        )
 
     for inst in institutions:
         invoked = inst.get("first_invoked", {})
         ref = f"{invoked.get('chapter', '')}:{invoked.get('verse', '')}"
-        items.append(EstablishedItem(
-            category="institution",
-            name=inst.get("name", ""),
-            description=inst.get("what_it_is", ""),
-            verse_reference=ref,
-        ))
+        items.append(
+            EstablishedItem(
+                category="institution",
+                name=inst.get("name", ""),
+                description=inst.get("what_it_is", ""),
+                verse_reference=ref,
+            )
+        )
 
-    for pl in (places or []):
+    for pl in places or []:
         appears = pl.get("first_appears", {})
         ref = f"{appears.get('chapter', '')}:{appears.get('verse', '')}"
-        items.append(EstablishedItem(
-            category="place",
-            name=pl.get("name", ""),
-            english_gloss=pl.get("english_gloss", ""),
-            description=pl.get("meaning_and_function", ""),
-            verse_reference=ref,
-        ))
+        items.append(
+            EstablishedItem(
+                category="place",
+                name=pl.get("name", ""),
+                english_gloss=pl.get("english_gloss", ""),
+                description=pl.get("meaning_and_function", ""),
+                verse_reference=ref,
+            )
+        )
 
-    for obj in (objects or []):
+    for obj in objects or []:
         appears = obj.get("first_appears", {})
         ref = f"{appears.get('chapter', '')}:{appears.get('verse', '')}"
-        items.append(EstablishedItem(
-            category="object",
-            name=obj.get("name", ""),
-            description=obj.get("what_it_is", ""),
-            verse_reference=ref,
-        ))
+        items.append(
+            EstablishedItem(
+                category="object",
+                name=obj.get("name", ""),
+                description=obj.get("what_it_is", ""),
+                verse_reference=ref,
+            )
+        )
 
     return items
 
@@ -179,9 +191,7 @@ async def compute_entry_brief(
     db: AsyncSession,
     pericope_id: str,
 ) -> PassageEntryBriefResponse:
-    result = await db.execute(
-        select(Pericope).where(Pericope.id == pericope_id)
-    )
+    result = await db.execute(select(Pericope).where(Pericope.id == pericope_id))
     pericope = result.scalar_one_or_none()
     if not pericope:
         raise NotFoundError(f"Pericope {pericope_id} not found.")
@@ -234,7 +244,11 @@ async def compute_entry_brief(
     institutions = _filter_by_first_appears(bcd.institutions, "first_invoked", target_ch, target_v)
 
     established_items = _build_established_items(
-        participants, threads, institutions, places=places, objects=objects,
+        participants,
+        threads,
+        institutions,
+        places=places,
+        objects=objects,
     )
 
     return PassageEntryBriefResponse(

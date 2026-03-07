@@ -9,8 +9,11 @@ from tests.baker import make_bcd, make_bible_book, make_meaning_map, make_perico
 async def test_staleness_check_current_version(db_session):
     user = await make_user(db_session, email="stale1@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     await make_bcd(db_session, book.id, user.id, status="approved", version=3)
     pericope = await make_pericope(db_session, book.id, reference="Ruth 1:1-5")
@@ -26,8 +29,11 @@ async def test_staleness_check_current_version(db_session):
 async def test_staleness_check_outdated_version(db_session):
     user = await make_user(db_session, email="stale2@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     await make_bcd(db_session, book.id, user.id, status="approved", version=1)
     await make_bcd(db_session, book.id, user.id, status="approved", version=5)
@@ -45,8 +51,11 @@ async def test_staleness_check_outdated_version(db_session):
 async def test_staleness_check_no_bcd_at_all(db_session):
     user = await make_user(db_session, email="stale3@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     pericope = await make_pericope(db_session, book.id, reference="Ruth 1:1-5")
     mm = await make_meaning_map(db_session, pericope.id, user.id)
@@ -59,8 +68,11 @@ async def test_staleness_check_no_bcd_at_all(db_session):
 async def test_staleness_check_no_version_on_mm(db_session):
     user = await make_user(db_session, email="stale4@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     await make_bcd(db_session, book.id, user.id, status="approved", version=2)
     pericope = await make_pericope(db_session, book.id, reference="Ruth 1:1-5")
@@ -74,18 +86,29 @@ async def test_staleness_check_no_version_on_mm(db_session):
 async def test_validate_non_first_pericope_no_established(db_session):
     user = await make_user(db_session, email="val_api1@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     await make_pericope(
-        db_session, book.id,
-        chapter_start=1, verse_start=1,
-        chapter_end=1, verse_end=5, reference="Ruth 1:1-5",
+        db_session,
+        book.id,
+        chapter_start=1,
+        verse_start=1,
+        chapter_end=1,
+        verse_end=5,
+        reference="Ruth 1:1-5",
     )
     pericope2 = await make_pericope(
-        db_session, book.id,
-        chapter_start=1, verse_start=6,
-        chapter_end=1, verse_end=18, reference="Ruth 1:6-18",
+        db_session,
+        book.id,
+        chapter_start=1,
+        verse_start=6,
+        chapter_end=1,
+        verse_end=18,
+        reference="Ruth 1:6-18",
     )
 
     mm = await make_meaning_map(
@@ -108,13 +131,20 @@ async def test_validate_non_first_pericope_no_established(db_session):
 async def test_validate_first_pericope_no_issues(db_session):
     user = await make_user(db_session, email="val_api2@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     pericope = await make_pericope(
-        db_session, book.id,
-        chapter_start=1, verse_start=1,
-        chapter_end=1, verse_end=5, reference="Ruth 1:1-5",
+        db_session,
+        book.id,
+        chapter_start=1,
+        verse_start=1,
+        chapter_end=1,
+        verse_end=5,
+        reference="Ruth 1:1-5",
     )
 
     mm = await make_meaning_map(
@@ -137,18 +167,29 @@ async def test_validate_first_pericope_no_issues(db_session):
 async def test_validate_detects_established_name_in_propositions(db_session):
     user = await make_user(db_session, email="val_api3@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth",
-        order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     await make_pericope(
-        db_session, book.id,
-        chapter_start=1, verse_start=1,
-        chapter_end=1, verse_end=5, reference="Ruth 1:1-5",
+        db_session,
+        book.id,
+        chapter_start=1,
+        verse_start=1,
+        chapter_end=1,
+        verse_end=5,
+        reference="Ruth 1:1-5",
     )
     pericope2 = await make_pericope(
-        db_session, book.id,
-        chapter_start=1, verse_start=6,
-        chapter_end=1, verse_end=18, reference="Ruth 1:6-18",
+        db_session,
+        book.id,
+        chapter_start=1,
+        verse_start=6,
+        chapter_end=1,
+        verse_end=18,
+        reference="Ruth 1:6-18",
     )
 
     mm = await make_meaning_map(
@@ -159,7 +200,8 @@ async def test_validate_detects_established_name_in_propositions(db_session):
             "level_1": {"arc": "test"},
             "already_established": [
                 {
-                    "category": "participant", "name": "Boaz",
+                    "category": "participant",
+                    "name": "Boaz",
                     "description": "A kinsman",
                     "verse_reference": "2:1",
                 },

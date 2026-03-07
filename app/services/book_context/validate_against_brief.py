@@ -33,9 +33,7 @@ async def validate_map_against_brief(
     db: AsyncSession,
     meaning_map: MeaningMap,
 ) -> list[dict]:
-    result = await db.execute(
-        select(Pericope).where(Pericope.id == meaning_map.pericope_id)
-    )
+    result = await db.execute(select(Pericope).where(Pericope.id == meaning_map.pericope_id))
     pericope = result.scalar_one_or_none()
     if not pericope:
         return []
@@ -50,11 +48,13 @@ async def validate_map_against_brief(
     established = data.get("already_established", [])
 
     if not is_first and not established:
-        issues.append({
-            "severity": "error",
-            "message": "Already Established list is empty for a non-first pericope.",
-            "section": "already_established",
-        })
+        issues.append(
+            {
+                "severity": "error",
+                "message": "Already Established list is empty for a non-first pericope.",
+                "section": "already_established",
+            }
+        )
 
     established_names = {
         item.get("name", "").strip().lower()
@@ -73,13 +73,16 @@ async def validate_map_against_brief(
             answer = content_item.get("answer", "")
             for name in established_names:
                 if re.search(rf"\b{re.escape(name)}\b", answer, re.IGNORECASE):
-                    issues.append({
-                        "severity": "warning",
-                        "message": (
-                            f"Established name '{name.title()}' found in proposition {prop_num}. "
-                            f"Consider using a generic reference instead."
-                        ),
-                        "section": f"prop_{prop_num}",
-                    })
+                    issues.append(
+                        {
+                            "severity": "warning",
+                            "message": (
+                                f"Established name '{name.title()}' found in "
+                                f"proposition {prop_num}. "
+                                "Consider using a generic reference instead."
+                            ),
+                            "section": f"prop_{prop_num}",
+                        }
+                    )
 
     return issues

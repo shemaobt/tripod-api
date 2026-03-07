@@ -6,17 +6,19 @@ from app.core.exceptions import ConflictError, NotFoundError
 from app.db.models.book_context import BCDStatus, BookContextDocument
 from app.services.book_context.get_bcd import get_bcd_or_404
 
-EDITABLE_SECTIONS = frozenset({
-    "structural_outline",
-    "participant_register",
-    "discourse_threads",
-    "theological_spine",
-    "places",
-    "objects",
-    "institutions",
-    "genre_context",
-    "maintenance_notes",
-})
+EDITABLE_SECTIONS = frozenset(
+    {
+        "structural_outline",
+        "participant_register",
+        "discourse_threads",
+        "theological_spine",
+        "places",
+        "objects",
+        "institutions",
+        "genre_context",
+        "maintenance_notes",
+    }
+)
 
 
 async def update_section(
@@ -29,8 +31,7 @@ async def update_section(
 
     if bcd.status == BCDStatus.APPROVED:
         raise ConflictError(
-            "Cannot edit an approved Book Context Document. "
-            "Create a new version instead."
+            "Cannot edit an approved Book Context Document. Create a new version instead."
         )
 
     if bcd.status == BCDStatus.GENERATING:

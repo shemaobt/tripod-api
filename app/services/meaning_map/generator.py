@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 class GenerationError(Exception):
     """Raised when a required generation data source is unavailable."""
 
+
 GENERATION_PROMPT_TEMPLATE = """\
 You are an expert biblical exegete and mapper for the "Tripod Method for AI-Assisted \
 Oral Bible Translation." Your task is to produce a complete, flawless Bible Meaning Map \

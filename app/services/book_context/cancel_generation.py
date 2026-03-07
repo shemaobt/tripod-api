@@ -17,9 +17,7 @@ async def cancel_generation(db: AsyncSession, bcd_id: str) -> str:
 
     book_id = bcd.book_id
 
-    await db.execute(
-        delete(BCDGenerationLog).where(BCDGenerationLog.bcd_id == bcd_id)
-    )
+    await db.execute(delete(BCDGenerationLog).where(BCDGenerationLog.bcd_id == bcd_id))
     await db.delete(bcd)
     await db.commit()
 
