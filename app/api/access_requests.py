@@ -1,10 +1,9 @@
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth_middleware import get_current_user, require_platform_admin
 from app.core.database import get_db
-from app.db.models.auth import App, User
+from app.db.models.auth import User
 from app.models.access_request import (
     AccessRequestCreate,
     AccessRequestResponse,
@@ -74,7 +73,5 @@ async def review_access_request(
     request = await access_request_service.review_access_request(
         db, actor, request_id, payload.status, payload.reason
     )
-    # Resolve app_key from app_id
-    app_result = await db.execute(select(App).where(App.id == request.app_id))
-    app = app_result.scalar_one()
-    return _to_response(request, app.app_key)
+    app_key = await access_request_service.get_app_key(db, request.app_id)
+    return _to_response(request, app_key)

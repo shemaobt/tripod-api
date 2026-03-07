@@ -9,12 +9,14 @@ async def create_meaning_map(
     analyst_id: str,
     data: dict,
     status: str = "draft",
+    bcd_version_at_creation: int | None = None,
 ) -> MeaningMap:
     mm = MeaningMap(
         pericope_id=pericope_id,
         analyst_id=analyst_id,
         data=data,
         status=status,
+        bcd_version_at_creation=bcd_version_at_creation,
     )
     db.add(mm)
     await db.commit()

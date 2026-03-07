@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,6 +23,7 @@ from app.models.meaning_map import (
     MeaningMapUpdateData,
 )
 from app.services import meaning_map_service, notification_service
+from app.services.book_context.compute_entry_brief import compute_entry_brief
 from app.services.meaning_map.generator import (
     GenerationError,
 )
@@ -28,6 +31,8 @@ from app.services.meaning_map.generator import (
     generate_meaning_map as run_generation,
 )
 from app.services.notifications.get_mm_app_id import get_mm_app_id
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 _mm_access = require_app_access("meaning-map-generator")
@@ -137,6 +142,20 @@ async def generate_meaning_map(
 ) -> MeaningMapResponse:
     pericope, book = await meaning_map_service.get_pericope_with_book(db, payload.pericope_id)
     meaning_map_service.ensure_ot(book)
+
+    bcd_version: int | None = None
+    entry_brief_data: dict | None = None
+    try:
+        entry_brief = await compute_entry_brief(db, payload.pericope_id)
+        bcd_version = entry_brief.bcd_version
+        entry_brief_data = entry_brief.model_dump()
+    except Exception:
+        logger.warning(
+            "Entry brief computation failed for pericope %s — generating without Book Context",
+            payload.pericope_id,
+            exc_info=True,
+        )
+
     try:
         qdrant = get_qdrant_client()
     except RuntimeError as exc:
@@ -145,6 +164,7 @@ async def generate_meaning_map(
         generated_data = await run_generation(
             pericope.reference,
             qdrant_client=qdrant,
+            entry_brief=entry_brief_data,
         )
     except GenerationError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
@@ -153,6 +173,7 @@ async def generate_meaning_map(
         pericope_id=payload.pericope_id,
         analyst_id=user.id,
         data=generated_data,
+        bcd_version_at_creation=bcd_version,
     )
     return await _enrich_response(db, mm)
 

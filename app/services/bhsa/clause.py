@@ -66,6 +66,8 @@ def extract_clause(
     subjects: list[str] = []
     objects: list[str] = []
     names: list[str] = []
+    name_glosses: dict[str, str] = {}
+    name_types: dict[str, str] = {}
 
     for phrase_node in L.d(clause_node, otype="phrase"):
         func = F.function.v(phrase_node)
@@ -84,7 +86,16 @@ def extract_clause(
                     if hasattr(F, attr):
                         name = getattr(F, attr).v(w)
                         if name:
-                            names.append(name.rstrip("/=[]"))
+                            clean_name = name.rstrip("/=[]")
+                            names.append(clean_name)
+                            if clean_name not in name_glosses:
+                                gloss_val = F.gloss.v(w) if hasattr(F, "gloss") else ""
+                                if gloss_val:
+                                    name_glosses[clean_name] = gloss_val
+                            if clean_name not in name_types and hasattr(F, "nametype"):
+                                nt = F.nametype.v(w) or ""
+                                if nt:
+                                    name_types[clean_name] = nt
                         break
 
     return {
@@ -103,4 +114,6 @@ def extract_clause(
         "objects": objects,
         "has_ki": any(F.lex.v(w) == "KJ/" for w in words),
         "names": list(set(names)),
+        "name_glosses": name_glosses,
+        "name_types": name_types,
     }

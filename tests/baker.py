@@ -3,6 +3,12 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.auth import AccessRequest, App, RefreshToken, Role, User, UserAppRole
+from app.db.models.book_context import (
+    BCDApproval,
+    BCDGenerationLog,
+    BCDSectionFeedback,
+    BookContextDocument,
+)
 from app.db.models.language import Language
 from app.db.models.meaning_map import (
     BibleBook,
@@ -427,3 +433,119 @@ async def make_access_request(
     await db.commit()
     await db.refresh(req)
     return req
+
+
+async def make_bcd(
+    db: AsyncSession,
+    book_id: str,
+    prepared_by: str,
+    *,
+    status: str = "draft",
+    version: int = 1,
+    section_label: str | None = None,
+    section_range_start: int | None = None,
+    section_range_end: int | None = None,
+    structural_outline: dict | None = None,
+    participant_register: list | None = None,
+    discourse_threads: list | None = None,
+    theological_spine: str | None = None,
+    places: list | None = None,
+    objects: list | None = None,
+    institutions: list | None = None,
+    genre_context: dict | None = None,
+    maintenance_notes: dict | None = None,
+    generation_metadata: dict | None = None,
+) -> BookContextDocument:
+    bcd = BookContextDocument(
+        book_id=book_id,
+        prepared_by=prepared_by,
+        status=status,
+        version=version,
+        section_label=section_label,
+        section_range_start=section_range_start,
+        section_range_end=section_range_end,
+        structural_outline=structural_outline,
+        participant_register=participant_register,
+        discourse_threads=discourse_threads,
+        theological_spine=theological_spine,
+        places=places,
+        objects=objects,
+        institutions=institutions,
+        genre_context=genre_context,
+        maintenance_notes=maintenance_notes,
+        generation_metadata=generation_metadata,
+    )
+    db.add(bcd)
+    await db.commit()
+    await db.refresh(bcd)
+    return bcd
+
+
+async def make_bcd_approval(
+    db: AsyncSession,
+    bcd_id: str,
+    user_id: str,
+    *,
+    role_at_approval: str = "facilitator",
+    roles_at_approval: list[str] | None = None,
+) -> BCDApproval:
+    approval = BCDApproval(
+        bcd_id=bcd_id,
+        user_id=user_id,
+        role_at_approval=role_at_approval,
+        roles_at_approval=roles_at_approval or [role_at_approval],
+    )
+    db.add(approval)
+    await db.commit()
+    await db.refresh(approval)
+    return approval
+
+
+async def make_bcd_feedback(
+    db: AsyncSession,
+    bcd_id: str,
+    author_id: str,
+    *,
+    section_key: str = "participant_register",
+    content: str = "Needs more detail",
+    resolved: bool = False,
+) -> BCDSectionFeedback:
+    fb = BCDSectionFeedback(
+        bcd_id=bcd_id,
+        section_key=section_key,
+        author_id=author_id,
+        content=content,
+        resolved=resolved,
+    )
+    db.add(fb)
+    await db.commit()
+    await db.refresh(fb)
+    return fb
+
+
+async def make_bcd_generation_log(
+    db: AsyncSession,
+    bcd_id: str,
+    *,
+    step_name: str = "structural_outline",
+    step_order: int = 1,
+    status: str = "pending",
+    input_summary: str | None = None,
+    output_summary: str | None = None,
+    duration_ms: int | None = None,
+    error_detail: str | None = None,
+) -> BCDGenerationLog:
+    log = BCDGenerationLog(
+        bcd_id=bcd_id,
+        step_name=step_name,
+        step_order=step_order,
+        status=status,
+        input_summary=input_summary,
+        output_summary=output_summary,
+        duration_ms=duration_ms,
+        error_detail=error_detail,
+    )
+    db.add(log)
+    await db.commit()
+    await db.refresh(log)
+    return log

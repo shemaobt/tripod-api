@@ -108,9 +108,7 @@ async def test_generate_raises_when_qdrant_client_none(mock_bhsa, mock_settings)
     mock_bhsa.fetch_passage.return_value = FAKE_BHSA_DATA
 
     with pytest.raises(GenerationError, match="RAG service is not available"):
-        await generate_meaning_map(
-            "Genesis 1:1-5", settings=mock_settings, qdrant_client=None
-        )
+        await generate_meaning_map("Genesis 1:1-5", settings=mock_settings, qdrant_client=None)
 
 
 @pytest.mark.asyncio
@@ -135,9 +133,7 @@ async def test_generate_raises_on_llm_failure(
 
     qdrant = AsyncMock()
     with pytest.raises(GenerationError, match="LLM generation failed"):
-        await generate_meaning_map(
-            "Genesis 1:1-5", settings=mock_settings, qdrant_client=qdrant
-        )
+        await generate_meaning_map("Genesis 1:1-5", settings=mock_settings, qdrant_client=qdrant)
 
 
 @pytest.mark.asyncio

@@ -74,6 +74,30 @@ services:
     profiles:
       - bhsa
 
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: tripod_backend
+    container_name: tripod_backend_worker
+    volumes:
+      - ./:/app
+      - backend_venv:/opt/venv
+      - tf_data:/root/text-fabric-data
+      - gcp_secrets_env:/run/secrets:ro
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    depends_on:
+      gcp-secrets:
+        condition: service_completed_successfully
+      backend:
+        condition: service_healthy
+    command: >
+      sh -c "set -a && . /run/secrets/.env && set +a && uv run procrastinate --app=app.core.task_queue.get_task_app worker --queues=bcd_generation"
+    profiles:
+      - worker
+
   lint:
     build:
       context: .

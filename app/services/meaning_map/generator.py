@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 class GenerationError(Exception):
     """Raised when a required generation data source is unavailable."""
 
+
 GENERATION_PROMPT_TEMPLATE = """\
 You are an expert biblical exegete and mapper for the "Tripod Method for AI-Assisted \
 Oral Bible Translation." Your task is to produce a complete, flawless Bible Meaning Map \
@@ -127,10 +128,68 @@ def _format_bhsa_clauses(clauses: list[dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
+def _format_entry_brief(entry_brief: dict[str, Any]) -> str:
+    lines: list[str] = []
+    lines.append("Book Context — Already Established:")
+
+    established = entry_brief.get("established_items", [])
+    if not established:
+        lines.append("  (This is the opening of the book — nothing is established yet.)")
+    else:
+        for item in established:
+            name = item.get("name", "")
+            gloss = item.get("english_gloss", "")
+            display = f"{name} ({gloss})" if gloss else name
+            lines.append(
+                f"  - [{item.get('category', '')}] {display}: "
+                f"{item.get('description', '')} (ref: {item.get('verse_reference', '')})"
+            )
+
+    participants = entry_brief.get("participants", [])
+    if participants:
+        lines.append("\nKnown Participants at Entry:")
+        for p in participants[:10]:
+            arc_state = ""
+            if p.get("arc"):
+                arc_state = f" — current state: {p['arc'][-1].get('state', '')}"
+            lines.append(f"  - {p.get('name', '')}{arc_state}")
+
+    threads = entry_brief.get("active_threads", [])
+    if threads:
+        lines.append("\nActive Discourse Threads:")
+        for t in threads:
+            resolved = " (RESOLVED)" if t.get("is_resolved_at_entry") else ""
+            lines.append(f"  - {t.get('label', '')}: {t.get('question', '')}{resolved}")
+
+    places = entry_brief.get("places", [])
+    if places:
+        lines.append("\nKnown Places at Entry:")
+        for pl in places:
+            name = pl.get("name", "")
+            gloss = pl.get("english_gloss", "")
+            display = f"{name} ({gloss})" if gloss else name
+            lines.append(f"  - {display}: {pl.get('meaning_and_function', '')}")
+
+    objects = entry_brief.get("objects", [])
+    if objects:
+        lines.append("\nKnown Objects at Entry:")
+        for obj in objects:
+            lines.append(f"  - {obj.get('name', '')}: {obj.get('what_it_is', '')}")
+
+    institutions = entry_brief.get("institutions", [])
+    if institutions:
+        lines.append("\nKnown Institutions at Entry:")
+        for inst in institutions:
+            lines.append(f"  - {inst.get('name', '')}: {inst.get('what_it_is', '')}")
+
+    return "\n".join(lines)
+
+
 def _build_generation_prompt(
     reference: str,
     bhsa_data: dict[str, Any] | None,
     rag_context: str | None,
+    entry_brief: dict[str, Any] | None = None,
 ) -> str:
     bhsa_section = ""
     if bhsa_data and bhsa_data.get("clauses"):
@@ -141,11 +200,23 @@ def _build_generation_prompt(
     if rag_context:
         rag_section = f"Methodology Reference:\n{rag_context}"
 
-    return GENERATION_PROMPT_TEMPLATE.format(
+    entry_brief_section = ""
+    if entry_brief:
+        entry_brief_section = _format_entry_brief(entry_brief)
+
+    prompt = GENERATION_PROMPT_TEMPLATE.format(
         reference=reference,
         bhsa_section=bhsa_section,
         rag_section=rag_section,
     )
+
+    if entry_brief_section:
+        prompt = prompt.replace(
+            "INPUT DATA:",
+            f"BOOK CONTEXT (Already Established):\n{entry_brief_section}\n\nINPUT DATA:",
+        )
+
+    return prompt
 
 
 async def generate_meaning_map(
@@ -153,6 +224,7 @@ async def generate_meaning_map(
     *,
     settings: Settings | None = None,
     qdrant_client: AsyncQdrantClient | None = None,
+    entry_brief: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     settings = settings or get_settings()
 
@@ -187,7 +259,7 @@ async def generate_meaning_map(
 
     rag_context = rag_result.answer
 
-    prompt = _build_generation_prompt(reference, bhsa_data, rag_context)
+    prompt = _build_generation_prompt(reference, bhsa_data, rag_context, entry_brief)
 
     # --- LLM ---
     try:

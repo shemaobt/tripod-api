@@ -8,6 +8,12 @@ from app.db.models.auth import (
     User,
     UserAppRole,
 )
+from app.db.models.book_context import (
+    BCDApproval,
+    BCDGenerationLog,
+    BCDSectionFeedback,
+    BookContextDocument,
+)
 from app.db.models.language import Language
 from app.db.models.meaning_map import (
     BibleBook,
@@ -27,7 +33,11 @@ from app.db.models.project import (
 __all__ = [
     "AccessRequest",
     "App",
+    "BCDApproval",
+    "BCDGenerationLog",
+    "BCDSectionFeedback",
     "BibleBook",
+    "BookContextDocument",
     "Language",
     "MeaningMap",
     "MeaningMapFeedback",
