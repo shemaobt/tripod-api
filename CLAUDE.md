@@ -52,12 +52,15 @@ tripod-backend/
 
 - `app/api` is an access layer for HTTP only.
 - Routers parse/validate input, call services, map expected business exceptions to `HTTPException`.
-- Do not put SQLAlchemy queries, business rules, or orchestration logic in routers.
+- **NEVER access the database directly from routers.** No `db.execute()`, `db.add()`, `db.commit()`, `db.delete()`, `select()`, or any SQLAlchemy query in `app/api/`. All data access MUST go through service functions in `app/services/`.
+- **NEVER import SQLAlchemy models or query constructs in routers** (except `AsyncSession` for dependency injection). If a router needs data, create a service function for it.
+- **NEVER import `fastapi.HTTPException` in services.** Services raise business exceptions from `app/core/exceptions.py` (`NotFoundError`, `ConflictError`, `RoleError`, etc.); routers map them to HTTP status codes or let the global exception handlers do it.
+- Do not put business rules, orchestration logic, or model creation in routers. The only logic allowed is: input parsing, calling services, and mapping service exceptions to HTTP responses.
 
 ### Services, core, models
 
-- `app/services`: business logic and data access.
-- `app/core`: config, DB session management, auth dependencies.
+- `app/services`: business logic and **all** data access. Every database query lives here.
+- `app/core`: config, DB session management, auth dependencies, exception definitions.
 - `app/models`: request/response schemas and typed DTOs.
 - `app/db/models`: SQLAlchemy table models only.
 
@@ -131,7 +134,9 @@ Use `gh` CLI for all GitHub operations (push, PR creation). Never force-push or 
 
 ## 9. Summary Checklist
 
-- [ ] Keep `app/api` thin and service-driven.
+- [ ] Keep `app/api` thin and service-driven — **zero database access in routers**.
+- [ ] Keep all database queries in `app/services/` — routers only call service functions.
+- [ ] Keep service exceptions in `app/core/exceptions.py` — never import `HTTPException` in services.
 - [ ] Keep SQLAlchemy usage async and session-injected.
 - [ ] Keep schema changes tracked with Alembic migrations.
 - [ ] Keep runtime secrets in GCP Secret Manager.
