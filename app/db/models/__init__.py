@@ -23,6 +23,7 @@ from app.db.models.meaning_map import (
 )
 from app.db.models.notification import Notification, NotificationMeaningMapDetail
 from app.db.models.oc_genre import OC_Genre, OC_Subcategory
+from app.db.models.oc_recording import OC_Recording
 from app.db.models.org import Organization, OrganizationMember
 from app.db.models.phase import Phase, PhaseDependency, ProjectPhase
 from app.db.models.project import (
@@ -45,6 +46,7 @@ __all__ = [
     "Notification",
     "NotificationMeaningMapDetail",
     "OC_Genre",
+    "OC_Recording",
     "OC_Subcategory",
     "Organization",
     "OrganizationMember",

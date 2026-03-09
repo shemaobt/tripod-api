@@ -14,6 +14,7 @@ from app.db.models import (  # noqa: F401
     meaning_map,
     notification,
     oc_genre,
+    oc_recording,
     org,
     phase,
     project,
