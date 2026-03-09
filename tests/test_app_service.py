@@ -61,9 +61,7 @@ async def test_get_app_or_404(db_session) -> None:
 @pytest.mark.asyncio
 async def test_get_app_or_404_raises_not_found(db_session) -> None:
     with pytest.raises(NotFoundError, match="not found"):
-        await app_service.get_app_or_404(
-            db_session, "00000000-0000-0000-0000-000000000000"
-        )
+        await app_service.get_app_or_404(db_session, "00000000-0000-0000-0000-000000000000")
 
 
 @pytest.mark.asyncio
@@ -79,9 +77,7 @@ async def test_update_app_name_and_description(db_session) -> None:
 @pytest.mark.asyncio
 async def test_update_app_raises_not_found(db_session) -> None:
     with pytest.raises(NotFoundError, match="not found"):
-        await app_service.update_app(
-            db_session, "00000000-0000-0000-0000-000000000000", name="X"
-        )
+        await app_service.update_app(db_session, "00000000-0000-0000-0000-000000000000", name="X")
 
 
 @pytest.mark.asyncio

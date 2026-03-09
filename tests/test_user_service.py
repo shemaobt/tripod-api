@@ -26,9 +26,7 @@ async def test_get_user_by_id(db_session) -> None:
 @pytest.mark.asyncio
 async def test_get_user_by_id_raises_not_found(db_session) -> None:
     with pytest.raises(NotFoundError, match="not found"):
-        await user_service.get_user_by_id(
-            db_session, "00000000-0000-0000-0000-000000000000"
-        )
+        await user_service.get_user_by_id(db_session, "00000000-0000-0000-0000-000000000000")
 
 
 @pytest.mark.asyncio
@@ -41,13 +39,9 @@ async def test_update_user_toggles_is_active(db_session) -> None:
 
 @pytest.mark.asyncio
 async def test_update_user_toggles_is_platform_admin(db_session) -> None:
-    created = await make_user(
-        db_session, email="admin@example.com", is_platform_admin=False
-    )
+    created = await make_user(db_session, email="admin@example.com", is_platform_admin=False)
     assert created.is_platform_admin is False
-    updated = await user_service.update_user(
-        db_session, created.id, is_platform_admin=True
-    )
+    updated = await user_service.update_user(db_session, created.id, is_platform_admin=True)
     assert updated.is_platform_admin is True
 
 

@@ -90,9 +90,7 @@ async def test_is_member_false(db_session) -> None:
 @pytest.mark.asyncio
 async def test_update_organization_name(db_session) -> None:
     org = await make_organization(db_session, name="Old Name", slug="upd-name")
-    updated = await organization_service.update_organization(
-        db_session, org.id, name="New Name"
-    )
+    updated = await organization_service.update_organization(db_session, org.id, name="New Name")
     assert updated.name == "New Name"
     assert updated.slug == "upd-name"
 
@@ -100,9 +98,7 @@ async def test_update_organization_name(db_session) -> None:
 @pytest.mark.asyncio
 async def test_update_organization_slug(db_session) -> None:
     org = await make_organization(db_session, name="Org", slug="old-slug")
-    updated = await organization_service.update_organization(
-        db_session, org.id, slug="new-slug"
-    )
+    updated = await organization_service.update_organization(db_session, org.id, slug="new-slug")
     assert updated.slug == "new-slug"
     assert updated.name == "Org"
 
@@ -120,9 +116,7 @@ async def test_update_organization_raises_conflict_for_duplicate_slug(db_session
     await make_organization(db_session, slug="taken-slug")
     org = await make_organization(db_session, slug="my-slug")
     with pytest.raises(ConflictError, match="slug already exists"):
-        await organization_service.update_organization(
-            db_session, org.id, slug="taken-slug"
-        )
+        await organization_service.update_organization(db_session, org.id, slug="taken-slug")
 
 
 @pytest.mark.asyncio

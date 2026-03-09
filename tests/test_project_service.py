@@ -201,9 +201,7 @@ async def test_grant_organization_access_creates_access(db_session) -> None:
 @pytest.mark.asyncio
 async def test_update_project_name_and_description(db_session) -> None:
     lang = await make_language(db_session, name="English", code="eng")
-    project = await make_project(
-        db_session, lang.id, name="Old Name", description="Old desc"
-    )
+    project = await make_project(db_session, lang.id, name="Old Name", description="Old desc")
     updated = await project_service.update_project(
         db_session, project.id, name="New Name", description="New desc"
     )
@@ -217,9 +215,7 @@ async def test_update_project_changes_language(db_session) -> None:
     lang1 = await make_language(db_session, name="English", code="eng")
     lang2 = await make_language(db_session, name="French", code="fra")
     project = await make_project(db_session, lang1.id, name="Project")
-    updated = await project_service.update_project(
-        db_session, project.id, language_id=lang2.id
-    )
+    updated = await project_service.update_project(db_session, project.id, language_id=lang2.id)
     assert updated.language_id == lang2.id
 
 
@@ -274,9 +270,7 @@ async def test_list_project_organization_access_returns_orgs(db_session) -> None
     org2 = await make_organization(db_session, name="Org Two", slug="org-two")
     await make_project_organization_access(db_session, project.id, org1.id)
     await make_project_organization_access(db_session, project.id, org2.id)
-    results = await project_service.list_project_organization_access(
-        db_session, project.id
-    )
+    results = await project_service.list_project_organization_access(db_session, project.id)
     assert len(results) == 2
     access_obj, org_obj = results[0]
     assert access_obj.project_id == project.id
@@ -289,9 +283,7 @@ async def test_list_project_organization_access_returns_empty_when_none(
 ) -> None:
     lang = await make_language(db_session, name="English", code="eng")
     project = await make_project(db_session, lang.id, name="Empty Project")
-    results = await project_service.list_project_organization_access(
-        db_session, project.id
-    )
+    results = await project_service.list_project_organization_access(db_session, project.id)
     assert results == []
 
 
@@ -322,9 +314,7 @@ async def test_revoke_organization_access_removes_grant(db_session) -> None:
     org = await make_organization(db_session, name="Org", slug="org-rev")
     await make_project_organization_access(db_session, project.id, org.id)
     await project_service.revoke_organization_access(db_session, project.id, org.id)
-    results = await project_service.list_project_organization_access(
-        db_session, project.id
-    )
+    results = await project_service.list_project_organization_access(db_session, project.id)
     assert len(results) == 0
 
 
@@ -334,6 +324,4 @@ async def test_revoke_organization_access_raises_not_found(db_session) -> None:
     project = await make_project(db_session, lang.id, name="Project")
     org = await make_organization(db_session, name="Org", slug="org-norv")
     with pytest.raises(NotFoundError, match="Organization access not found"):
-        await project_service.revoke_organization_access(
-            db_session, project.id, org.id
-        )
+        await project_service.revoke_organization_access(db_session, project.id, org.id)

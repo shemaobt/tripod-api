@@ -6,9 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models.auth import App, Role, UserAppRole
 
 
-async def list_user_roles(
-    db: AsyncSession, user_id: str
-) -> list[tuple[str, str, datetime]]:
+async def list_user_roles(db: AsyncSession, user_id: str) -> list[tuple[str, str, datetime]]:
     stmt = (
         select(App.app_key, Role.role_key, UserAppRole.granted_at)
         .join(Role, Role.app_id == App.id)
