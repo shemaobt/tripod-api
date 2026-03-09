@@ -6,12 +6,18 @@ from pydantic import BaseModel, Field
 class OrganizationCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     slug: str = Field(min_length=1, max_length=100)
+    description: str | None = Field(default=None, max_length=500)
+    logo_url: str | None = None
+    manager_id: str | None = None
 
 
 class OrganizationResponse(BaseModel):
     id: str
     name: str
     slug: str
+    description: str | None
+    logo_url: str | None
+    manager_id: str | None
     created_at: datetime
     updated_at: datetime
 
@@ -21,6 +27,9 @@ class OrganizationResponse(BaseModel):
 class OrganizationUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=200)
     slug: str | None = Field(default=None, min_length=1, max_length=100)
+    description: str | None = Field(default=None, max_length=500)
+    logo_url: str | None = None
+    manager_id: str | None = None
 
 
 class OrganizationMemberAdd(BaseModel):

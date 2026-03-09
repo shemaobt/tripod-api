@@ -11,6 +11,9 @@ async def update_organization(
     organization_id: str,
     name: str | None = None,
     slug: str | None = None,
+    description: str | None = None,
+    logo_url: str | None = None,
+    manager_id: str | None = None,
 ) -> Organization:
     org = await get_organization_or_404(db, organization_id)
     if slug is not None:
@@ -20,6 +23,12 @@ async def update_organization(
         org.slug = slug.lower()
     if name is not None:
         org.name = name
-    await db.flush()
+    if description is not None:
+        org.description = description
+    if logo_url is not None:
+        org.logo_url = logo_url
+    if manager_id is not None:
+        org.manager_id = manager_id
+    await db.commit()
     await db.refresh(org)
     return org

@@ -33,7 +33,14 @@ async def create_organization(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_user),
 ) -> OrganizationResponse:
-    org = await organization_service.create_organization(db, payload.name, payload.slug)
+    org = await organization_service.create_organization(
+        db,
+        payload.name,
+        payload.slug,
+        description=payload.description,
+        logo_url=payload.logo_url,
+        manager_id=payload.manager_id,
+    )
     return OrganizationResponse.model_validate(org)
 
 
@@ -67,7 +74,13 @@ async def update_organization(
     _: User = Depends(get_current_user),
 ) -> OrganizationResponse:
     org = await organization_service.update_organization(
-        db, organization_id, name=payload.name, slug=payload.slug
+        db,
+        organization_id,
+        name=payload.name,
+        slug=payload.slug,
+        description=payload.description,
+        logo_url=payload.logo_url,
+        manager_id=payload.manager_id,
     )
     return OrganizationResponse.model_validate(org)
 
