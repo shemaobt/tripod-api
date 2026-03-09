@@ -13,6 +13,7 @@ from app.api.books import router as books_router
 from app.api.oral_collector.genres import genres_router as oc_genres_router
 from app.api.oral_collector.genres import subcategories_router as oc_subcategories_router
 from app.api.oral_collector.projects import projects_router as oc_projects_router
+from app.api.oral_collector.recordings import recordings_router as oc_recordings_router
 from app.api.health import router as health_router
 from app.api.languages import router as languages_router
 from app.api.meaning_maps import router as meaning_maps_router
@@ -112,6 +113,11 @@ def create_app() -> FastAPI:
         oc_projects_router,
         prefix="/api/oc/projects",
         tags=["oc-projects"],
+    )
+    app.include_router(
+        oc_recordings_router,
+        prefix="/api/oc/recordings",
+        tags=["oc-recordings"],
     )
 
     register_exception_handlers(app)
