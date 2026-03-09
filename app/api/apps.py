@@ -157,7 +157,11 @@ async def create_app_role(
     _: User = Depends(require_platform_admin),
 ) -> AppRoleResponse:
     role = await app_service.create_app_role(
-        db, app_id, role_key=payload.role_key, label=payload.label, description=payload.description,
+        db,
+        app_id,
+        role_key=payload.role_key,
+        label=payload.label,
+        description=payload.description,
     )
     return AppRoleResponse.model_validate(role)
 
