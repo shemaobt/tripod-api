@@ -22,7 +22,7 @@ async def places_autocomplete(
             PLACES_AUTOCOMPLETE_URL,
             json={"input": q},
             headers={
-                "X-Goog-Api-Key": settings.google_maps_api_key,
+                "X-Goog-Api-Key": settings.google_api_key,
                 "Content-Type": "application/json",
             },
             timeout=10.0,
@@ -40,7 +40,7 @@ async def place_details(
         resp = await client.get(
             f"{PLACE_DETAILS_URL}/{place_id}",
             headers={
-                "X-Goog-Api-Key": settings.google_maps_api_key,
+                "X-Goog-Api-Key": settings.google_api_key,
                 "X-Goog-FieldMask": "displayName,formattedAddress,location",
             },
             timeout=10.0,
