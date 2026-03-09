@@ -31,6 +31,26 @@ from app.models.project import (
     ProjectResponse,
     ProjectUserAccessResponse,
 )
+from app.models.oc_genre import (
+    GenreCreate,
+    GenreResponse,
+    GenreUpdate,
+    SubcategoryCreate,
+    SubcategoryResponse,
+    SubcategoryUpdate,
+)
+from app.models.oc_project import (
+    OCProjectInviteCreate,
+    OCProjectInviteResponse,
+    OCProjectUserResponse,
+)
+from app.models.oc_recording import (
+    RecordingCreate,
+    RecordingResponse,
+    RecordingUpdate,
+    UploadUrlRequest,
+    UploadUrlResponse,
+)
 from app.models.role import (
     MyRoleResponse,
     RoleAssignmentResponse,
@@ -43,6 +63,9 @@ __all__ = [
     "AttachPhaseRequest",
     "AuthResponse",
     "DependencyCreate",
+    "GenreCreate",
+    "GenreResponse",
+    "GenreUpdate",
     "HealthResponse",
     "LanguageCreate",
     "LanguageResponse",
@@ -50,6 +73,9 @@ __all__ = [
     "OrganizationCreate",
     "OrganizationMemberAdd",
     "OrganizationMemberResponse",
+    "OCProjectInviteCreate",
+    "OCProjectInviteResponse",
+    "OCProjectUserResponse",
     "OrganizationResponse",
     "PhaseCreate",
     "PhaseDependencyResponse",
@@ -62,13 +88,21 @@ __all__ = [
     "ProjectOrganizationAccessResponse",
     "ProjectResponse",
     "ProjectUserAccessResponse",
+    "RecordingCreate",
+    "RecordingResponse",
+    "RecordingUpdate",
     "RoleAssignRequest",
     "RoleAssignmentResponse",
     "RoleCheckResponse",
     "RoleRevokeRequest",
+    "SubcategoryCreate",
+    "SubcategoryResponse",
+    "SubcategoryUpdate",
     "TokenRefreshRequest",
     "TokenResponse",
     "UserLoginRequest",
     "UserResponse",
+    "UploadUrlRequest",
+    "UploadUrlResponse",
     "UserSignupRequest",
 ]
