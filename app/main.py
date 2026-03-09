@@ -16,10 +16,12 @@ from app.api.meaning_maps import router as meaning_maps_router
 from app.api.notifications import router as notifications_router
 from app.api.organizations import router as organizations_router
 from app.api.pericopes import router as pericopes_router
+from app.api.places import router as places_router
 from app.api.phases import router as phases_router
 from app.api.projects import router as projects_router
 from app.api.rag import router as rag_router
 from app.api.roles import router as roles_router
+from app.api.uploads import router as uploads_router
 from app.api.users import router as users_router
 from app.core.config import get_settings
 from app.core.database import AsyncSessionLocal, close_db, init_db
@@ -78,9 +80,11 @@ def create_app() -> FastAPI:
     app.include_router(apps_router, prefix="/api/apps", tags=["apps"])
     app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
     app.include_router(roles_router, prefix="/api/roles", tags=["roles"])
+    app.include_router(uploads_router, prefix="/api/uploads", tags=["uploads"])
     app.include_router(users_router, prefix="/api/users", tags=["users"])
     app.include_router(languages_router, prefix="/api/languages", tags=["languages"])
     app.include_router(organizations_router, prefix="/api/organizations", tags=["organizations"])
+    app.include_router(places_router, prefix="/api/places", tags=["places"])
     app.include_router(projects_router, prefix="/api/projects", tags=["projects"])
     app.include_router(phases_router, prefix="/api/phases", tags=["phases"])
     app.include_router(books_router, prefix="/api/books", tags=["books"])

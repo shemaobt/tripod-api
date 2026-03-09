@@ -19,6 +19,16 @@ async def list_users(
     return [UserListResponse.model_validate(u) for u in users]
 
 
+@router.get("/search", response_model=list[UserListResponse])
+async def search_users(
+    q: str = "",
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_user),
+) -> list[UserListResponse]:
+    users = await user_service.search_users(db, q)
+    return [UserListResponse.model_validate(u) for u in users]
+
+
 @router.get("/{user_id}", response_model=UserListResponse)
 async def get_user(
     user_id: str,
@@ -37,7 +47,11 @@ async def update_user(
     _: User = Depends(require_platform_admin),
 ) -> UserListResponse:
     user = await user_service.update_user(
-        db, user_id, is_active=payload.is_active, is_platform_admin=payload.is_platform_admin
+        db,
+        user_id,
+        is_active=payload.is_active,
+        is_platform_admin=payload.is_platform_admin,
+        avatar_url=payload.avatar_url,
     )
     return UserListResponse.model_validate(user)
 

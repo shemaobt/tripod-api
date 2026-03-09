@@ -34,6 +34,7 @@ services:
       - backend_venv:/opt/venv
       - tf_data:/root/text-fabric-data
       - gcp_secrets_env:/run/secrets:ro
+      - ${HOME}/.config/gcloud:/root/.config/gcloud:ro
     dns:
       - 8.8.8.8
       - 8.8.4.4
