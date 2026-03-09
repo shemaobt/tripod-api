@@ -90,7 +90,7 @@ async def run_bcd_generation(
         if field in state:
             setattr(bcd, field, state[field])
 
-    bcd.status = BCDStatus.DRAFT
+    bcd.status = BCDStatus.REVIEW
     bcd.generation_metadata = {
         **(bcd.generation_metadata or {}),
         "last_error": None,
