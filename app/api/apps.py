@@ -24,6 +24,31 @@ async def my_apps(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[UserAppResponse]:
+    if current_user.is_platform_admin:
+        # Platform admins see ALL active apps; merge their explicit roles if any
+        all_apps = await app_service.list_apps(db)
+        user_apps_map: dict[str, list[str]] = {}
+        for app, role_keys in await app_service.list_user_apps(db, current_user.id):
+            user_apps_map[app.id] = role_keys
+        return [
+            UserAppResponse(
+                id=app.id,
+                app_key=app.app_key,
+                name=app.name,
+                description=app.description,
+                icon_url=app.icon_url,
+                app_url=app.app_url,
+                ios_url=app.ios_url,
+                android_url=app.android_url,
+                platform=app.platform,
+                is_active=app.is_active,
+                created_at=app.created_at,
+                roles=user_apps_map.get(app.id, []),
+                is_platform_admin=True,
+            )
+            for app in all_apps
+        ]
+
     user_apps = await app_service.list_user_apps(db, current_user.id)
     return [
         UserAppResponse(
@@ -39,6 +64,7 @@ async def my_apps(
             is_active=app.is_active,
             created_at=app.created_at,
             roles=role_keys,
+            is_platform_admin=False,
         )
         for app, role_keys in user_apps
     ]
@@ -95,6 +121,15 @@ async def update_app(
         is_active=payload.is_active,
     )
     return AppResponse.model_validate(app)
+
+
+@router.delete("/{app_id}", status_code=204)
+async def delete_app(
+    app_id: str,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_platform_admin),
+) -> None:
+    await app_service.delete_app(db, app_id)
 
 
 @router.get("/{app_id}/roles", response_model=list[AppRoleResponse])

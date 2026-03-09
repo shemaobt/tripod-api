@@ -55,6 +55,7 @@ class UserAppResponse(BaseModel):
     is_active: bool
     created_at: datetime
     roles: list[str]
+    is_platform_admin: bool = False
 
 
 class AppRoleResponse(BaseModel):
