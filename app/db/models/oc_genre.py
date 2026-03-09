@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.core.database import Base
@@ -23,6 +23,12 @@ class OC_Genre(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
+    subcategories: Mapped[list["OC_Subcategory"]] = relationship(
+        back_populates="genre",
+        cascade="all, delete-orphan",
+        order_by="OC_Subcategory.sort_order",
+    )
+
 
 class OC_Subcategory(Base):
     __tablename__ = "oc_subcategories"
@@ -31,6 +37,7 @@ class OC_Subcategory(Base):
     genre_id: Mapped[str] = mapped_column(
         ForeignKey("oc_genres.id", ondelete="CASCADE"), index=True
     )
+    genre: Mapped["OC_Genre"] = relationship(back_populates="subcategories")
     name: Mapped[str] = mapped_column(String(200))
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
