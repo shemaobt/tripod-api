@@ -262,9 +262,8 @@ async def make_phase(
     *,
     name: str = "Test Phase",
     description: str | None = None,
-    status: str = "pending",
 ) -> Phase:
-    phase = Phase(name=name, description=description, status=status)
+    phase = Phase(name=name, description=description)
     db.add(phase)
     await db.commit()
     await db.refresh(phase)

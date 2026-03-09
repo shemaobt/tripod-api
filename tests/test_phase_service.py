@@ -18,7 +18,6 @@ async def test_create_phase_without_project(db_session) -> None:
     phase = await phase_service.create_phase(db_session, payload)
     assert phase.name == "Acoustemes Training"
     assert phase.description == "Phase 1"
-    assert phase.status == "pending"
     assert phase.id is not None
 
 
@@ -101,12 +100,12 @@ async def test_get_phase_or_404_raises_when_missing(db_session) -> None:
 
 @pytest.mark.asyncio
 async def test_update_phase(db_session) -> None:
-    phase = await make_phase(db_session, name="Old", status="pending")
+    phase = await make_phase(db_session, name="Old")
     updated = await phase_service.update_phase(
-        db_session, phase.id, PhaseUpdate(name="New", status="in_progress")
+        db_session, phase.id, PhaseUpdate(name="New", description="Updated desc")
     )
     assert updated.name == "New"
-    assert updated.status == "in_progress"
+    assert updated.description == "Updated desc"
 
 
 @pytest.mark.asyncio
