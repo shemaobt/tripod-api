@@ -12,13 +12,18 @@ async def get_approval_status(db: AsyncSession, bcd_id: str) -> dict:
     approvals = list(result.scalars().all())
 
     user_ids = {a.user_id for a in approvals}
-    user_names: dict[str, str] = {}
+    user_lookup: dict[str, dict] = {}
     if user_ids:
         users_result = await db.execute(
-            select(User.id, User.display_name, User.email).where(User.id.in_(user_ids))
+            select(User.id, User.display_name, User.email, User.avatar_url).where(
+                User.id.in_(user_ids)
+            )
         )
-        for uid, display_name, email in users_result:
-            user_names[uid] = display_name or email.split("@")[0]
+        for uid, display_name, email, avatar_url in users_result:
+            user_lookup[uid] = {
+                "name": display_name or email.split("@")[0],
+                "avatar_url": avatar_url,
+            }
 
     approval_entries = []
     covered = set()
@@ -26,11 +31,13 @@ async def get_approval_status(db: AsyncSession, bcd_id: str) -> dict:
         roles = a.roles_at_approval or [a.role_at_approval]
         specialties = [r for r in roles if r in SPECIALIST_ROLES]
         covered.update(specialties)
+        info = user_lookup.get(a.user_id, {})
         approval_entries.append(
             {
                 "id": a.id,
                 "user_id": a.user_id,
-                "user_name": user_names.get(a.user_id, "Unknown"),
+                "user_name": info.get("name", "Unknown"),
+                "avatar_url": info.get("avatar_url"),
                 "role_at_approval": a.role_at_approval,
                 "roles_at_approval": roles,
                 "approved_at": a.approved_at.isoformat() if a.approved_at else None,
