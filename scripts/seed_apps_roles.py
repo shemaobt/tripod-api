@@ -15,7 +15,7 @@ SEED_APPS = [
 
 SEED_ROLES = [
     "admin",
-    "facilitator",
+    "analyst",
     "reviewer",
     "annotator",
     "viewer",

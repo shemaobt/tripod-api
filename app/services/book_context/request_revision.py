@@ -5,7 +5,7 @@ from app.core.exceptions import AuthorizationError, ConflictError
 from app.db.models.book_context import BCDApproval, BCDStatus, BookContextDocument
 from app.services.book_context.get_bcd import get_bcd_or_404
 
-ALLOWED_ROLES = frozenset({"admin", "facilitator"})
+ALLOWED_ROLES = frozenset({"admin"})
 
 
 async def request_revision(
@@ -15,7 +15,7 @@ async def request_revision(
     user_role: str,
 ) -> BookContextDocument:
     if user_role not in ALLOWED_ROLES:
-        raise AuthorizationError("Only admins and facilitators can request revisions.")
+        raise AuthorizationError("Only admins can request revisions.")
 
     bcd = await get_bcd_or_404(db, bcd_id)
 

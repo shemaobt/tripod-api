@@ -55,8 +55,6 @@ async def _resolve_user_role(db: AsyncSession, user: User) -> str:
     role_keys = [r[1] for r in roles]
     if "admin" in role_keys:
         return "admin"
-    if "facilitator" in role_keys:
-        return "facilitator"
     if "analyst" in role_keys:
         return "analyst"
     return "viewer"
@@ -199,10 +197,10 @@ async def set_active_version(
     db: AsyncSession = Depends(get_db),
 ) -> BCDResponse:
     role = await _resolve_user_role(db, user)
-    if role not in ("admin", "facilitator"):
+    if role != "admin":
         raise HTTPException(
             status_code=403,
-            detail="Only admins and facilitators can set the active version.",
+            detail="Only admins can set the active version.",
         )
     bcd = await set_active_bcd(db, bcd_id)
     return BCDResponse.model_validate(bcd)
@@ -215,10 +213,10 @@ async def cancel_bcd_generation(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     role = await _resolve_user_role(db, user)
-    if role not in ("admin", "facilitator"):
+    if role != "admin":
         raise HTTPException(
             status_code=403,
-            detail="Only admins and facilitators can cancel generation.",
+            detail="Only admins can cancel generation.",
         )
     book_id = await cancel_generation(db, bcd_id)
     return {"deleted": True, "book_id": book_id}

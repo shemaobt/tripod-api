@@ -23,8 +23,8 @@ async def test_admin_approval_auto_approves(db_session):
 
 
 @pytest.mark.asyncio
-async def test_single_facilitator_sets_review(db_session):
-    user = await make_user(db_session, email="fac1@test.com")
+async def test_single_specialist_sets_review(db_session):
+    user = await make_user(db_session, email="spec1@test.com")
     book = await make_bible_book(
         db_session,
         name="Ruth",
@@ -34,14 +34,13 @@ async def test_single_facilitator_sets_review(db_session):
     )
     bcd = await make_bcd(db_session, book.id, user.id, status="draft")
 
-    result = await approve_bcd(db_session, bcd.id, user.id, ["facilitator"])
+    result = await approve_bcd(db_session, bcd.id, user.id, ["exegete"])
     assert result.status.value == "review"
 
 
 @pytest.mark.asyncio
-async def test_two_facilitators_without_specialist_stay_review(db_session):
-    fac1 = await make_user(db_session, email="fac2a@test.com")
-    fac2 = await make_user(db_session, email="fac2b@test.com")
+async def test_facilitator_cannot_approve(db_session):
+    user = await make_user(db_session, email="fac_no@test.com")
     book = await make_bible_book(
         db_session,
         name="Ruth",
@@ -49,10 +48,27 @@ async def test_two_facilitators_without_specialist_stay_review(db_session):
         order=8,
         chapter_count=4,
     )
-    bcd = await make_bcd(db_session, book.id, fac1.id, status="draft")
+    bcd = await make_bcd(db_session, book.id, user.id, status="draft")
 
-    await approve_bcd(db_session, bcd.id, fac1.id, ["facilitator"])
-    result = await approve_bcd(db_session, bcd.id, fac2.id, ["facilitator"])
+    with pytest.raises(AuthorizationError, match="admin or specialist role to approve"):
+        await approve_bcd(db_session, bcd.id, user.id, ["facilitator"])
+
+
+@pytest.mark.asyncio
+async def test_two_specialists_same_role_stay_review(db_session):
+    spec1 = await make_user(db_session, email="spec2a@test.com")
+    spec2 = await make_user(db_session, email="spec2b@test.com")
+    book = await make_bible_book(
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
+    )
+    bcd = await make_bcd(db_session, book.id, spec1.id, status="draft")
+
+    await approve_bcd(db_session, bcd.id, spec1.id, ["exegete"])
+    result = await approve_bcd(db_session, bcd.id, spec2.id, ["exegete"])
     assert result.status.value == "review"
 
 
@@ -68,9 +84,9 @@ async def test_duplicate_approval_rejected(db_session):
     )
     bcd = await make_bcd(db_session, book.id, user.id, status="draft")
 
-    await approve_bcd(db_session, bcd.id, user.id, ["facilitator"])
+    await approve_bcd(db_session, bcd.id, user.id, ["exegete"])
     with pytest.raises(ConflictError, match="already approved"):
-        await approve_bcd(db_session, bcd.id, user.id, ["facilitator"])
+        await approve_bcd(db_session, bcd.id, user.id, ["exegete"])
 
 
 @pytest.mark.asyncio
@@ -85,7 +101,7 @@ async def test_approval_rejects_unauthorized_role(db_session):
     )
     bcd = await make_bcd(db_session, book.id, user.id, status="draft")
 
-    with pytest.raises(AuthorizationError, match="admin, facilitator, or specialist"):
+    with pytest.raises(AuthorizationError, match="admin or specialist role to approve"):
         await approve_bcd(db_session, bcd.id, user.id, ["analyst"])
 
 
@@ -133,7 +149,7 @@ async def test_request_revision_resets_to_draft(db_session):
     )
     bcd = await make_bcd(db_session, book.id, user.id, status="review")
 
-    result = await request_revision(db_session, bcd.id, user.id, "facilitator")
+    result = await request_revision(db_session, bcd.id, user.id, "admin")
     assert result.status.value == "draft"
 
 
@@ -165,5 +181,21 @@ async def test_request_revision_rejects_unauthorized_role(db_session):
     )
     bcd = await make_bcd(db_session, book.id, user.id, status="draft")
 
-    with pytest.raises(AuthorizationError, match="Only admins and facilitators"):
+    with pytest.raises(AuthorizationError, match="Only admins can request revisions"):
         await request_revision(db_session, bcd.id, user.id, "viewer")
+
+
+@pytest.mark.asyncio
+async def test_request_revision_rejects_facilitator(db_session):
+    user = await make_user(db_session, email="rev_fac@test.com")
+    book = await make_bible_book(
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
+    )
+    bcd = await make_bcd(db_session, book.id, user.id, status="review")
+
+    with pytest.raises(AuthorizationError, match="Only admins can request revisions"):
+        await request_revision(db_session, bcd.id, user.id, "facilitator")

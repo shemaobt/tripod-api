@@ -6,7 +6,7 @@ from app.db.models.book_context import BCDApproval, BCDStatus, BookContextDocume
 from app.services.book_context.get_bcd import get_bcd_or_404
 
 SPECIALIST_ROLES = {"exegete", "biblical_language_specialist", "translation_specialist"}
-APPROVE_CAPABLE = {"admin", "facilitator", *SPECIALIST_ROLES}
+APPROVE_CAPABLE = {"admin", *SPECIALIST_ROLES}
 
 
 async def approve_bcd(
@@ -18,7 +18,7 @@ async def approve_bcd(
     """Approve a BCD using multi-specialist workflow."""
     capable_roles = [r for r in user_roles if r in APPROVE_CAPABLE]
     if not capable_roles:
-        raise AuthorizationError("You need an admin, facilitator, or specialist role to approve.")
+        raise AuthorizationError("You need an admin or specialist role to approve.")
 
     bcd = await get_bcd_or_404(db, bcd_id)
 

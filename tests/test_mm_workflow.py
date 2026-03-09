@@ -137,25 +137,27 @@ async def test_transition_draft_to_cross_check(db_session) -> None:
 
 @pytest.mark.asyncio
 async def test_transition_cross_check_to_approved(db_session) -> None:
-    user = await make_user(db_session, email="analyst22@test.com")
+    analyst = await make_user(db_session, email="analyst22@test.com")
+    reviewer = await make_user(db_session, email="reviewer22@test.com")
     book = await make_bible_book(db_session)
     pericope = await make_pericope(db_session, book.id)
-    mm = await make_meaning_map(db_session, pericope.id, user.id, status="cross_check")
-    result = await transition_status(db_session, mm, "approved", user.id)
+    mm = await make_meaning_map(db_session, pericope.id, analyst.id, status="cross_check")
+    result = await transition_status(db_session, mm, "approved", reviewer.id)
     assert result.status == "approved"
     assert result.date_approved is not None
-    assert result.approved_by == user.id
-    assert result.cross_checker_id == user.id
+    assert result.approved_by == reviewer.id
+    assert result.cross_checker_id == reviewer.id
     assert result.locked_by is None
 
 
 @pytest.mark.asyncio
 async def test_transition_cross_check_to_draft(db_session) -> None:
-    user = await make_user(db_session, email="analyst23@test.com")
+    analyst = await make_user(db_session, email="analyst23@test.com")
+    reviewer = await make_user(db_session, email="reviewer23@test.com")
     book = await make_bible_book(db_session)
     pericope = await make_pericope(db_session, book.id)
-    mm = await make_meaning_map(db_session, pericope.id, user.id, status="cross_check")
-    result = await transition_status(db_session, mm, "draft", user.id)
+    mm = await make_meaning_map(db_session, pericope.id, analyst.id, status="cross_check")
+    result = await transition_status(db_session, mm, "draft", reviewer.id)
     assert result.status == "draft"
     assert result.locked_by is None
 
@@ -231,18 +233,19 @@ async def test_transition_lock_holder_can_transition(db_session) -> None:
 
 @pytest.mark.asyncio
 async def test_transition_cross_check_to_approved_clears_lock(db_session) -> None:
-    user = await make_user(db_session, email="analyst30@test.com")
+    analyst = await make_user(db_session, email="analyst30@test.com")
+    reviewer = await make_user(db_session, email="reviewer30@test.com")
     book = await make_bible_book(db_session)
     pericope = await make_pericope(db_session, book.id)
     mm = await make_meaning_map(
         db_session,
         pericope.id,
-        user.id,
+        analyst.id,
         status="cross_check",
-        locked_by=user.id,
+        locked_by=reviewer.id,
         locked_at=datetime.now(UTC),
     )
-    result = await transition_status(db_session, mm, "approved", user.id)
+    result = await transition_status(db_session, mm, "approved", reviewer.id)
     assert result.locked_by is None
     assert result.locked_at is None
 

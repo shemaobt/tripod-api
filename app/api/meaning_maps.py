@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.access_control import require_app_access
+from app.core.access_control import require_app_access, require_role
 from app.core.auth_middleware import get_current_user
 from app.core.database import get_db
 from app.core.exceptions import AuthorizationError
@@ -36,6 +36,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 _mm_access = require_app_access("meaning-map-generator")
+_mm_analyst = require_role("meaning-map-generator", "analyst")
 
 
 async def _enrich_response(db: AsyncSession, mm: MeaningMapModel) -> MeaningMapResponse:
@@ -72,7 +73,7 @@ async def get_meaning_map(
     return await _enrich_response(db, mm)
 
 
-@router.put("/{map_id}", response_model=MeaningMapResponse, dependencies=[_mm_access])
+@router.put("/{map_id}", response_model=MeaningMapResponse, dependencies=[_mm_analyst])
 async def update_meaning_map(
     map_id: str,
     payload: MeaningMapUpdateData,
@@ -85,7 +86,7 @@ async def update_meaning_map(
     return await _enrich_response(db, mm)
 
 
-@router.patch("/{map_id}/status", response_model=MeaningMapResponse, dependencies=[_mm_access])
+@router.patch("/{map_id}/status", response_model=MeaningMapResponse, dependencies=[_mm_analyst])
 async def update_status(
     map_id: str,
     payload: MeaningMapStatusUpdate,
@@ -97,7 +98,7 @@ async def update_status(
     return await _enrich_response(db, mm)
 
 
-@router.post("/{map_id}/lock", response_model=MeaningMapResponse, dependencies=[_mm_access])
+@router.post("/{map_id}/lock", response_model=MeaningMapResponse, dependencies=[_mm_analyst])
 async def lock_map(
     map_id: str,
     user: User = Depends(get_current_user),
@@ -108,7 +109,7 @@ async def lock_map(
     return await _enrich_response(db, mm)
 
 
-@router.post("/{map_id}/unlock", response_model=MeaningMapResponse, dependencies=[_mm_access])
+@router.post("/{map_id}/unlock", response_model=MeaningMapResponse, dependencies=[_mm_analyst])
 async def unlock_map(
     map_id: str,
     user: User = Depends(get_current_user),
@@ -119,7 +120,7 @@ async def unlock_map(
     return await _enrich_response(db, mm)
 
 
-@router.delete("/{map_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[_mm_access])
+@router.delete("/{map_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[_mm_analyst])
 async def delete_meaning_map(
     map_id: str,
     user: User = Depends(get_current_user),
@@ -133,7 +134,7 @@ async def delete_meaning_map(
     "/generate",
     response_model=MeaningMapResponse,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[_mm_access],
+    dependencies=[_mm_analyst],
 )
 async def generate_meaning_map(
     payload: MeaningMapGenerateRequest,
@@ -208,7 +209,7 @@ async def export_prose(
     "/{map_id}/feedback",
     response_model=FeedbackResponse,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[_mm_access],
+    dependencies=[_mm_analyst],
 )
 async def add_feedback(
     map_id: str,

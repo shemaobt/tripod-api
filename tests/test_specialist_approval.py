@@ -103,9 +103,9 @@ async def test_two_specialists_same_specialty_stay_review(db_session):
 
 
 @pytest.mark.asyncio
-async def test_facilitator_plus_specialist_covering_two_specialties(db_session):
-    fac = await make_user(db_session, email="fac_spec1@test.com")
-    spec = await make_user(db_session, email="fac_spec2@test.com")
+async def test_specialist_with_two_roles_plus_another_specialist_approves(db_session):
+    spec1 = await make_user(db_session, email="spec1_multi@test.com")
+    spec2 = await make_user(db_session, email="spec2_single@test.com")
     book = await make_bible_book(
         db_session,
         name="Ruth",
@@ -113,10 +113,10 @@ async def test_facilitator_plus_specialist_covering_two_specialties(db_session):
         order=8,
         chapter_count=4,
     )
-    bcd = await make_bcd(db_session, book.id, fac.id)
+    bcd = await make_bcd(db_session, book.id, spec1.id)
 
-    await approve_bcd(db_session, bcd.id, fac.id, ["facilitator", "exegete"])
-    result = await approve_bcd(db_session, bcd.id, spec.id, ["translation_specialist"])
+    await approve_bcd(db_session, bcd.id, spec1.id, ["exegete", "biblical_language_specialist"])
+    result = await approve_bcd(db_session, bcd.id, spec2.id, ["translation_specialist"])
 
     assert result.status.value == "approved"
 
@@ -136,10 +136,26 @@ async def test_user_with_multiple_specialist_roles(db_session):
 
     # User1 covers 2 specialties but is only 1 person
     await approve_bcd(db_session, bcd.id, user1.id, ["exegete", "biblical_language_specialist"])
-    # Still need 2nd distinct user
-    result = await approve_bcd(db_session, bcd.id, user2.id, ["facilitator"])
+    # Still need 2nd distinct user with a specialist role
+    result = await approve_bcd(db_session, bcd.id, user2.id, ["translation_specialist"])
 
     assert result.status.value == "approved"
+
+
+@pytest.mark.asyncio
+async def test_facilitator_cannot_approve(db_session):
+    user = await make_user(db_session, email="fac_no_approve@test.com")
+    book = await make_bible_book(
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
+    )
+    bcd = await make_bcd(db_session, book.id, user.id)
+
+    with pytest.raises(AuthorizationError, match="admin or specialist role to approve"):
+        await approve_bcd(db_session, bcd.id, user.id, ["facilitator"])
 
 
 @pytest.mark.asyncio
@@ -218,7 +234,7 @@ async def test_viewer_cannot_approve(db_session):
     )
     bcd = await make_bcd(db_session, book.id, user.id)
 
-    with pytest.raises(AuthorizationError, match="admin, facilitator, or specialist"):
+    with pytest.raises(AuthorizationError, match="admin or specialist role to approve"):
         await approve_bcd(db_session, bcd.id, user.id, ["viewer"])
 
 
@@ -234,7 +250,7 @@ async def test_analyst_cannot_approve(db_session):
     )
     bcd = await make_bcd(db_session, book.id, user.id)
 
-    with pytest.raises(AuthorizationError, match="admin, facilitator, or specialist"):
+    with pytest.raises(AuthorizationError, match="admin or specialist role to approve"):
         await approve_bcd(db_session, bcd.id, user.id, ["analyst"])
 
 

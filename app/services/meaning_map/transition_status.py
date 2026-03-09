@@ -30,6 +30,13 @@ async def transition_status(
     if mm.locked_by and mm.locked_by != user_id:
         raise AuthorizationError("This meaning map is locked by another user")
 
+    is_cross_check = transition in (
+        ("cross_check", "approved"),
+        ("cross_check", "draft"),
+    )
+    if is_cross_check and mm.analyst_id == user_id:
+        raise AuthorizationError("You cannot cross-check your own meaning map")
+
     if transition == ("draft", "cross_check"):
         mm.status = "cross_check"
         mm.locked_by = None

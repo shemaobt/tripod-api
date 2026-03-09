@@ -200,7 +200,7 @@ async def compute_entry_brief(
     if not bcd:
         raise NotFoundError(
             "No approved Book Context Document for this book. "
-            "A facilitator must generate and approve one before mapping can begin."
+            "An admin or analyst must generate one and have it approved before mapping can begin."
         )
 
     is_first = await _is_first_pericope(

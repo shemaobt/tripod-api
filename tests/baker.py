@@ -485,7 +485,7 @@ async def make_bcd_approval(
     bcd_id: str,
     user_id: str,
     *,
-    role_at_approval: str = "facilitator",
+    role_at_approval: str = "exegete",
     roles_at_approval: list[str] | None = None,
 ) -> BCDApproval:
     approval = BCDApproval(
