@@ -53,6 +53,12 @@ from app.models.oc_recording import (
     UploadUrlRequest,
     UploadUrlResponse,
 )
+from app.models.oc_stats import (
+    AdminStatsResponse,
+    GenreStatItem,
+    GenreStatsResponse,
+    SubcategoryStatItem,
+)
 from app.models.role import (
     MyRoleResponse,
     RoleAssignmentResponse,
@@ -106,6 +112,10 @@ __all__ = [
     "TokenResponse",
     "UserLoginRequest",
     "UserResponse",
+    "AdminStatsResponse",
+    "GenreStatItem",
+    "GenreStatsResponse",
+    "SubcategoryStatItem",
     "UploadUrlRequest",
     "UploadUrlResponse",
     "UserSignupRequest",
