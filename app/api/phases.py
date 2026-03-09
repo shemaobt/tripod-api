@@ -40,6 +40,14 @@ async def list_phases(
     return result
 
 
+@router.get("/with-dependencies")
+async def list_phases_with_dependencies(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    return await phase_service.list_all_phases_with_deps(db)
+
+
 @router.get("/{phase_id}", response_model=PhaseResponse)
 async def get_phase(
     phase_id: str,

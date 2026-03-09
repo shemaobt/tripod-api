@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, Query, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth_middleware import get_current_user
 from app.core.database import get_db
 from app.core.exceptions import AuthorizationError
 from app.db.models.auth import User
-from app.models.phase import AttachPhaseRequest, PhaseResponse
+from app.db.models.project import Project
+from app.models.phase import AttachPhaseRequest, ProjectPhaseResponse, ProjectPhaseStatusUpdate
 from app.models.project import (
     ProjectCreate,
     ProjectGrantOrganizationAccess,
@@ -23,13 +25,26 @@ from app.services import phase_service, project_service
 router = APIRouter()
 
 
+async def _assert_project_access(db: AsyncSession, user: User, project_id: str) -> None:
+    """Raise AuthorizationError unless the user is a platform admin or has project access."""
+    if user.is_platform_admin:
+        return
+    allowed = await project_service.can_access_project(db, user.id, project_id)
+    if not allowed:
+        raise AuthorizationError("You do not have access to this project")
+
+
 @router.get("", response_model=list[ProjectResponse])
 async def list_projects(
     language_id: str | None = Query(default=None),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[ProjectResponse]:
-    projects = await project_service.list_projects_accessible_to_user(db, user.id)
+    if user.is_platform_admin:
+        result = await db.execute(select(Project).order_by(Project.name))
+        projects = list(result.scalars().unique().all())
+    else:
+        projects = await project_service.list_projects_accessible_to_user(db, user.id)
     if language_id is not None:
         projects = [p for p in projects if p.language_id == language_id]
     return [ProjectResponse.model_validate(p) for p in projects]
@@ -49,6 +64,7 @@ async def create_project(
         latitude=payload.latitude,
         longitude=payload.longitude,
         location_display_name=payload.location_display_name,
+        creator_user_id=str(user.id),
     )
     return ProjectResponse.model_validate(project)
 
@@ -60,9 +76,7 @@ async def get_project(
     db: AsyncSession = Depends(get_db),
 ) -> ProjectResponse:
     project = await project_service.get_project_or_404(db, project_id)
-    allowed = await project_service.can_access_project(db, user.id, project_id)
-    if not allowed:
-        raise AuthorizationError("You do not have access to this project")
+    await _assert_project_access(db, user, project_id)
     return ProjectResponse.model_validate(project)
 
 
@@ -73,9 +87,7 @@ async def update_project(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ProjectResponse:
-    allowed = await project_service.can_access_project(db, user.id, project_id)
-    if not allowed:
-        raise AuthorizationError("You do not have access to this project")
+    await _assert_project_access(db, user, project_id)
     project = await project_service.update_project(
         db,
         project_id,
@@ -93,9 +105,7 @@ async def update_project_location(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ProjectResponse:
-    allowed = await project_service.can_access_project(db, user.id, project_id)
-    if not allowed:
-        raise AuthorizationError("You do not have access to this project")
+    await _assert_project_access(db, user, project_id)
     project = await project_service.update_project_location(
         db,
         project_id,
@@ -117,9 +127,7 @@ async def grant_user_access(
     actor: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ProjectUserAccessResponse:
-    allowed = await project_service.can_access_project(db, actor.id, project_id)
-    if not allowed:
-        raise AuthorizationError("You do not have access to this project")
+    await _assert_project_access(db, actor, project_id)
     await project_service.get_project_or_404(db, project_id)
     access = await project_service.grant_user_access(db, project_id, payload.user_id)
     return ProjectUserAccessResponse.model_validate(access)
@@ -136,9 +144,7 @@ async def grant_organization_access(
     actor: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ProjectOrganizationAccessResponse:
-    allowed = await project_service.can_access_project(db, actor.id, project_id)
-    if not allowed:
-        raise AuthorizationError("You do not have access to this project")
+    await _assert_project_access(db, actor, project_id)
     await project_service.get_project_or_404(db, project_id)
     access = await project_service.grant_organization_access(
         db, project_id, payload.organization_id
@@ -155,9 +161,7 @@ async def list_user_access(
     actor: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[ProjectUserAccessDetailResponse]:
-    allowed = await project_service.can_access_project(db, actor.id, project_id)
-    if not allowed:
-        raise AuthorizationError("You do not have access to this project")
+    await _assert_project_access(db, actor, project_id)
     await project_service.get_project_or_404(db, project_id)
     rows = await project_service.list_project_user_access(db, project_id)
     return [
@@ -182,9 +186,7 @@ async def list_organization_access(
     actor: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[ProjectOrganizationAccessDetailResponse]:
-    allowed = await project_service.can_access_project(db, actor.id, project_id)
-    if not allowed:
-        raise AuthorizationError("You do not have access to this project")
+    await _assert_project_access(db, actor, project_id)
     await project_service.get_project_or_404(db, project_id)
     rows = await project_service.list_project_organization_access(db, project_id)
     return [
@@ -210,9 +212,7 @@ async def revoke_user_access(
     actor: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> None:
-    allowed = await project_service.can_access_project(db, actor.id, project_id)
-    if not allowed:
-        raise AuthorizationError("You do not have access to this project")
+    await _assert_project_access(db, actor, project_id)
     await project_service.revoke_user_access(db, project_id, user_id)
 
 
@@ -226,23 +226,29 @@ async def revoke_organization_access(
     actor: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> None:
-    allowed = await project_service.can_access_project(db, actor.id, project_id)
-    if not allowed:
-        raise AuthorizationError("You do not have access to this project")
+    await _assert_project_access(db, actor, project_id)
     await project_service.revoke_organization_access(db, project_id, organization_id)
 
 
-@router.get("/{project_id}/phases", response_model=list[PhaseResponse])
+@router.get("/{project_id}/phases-with-deps")
+async def list_project_phases_with_deps(
+    project_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    await _assert_project_access(db, user, project_id)
+    return await phase_service.list_project_phases_with_deps(db, project_id)
+
+
+@router.get("/{project_id}/phases", response_model=list[ProjectPhaseResponse])
 async def list_project_phases(
     project_id: str,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-) -> list[PhaseResponse]:
-    allowed = await project_service.can_access_project(db, user.id, project_id)
-    if not allowed:
-        raise AuthorizationError("You do not have access to this project")
-    phases = await phase_service.list_phases(db, project_id=project_id)
-    return [PhaseResponse.model_validate(p) for p in phases]
+) -> list[ProjectPhaseResponse]:
+    await _assert_project_access(db, user, project_id)
+    details = await phase_service.list_project_phases_with_details(db, project_id)
+    return [ProjectPhaseResponse(**d) for d in details]
 
 
 @router.post(
@@ -255,9 +261,7 @@ async def attach_phase_to_project(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> None:
-    allowed = await project_service.can_access_project(db, user.id, project_id)
-    if not allowed:
-        raise AuthorizationError("You do not have access to this project")
+    await _assert_project_access(db, user, project_id)
     await phase_service.attach_phase_to_project(db, project_id, payload.phase_id)
 
 
@@ -268,7 +272,25 @@ async def detach_phase_from_project(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> None:
-    allowed = await project_service.can_access_project(db, user.id, project_id)
-    if not allowed:
-        raise AuthorizationError("You do not have access to this project")
+    await _assert_project_access(db, user, project_id)
     await phase_service.detach_phase_from_project(db, project_id, phase_id)
+
+
+@router.patch("/{project_id}/phases/{phase_id}", response_model=ProjectPhaseResponse)
+async def update_project_phase_status(
+    project_id: str,
+    phase_id: str,
+    payload: ProjectPhaseStatusUpdate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ProjectPhaseResponse:
+    await _assert_project_access(db, user, project_id)
+    link = await phase_service.update_project_phase_status(db, project_id, phase_id, payload.status)
+    phase = await phase_service.get_phase_or_404(db, phase_id)
+    return ProjectPhaseResponse(
+        id=link.id,
+        phase_id=link.phase_id,
+        phase_name=phase.name,
+        phase_description=phase.description,
+        status=link.status,
+    )

@@ -11,19 +11,31 @@ class PhaseCreate(BaseModel):
 class PhaseUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=200)
     description: str | None = Field(default=None, max_length=10000)
-    status: str | None = Field(default=None, max_length=20)
 
 
 class PhaseResponse(BaseModel):
     id: str
     name: str
     description: str | None
-    status: str
     created_at: datetime
     updated_at: datetime
     project_ids: list[str] | None = None
 
     model_config = {"from_attributes": True}
+
+
+class ProjectPhaseResponse(BaseModel):
+    id: str
+    phase_id: str
+    phase_name: str
+    phase_description: str | None
+    status: str
+
+    model_config = {"from_attributes": True}
+
+
+class ProjectPhaseStatusUpdate(BaseModel):
+    status: str = Field(min_length=1, max_length=20)
 
 
 class DependencyCreate(BaseModel):

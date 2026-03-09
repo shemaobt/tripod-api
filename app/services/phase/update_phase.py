@@ -11,8 +11,6 @@ async def update_phase(db: AsyncSession, phase_id: str, payload: PhaseUpdate) ->
         phase.name = payload.name
     if payload.description is not None:
         phase.description = payload.description
-    if payload.status is not None:
-        phase.status = payload.status
     await db.commit()
     await db.refresh(phase)
     return phase
