@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth_cache import invalidate_user
 from app.core.auth_middleware import get_current_user
 from app.core.database import get_db
 from app.db.models.auth import User
@@ -71,15 +72,17 @@ async def me(user: User = Depends(get_current_user)) -> UserResponse:
 @router.patch("/me", response_model=UserResponse)
 async def update_me(
     payload: ProfileUpdate,
-    user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> UserResponse:
+    user = await db.get(User, current_user.id)
     if payload.display_name is not None:
         user.display_name = payload.display_name
     if payload.avatar_url is not None:
         user.avatar_url = payload.avatar_url if payload.avatar_url else None
     await db.commit()
     await db.refresh(user)
+    invalidate_user(user.id)
     return _user_response(user)
 
 
