@@ -4,7 +4,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth_middleware import get_current_user, require_platform_admin
 from app.core.database import get_db
 from app.db.models.auth import User
-from app.models.app import AppCreate, AppResponse, AppRoleCreate, AppRoleResponse, AppUpdate, UserAppResponse
+from app.models.app import (
+    AppCreate,
+    AppResponse,
+    AppRoleCreate,
+    AppRoleResponse,
+    AppUpdate,
+    UserAppResponse,
+)
 from app.services import app_service
 
 router = APIRouter()
