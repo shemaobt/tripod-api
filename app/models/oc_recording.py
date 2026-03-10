@@ -41,6 +41,13 @@ class RecordingResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class CleaningStatusResponse(BaseModel):
+    recording_id: str
+    cleaning_status: str
+
+    model_config = {"from_attributes": True}
+
+
 class UploadUrlRequest(BaseModel):
     recording_id: str
     format: str = Field(min_length=1, max_length=20)
