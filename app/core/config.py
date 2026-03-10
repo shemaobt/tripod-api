@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     gcs_bucket_name: str = ""
     bhsa_data_path: str = ""
 
+    cleaning_api_url: str = ""
+    cleaning_api_key: str = ""
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [item.strip() for item in self.cors_origins.split(",") if item.strip()]
