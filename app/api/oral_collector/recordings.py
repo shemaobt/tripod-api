@@ -5,13 +5,14 @@ from app.core.auth_middleware import get_current_user
 from app.core.database import get_db
 from app.db.models.auth import User
 from app.models.oc_recording import (
+    CleaningStatusResponse,
     RecordingCreate,
     RecordingResponse,
     RecordingUpdate,
     UploadUrlRequest,
     UploadUrlResponse,
 )
-from app.services.oral_collector import recording_service
+from app.services.oral_collector import cleaning_service, recording_service
 
 recordings_router = APIRouter()
 
@@ -130,3 +131,37 @@ async def confirm_upload(
     """Mark a recording as uploaded after file transfer to GCS."""
     recording = await recording_service.confirm_upload(db, recording_id)
     return RecordingResponse.model_validate(recording)
+
+
+# ---------------------------------------------------------------------------
+# Cleaning endpoints
+# ---------------------------------------------------------------------------
+
+
+@recordings_router.post(
+    "/{recording_id}/clean", response_model=RecordingResponse
+)
+async def trigger_cleaning(
+    recording_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> RecordingResponse:
+    """Trigger audio cleaning for a recording. Project manager only."""
+    recording = await cleaning_service.trigger_cleaning(db, recording_id, user.id)
+    return RecordingResponse.model_validate(recording)
+
+
+@recordings_router.get(
+    "/{recording_id}/clean-status", response_model=CleaningStatusResponse
+)
+async def get_cleaning_status(
+    recording_id: str,
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> CleaningStatusResponse:
+    """Get the current cleaning status of a recording."""
+    recording = await cleaning_service.get_cleaning_status(db, recording_id)
+    return CleaningStatusResponse(
+        recording_id=recording.id,
+        cleaning_status=recording.cleaning_status,
+    )
