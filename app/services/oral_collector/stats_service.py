@@ -1,8 +1,6 @@
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.auth import User
-from app.db.models.language import Language
 from app.db.models.oc_genre import OC_Genre, OC_Subcategory
 from app.db.models.oc_project_user import OC_ProjectUser
 from app.db.models.oc_recording import OC_Recording
