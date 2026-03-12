@@ -16,9 +16,7 @@ async def get_genre_stats(db: AsyncSession, project_id: str) -> dict:
             OC_Recording.genre_id,
             OC_Genre.name.label("genre_name"),
             func.count(OC_Recording.id).label("recording_count"),
-            func.coalesce(func.sum(OC_Recording.duration_seconds), 0.0).label(
-                "duration_seconds"
-            ),
+            func.coalesce(func.sum(OC_Recording.duration_seconds), 0.0).label("duration_seconds"),
         )
         .join(OC_Genre, OC_Genre.id == OC_Recording.genre_id)
         .where(OC_Recording.project_id == project_id)
@@ -44,9 +42,7 @@ async def get_genre_stats(db: AsyncSession, project_id: str) -> dict:
             OC_Subcategory.name.label("subcategory_name"),
             OC_Recording.genre_id,
             func.count(OC_Recording.id).label("recording_count"),
-            func.coalesce(func.sum(OC_Recording.duration_seconds), 0.0).label(
-                "duration_seconds"
-            ),
+            func.coalesce(func.sum(OC_Recording.duration_seconds), 0.0).label("duration_seconds"),
         )
         .join(OC_Subcategory, OC_Subcategory.id == OC_Recording.subcategory_id)
         .where(OC_Recording.project_id == project_id)
@@ -81,9 +77,7 @@ async def get_admin_stats(db: AsyncSession) -> dict:
     """Return system-wide totals: project count, language count, total hours, active users."""
 
     # Count projects that have OC recordings
-    project_count_stmt = select(
-        func.count(func.distinct(OC_Recording.project_id))
-    )
+    project_count_stmt = select(func.count(func.distinct(OC_Recording.project_id)))
     project_result = await db.execute(project_count_stmt)
     total_projects = project_result.scalar_one()
 
@@ -97,9 +91,7 @@ async def get_admin_stats(db: AsyncSession) -> dict:
     total_languages = language_result.scalar_one()
 
     # Total hours of recordings
-    hours_stmt = select(
-        func.coalesce(func.sum(OC_Recording.duration_seconds), 0.0)
-    )
+    hours_stmt = select(func.coalesce(func.sum(OC_Recording.duration_seconds), 0.0))
     hours_result = await db.execute(hours_stmt)
     total_seconds = float(hours_result.scalar_one())
     total_hours = total_seconds / 3600.0

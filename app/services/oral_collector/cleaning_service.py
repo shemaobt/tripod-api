@@ -15,9 +15,7 @@ GCS_OC_BUCKET = "tripod-image-uploads"
 GCS_OC_PROJECT = "gen-lang-client-0886209230"
 
 
-async def _require_project_manager(
-    db: AsyncSession, project_id: str, user_id: str
-) -> None:
+async def _require_project_manager(db: AsyncSession, project_id: str, user_id: str) -> None:
     """Verify the user is a project_manager for the given project."""
     stmt = select(OC_ProjectUser).where(
         OC_ProjectUser.project_id == project_id,
@@ -64,7 +62,7 @@ def _blob_name_from_url(gcs_url: str) -> str | None:
     prefix = f"https://storage.googleapis.com/{GCS_OC_BUCKET}/"
     if not gcs_url.startswith(prefix):
         return None
-    return gcs_url[len(prefix):]
+    return gcs_url[len(prefix) :]
 
 
 def _original_blob_name(blob_name: str) -> str:
@@ -75,9 +73,7 @@ def _original_blob_name(blob_name: str) -> str:
     return f"{blob_name[:dot_idx]}_original{blob_name[dot_idx:]}"
 
 
-async def trigger_cleaning(
-    db: AsyncSession, recording_id: str, user_id: str
-) -> OC_Recording:
+async def trigger_cleaning(db: AsyncSession, recording_id: str, user_id: str) -> OC_Recording:
     """Trigger audio cleaning for a recording via third-party API.
 
     1. Verify the user is a project manager for the recording's project.
@@ -129,9 +125,7 @@ async def trigger_cleaning(
             await _copy_gcs_blob(blob_name, original_name)
 
             # Upload cleaned version to replace primary
-            await _upload_gcs_blob(
-                blob_name, cleaned_data, "application/octet-stream"
-            )
+            await _upload_gcs_blob(blob_name, cleaned_data, "application/octet-stream")
 
         recording.cleaning_status = "cleaned"
         await db.commit()
@@ -146,8 +140,6 @@ async def trigger_cleaning(
     return recording
 
 
-async def get_cleaning_status(
-    db: AsyncSession, recording_id: str
-) -> OC_Recording:
+async def get_cleaning_status(db: AsyncSession, recording_id: str) -> OC_Recording:
     """Return the current cleaning status of a recording."""
     return await _get_recording(db, recording_id)

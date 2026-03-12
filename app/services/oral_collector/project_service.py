@@ -16,9 +16,7 @@ async def list_user_projects(db: AsyncSession, user_id: str) -> list[Project]:
     - Direct project access (project_user_access)
     - Organization-based access (project_organization_access via org membership)
     """
-    oc_project_ids = select(OC_ProjectUser.project_id).where(
-        OC_ProjectUser.user_id == user_id
-    )
+    oc_project_ids = select(OC_ProjectUser.project_id).where(OC_ProjectUser.user_id == user_id)
     direct_project_ids = select(ProjectUserAccess.project_id).where(
         ProjectUserAccess.user_id == user_id
     )
@@ -51,9 +49,7 @@ async def list_all_projects(db: AsyncSession) -> list[Project]:
     return list(result.scalars().unique().all())
 
 
-async def get_project_members(
-    db: AsyncSession, project_id: str
-) -> list[OC_ProjectUser]:
+async def get_project_members(db: AsyncSession, project_id: str) -> list[OC_ProjectUser]:
     """Return all members of a project."""
     stmt = (
         select(OC_ProjectUser)
@@ -88,9 +84,7 @@ async def add_member(
     return member
 
 
-async def remove_member(
-    db: AsyncSession, project_id: str, user_id: str
-) -> None:
+async def remove_member(db: AsyncSession, project_id: str, user_id: str) -> None:
     """Remove a user from a project. Raises NotFoundError if not a member."""
     stmt = select(OC_ProjectUser).where(
         OC_ProjectUser.project_id == project_id,
@@ -105,18 +99,12 @@ async def remove_member(
     await db.commit()
 
 
-async def get_project_stats(
-    db: AsyncSession, project_id: str
-) -> dict:
+async def get_project_stats(db: AsyncSession, project_id: str) -> dict:
     """Return aggregate recording stats for a project."""
     stmt = select(
         func.count(OC_Recording.id).label("total_recordings"),
-        func.coalesce(func.sum(OC_Recording.duration_seconds), 0.0).label(
-            "total_duration_seconds"
-        ),
-        func.coalesce(func.sum(OC_Recording.file_size_bytes), 0).label(
-            "total_file_size_bytes"
-        ),
+        func.coalesce(func.sum(OC_Recording.duration_seconds), 0.0).label("total_duration_seconds"),
+        func.coalesce(func.sum(OC_Recording.file_size_bytes), 0).label("total_file_size_bytes"),
     ).where(OC_Recording.project_id == project_id)
 
     result = await db.execute(stmt)

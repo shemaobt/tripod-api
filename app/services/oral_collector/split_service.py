@@ -122,9 +122,7 @@ async def split_recording(
             await _ffmpeg_split_segment(input_file, output_file, seg.start_seconds, seg.end_seconds)
 
             segment_bytes = output_file.read_bytes()
-            blob_path = _gcs_blob_path(
-                recording.project_id, recording.genre_id, new_id, fmt
-            )
+            blob_path = _gcs_blob_path(recording.project_id, recording.genre_id, new_id, fmt)
             content_type = _content_type_for_format(fmt)
             gcs_url = await _upload_gcs_blob(blob_path, segment_bytes, content_type)
 

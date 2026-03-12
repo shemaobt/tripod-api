@@ -77,9 +77,7 @@ async def get_recording(db: AsyncSession, recording_id: str) -> OC_Recording:
     return recording
 
 
-async def check_recording_access(
-    db: AsyncSession, recording: OC_Recording, user_id: str
-) -> None:
+async def check_recording_access(db: AsyncSession, recording: OC_Recording, user_id: str) -> None:
     """Verify user is the recording owner or a project manager. Raises AuthorizationError."""
     if recording.user_id == user_id:
         return
@@ -95,9 +93,7 @@ async def check_recording_access(
         )
 
 
-async def create_recording(
-    db: AsyncSession, data: RecordingCreate, user_id: str
-) -> OC_Recording:
+async def create_recording(db: AsyncSession, data: RecordingCreate, user_id: str) -> OC_Recording:
     """Create a new recording entry."""
     recording = OC_Recording(
         project_id=data.project_id,
@@ -143,9 +139,7 @@ async def delete_recording(db: AsyncSession, recording_id: str) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _gcs_blob_path(
-    project_id: str, genre_id: str, recording_id: str, fmt: str
-) -> str:
+def _gcs_blob_path(project_id: str, genre_id: str, recording_id: str, fmt: str) -> str:
     """Build the GCS object path for a recording."""
     ext = FORMAT_EXTENSIONS.get(fmt.lower(), f".{fmt.lower()}")
     return f"oral-collector/{project_id}/{genre_id}/{recording_id}{ext}"
@@ -166,9 +160,7 @@ async def generate_upload_url(
     recording = await get_recording(db, recording_id)
     await check_recording_access(db, recording, user_id)
 
-    blob_path = _gcs_blob_path(
-        recording.project_id, recording.genre_id, recording_id, fmt
-    )
+    blob_path = _gcs_blob_path(recording.project_id, recording.genre_id, recording_id, fmt)
 
     client = storage.Client(project=GCS_OC_PROJECT)
     bucket = client.bucket(GCS_OC_BUCKET)
@@ -226,7 +218,7 @@ def _delete_gcs_blob(gcs_url: str) -> None:
         if not gcs_url.startswith(prefix):
             logger.warning("Unexpected GCS URL format: %s", gcs_url)
             return
-        blob_name = gcs_url[len(prefix):]
+        blob_name = gcs_url[len(prefix) :]
         client = storage.Client(project=GCS_OC_PROJECT)
         bucket = client.bucket(GCS_OC_BUCKET)
         blob = bucket.blob(blob_name)

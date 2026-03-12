@@ -93,6 +93,7 @@ async def create_subcategory(
 
 # Subcategory update/delete at /api/oc/subcategories/{id}
 
+
 @subcategories_router.patch("/{subcategory_id}", response_model=SubcategoryResponse)
 async def update_subcategory(
     subcategory_id: str,
@@ -105,9 +106,7 @@ async def update_subcategory(
     return SubcategoryResponse.model_validate(subcategory)
 
 
-@subcategories_router.delete(
-    "/{subcategory_id}", status_code=status.HTTP_204_NO_CONTENT
-)
+@subcategories_router.delete("/{subcategory_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_subcategory(
     subcategory_id: str,
     _: User = Depends(require_platform_admin),

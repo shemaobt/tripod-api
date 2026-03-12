@@ -94,13 +94,13 @@ PHASES = [
 # Dependency definitions: phase_key → [depends_on_key, ...]
 # ──────────────────────────────────────────────────────────────────────────────
 DEPENDENCIES = {
-    "data_collection":        [],
-    "audio_segmentation":     ["data_collection"],
-    "acoustic_tokenization":  ["audio_segmentation"],
-    "bpe_motif_discovery":    ["acoustic_tokenization"],
-    "vocoder_training":       ["acoustic_tokenization"],
+    "data_collection": [],
+    "audio_segmentation": ["data_collection"],
+    "acoustic_tokenization": ["audio_segmentation"],
+    "bpe_motif_discovery": ["acoustic_tokenization"],
+    "vocoder_training": ["acoustic_tokenization"],
     "conversational_tagging": ["bpe_motif_discovery"],
-    "generative_training":    ["conversational_tagging"],
+    "generative_training": ["conversational_tagging"],
 }
 
 
@@ -181,10 +181,7 @@ def dry_run():
         " ─┬→ BPE Motif Discovery → Conversational Tagging (AViTA)"
         " → Generative Model Training"
     )
-    print(
-        "                                                              "
-        "   └→ Vocoder Training"
-    )
+    print("                                                                 └→ Vocoder Training")
     print()
     total_edges = sum(len(v) for v in DEPENDENCIES.values())
     print(f"Total: {len(PHASES)} phases, {total_edges} dependency edges")
@@ -195,18 +192,26 @@ def main():
         description="Seed training pipeline phases into Tripod Console",
     )
     parser.add_argument(
-        "--base-url", default="http://localhost:8000", help="Backend API base URL",
+        "--base-url",
+        default="http://localhost:8000",
+        help="Backend API base URL",
     )
     parser.add_argument("--email", help="Admin email (prompted if not provided)")
     parser.add_argument("--password", help="Admin password (prompted if not provided)")
     parser.add_argument(
-        "--clean", action="store_true", help="Delete ALL existing phases before seeding",
+        "--clean",
+        action="store_true",
+        help="Delete ALL existing phases before seeding",
     )
     parser.add_argument(
-        "--dry-run", action="store_true", help="Print phases and exit (no API calls)",
+        "--dry-run",
+        action="store_true",
+        help="Print phases and exit (no API calls)",
     )
     parser.add_argument(
-        "--skip-existing", action="store_true", default=True,
+        "--skip-existing",
+        action="store_true",
+        default=True,
         help="Skip phases that already exist by name (default: true)",
     )
     args = parser.parse_args()

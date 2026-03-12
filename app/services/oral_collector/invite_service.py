@@ -37,9 +37,7 @@ async def create_invite(
     return invite
 
 
-async def list_user_invites(
-    db: AsyncSession, user_email: str
-) -> list[OC_ProjectInvite]:
+async def list_user_invites(db: AsyncSession, user_email: str) -> list[OC_ProjectInvite]:
     """List all pending invites for a user by email."""
     stmt = (
         select(OC_ProjectInvite)
@@ -75,9 +73,7 @@ async def accept_invite(
     return invite
 
 
-async def decline_invite(
-    db: AsyncSession, invite_id: str, user_email: str
-) -> OC_ProjectInvite:
+async def decline_invite(db: AsyncSession, invite_id: str, user_email: str) -> OC_ProjectInvite:
     """Decline an invite."""
     invite = await _get_invite_for_user(db, invite_id, user_email)
 

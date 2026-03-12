@@ -90,9 +90,7 @@ async def update_recording(
     return RecordingResponse.model_validate(recording)
 
 
-@recordings_router.delete(
-    "/{recording_id}", status_code=status.HTTP_204_NO_CONTENT
-)
+@recordings_router.delete("/{recording_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_recording(
     recording_id: str,
     user: User = Depends(get_current_user),
@@ -122,9 +120,7 @@ async def request_upload_url(
     return UploadUrlResponse(**result)
 
 
-@recordings_router.post(
-    "/{recording_id}/confirm-upload", response_model=RecordingResponse
-)
+@recordings_router.post("/{recording_id}/confirm-upload", response_model=RecordingResponse)
 async def confirm_upload(
     recording_id: str,
     user: User = Depends(get_current_user),
@@ -153,9 +149,7 @@ async def split_recording(
 
     Each segment is saved as a new recording with its own GCS file.
     """
-    new_ids = await split_service.split_recording(
-        db, recording_id, payload.segments, user.id
-    )
+    new_ids = await split_service.split_recording(db, recording_id, payload.segments, user.id)
     return SplitResponse(recording_ids=new_ids)
 
 
@@ -164,9 +158,7 @@ async def split_recording(
 # ---------------------------------------------------------------------------
 
 
-@recordings_router.post(
-    "/{recording_id}/clean", response_model=RecordingResponse
-)
+@recordings_router.post("/{recording_id}/clean", response_model=RecordingResponse)
 async def trigger_cleaning(
     recording_id: str,
     user: User = Depends(get_current_user),
@@ -177,9 +169,7 @@ async def trigger_cleaning(
     return RecordingResponse.model_validate(recording)
 
 
-@recordings_router.get(
-    "/{recording_id}/clean-status", response_model=CleaningStatusResponse
-)
+@recordings_router.get("/{recording_id}/clean-status", response_model=CleaningStatusResponse)
 async def get_cleaning_status(
     recording_id: str,
     _: User = Depends(get_current_user),

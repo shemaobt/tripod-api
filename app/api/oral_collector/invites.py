@@ -13,9 +13,7 @@ from app.services.oral_collector import invite_service
 invites_router = APIRouter()
 
 
-async def _require_project_manager(
-    project_id: str, user: User, db: AsyncSession
-) -> None:
+async def _require_project_manager(project_id: str, user: User, db: AsyncSession) -> None:
     """Verify the user is a project_manager for the given project (or platform admin)."""
     if user.is_platform_admin:
         return

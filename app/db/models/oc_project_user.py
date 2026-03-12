@@ -32,9 +32,7 @@ class OC_ProjectInvite(Base):
         ForeignKey("projects.id", ondelete="CASCADE"), index=True
     )
     email: Mapped[str] = mapped_column(String(320))
-    invited_by: Mapped[str] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), index=True
-    )
+    invited_by: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     status: Mapped[str] = mapped_column(String(20), default="pending")
     role: Mapped[str] = mapped_column(String(30), default="user")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
