@@ -9,10 +9,12 @@ from app.models.oc_recording import (
     RecordingCreate,
     RecordingResponse,
     RecordingUpdate,
+    SplitRequest,
+    SplitResponse,
     UploadUrlRequest,
     UploadUrlResponse,
 )
-from app.services.oral_collector import cleaning_service, recording_service
+from app.services.oral_collector import cleaning_service, recording_service, split_service
 
 recordings_router = APIRouter()
 
@@ -110,12 +112,12 @@ async def delete_recording(
 @recordings_router.post("/upload-url", response_model=UploadUrlResponse)
 async def request_upload_url(
     payload: UploadUrlRequest,
-    _: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> UploadUrlResponse:
     """Generate a signed GCS upload URL for a recording."""
     result = await recording_service.generate_upload_url(
-        db, payload.recording_id, payload.format
+        db, payload.recording_id, payload.format, user.id
     )
     return UploadUrlResponse(**result)
 
@@ -125,12 +127,36 @@ async def request_upload_url(
 )
 async def confirm_upload(
     recording_id: str,
-    _: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> RecordingResponse:
     """Mark a recording as uploaded after file transfer to GCS."""
+    existing = await recording_service.get_recording(db, recording_id)
+    await recording_service.check_recording_access(db, existing, user.id)
     recording = await recording_service.confirm_upload(db, recording_id)
     return RecordingResponse.model_validate(recording)
+
+
+# ---------------------------------------------------------------------------
+# Split endpoint
+# ---------------------------------------------------------------------------
+
+
+@recordings_router.post("/{recording_id}/split", response_model=SplitResponse)
+async def split_recording(
+    recording_id: str,
+    payload: SplitRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> SplitResponse:
+    """Split a recording into multiple segments using server-side FFmpeg.
+
+    Each segment is saved as a new recording with its own GCS file.
+    """
+    new_ids = await split_service.split_recording(
+        db, recording_id, payload.segments, user.id
+    )
+    return SplitResponse(recording_ids=new_ids)
 
 
 # ---------------------------------------------------------------------------

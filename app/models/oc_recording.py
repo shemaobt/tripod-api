@@ -55,5 +55,19 @@ class UploadUrlRequest(BaseModel):
 
 class UploadUrlResponse(BaseModel):
     recording_id: str
-    signed_url: str
+    server_id: str
+    upload_url: str
     expires_at: datetime
+
+
+class SplitSegment(BaseModel):
+    start_seconds: float = Field(ge=0)
+    end_seconds: float = Field(gt=0)
+
+
+class SplitRequest(BaseModel):
+    segments: list[SplitSegment] = Field(min_length=1)
+
+
+class SplitResponse(BaseModel):
+    recording_ids: list[str]
