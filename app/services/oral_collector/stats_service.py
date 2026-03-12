@@ -24,6 +24,7 @@ async def get_genre_stats(db: AsyncSession, project_id: str) -> dict:
         )
         .join(OC_Genre, OC_Genre.id == OC_Recording.genre_id)
         .where(OC_Recording.project_id == project_id)
+        .where(OC_Recording.upload_status == "uploaded")
         .group_by(OC_Recording.genre_id, OC_Genre.name)
         .order_by(OC_Genre.name)
     )
@@ -51,6 +52,7 @@ async def get_genre_stats(db: AsyncSession, project_id: str) -> dict:
         )
         .join(OC_Subcategory, OC_Subcategory.id == OC_Recording.subcategory_id)
         .where(OC_Recording.project_id == project_id)
+        .where(OC_Recording.upload_status == "uploaded")
         .group_by(
             OC_Recording.subcategory_id,
             OC_Subcategory.name,
