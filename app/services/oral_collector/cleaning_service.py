@@ -6,8 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.exceptions import AuthorizationError, NotFoundError
-from app.db.models.oc_project_user import OC_ProjectUser
 from app.db.models.oc_recording import OC_Recording
+from app.db.models.project import ProjectUserAccess
 
 logger = logging.getLogger(__name__)
 
@@ -15,12 +15,12 @@ GCS_OC_BUCKET = "tripod-image-uploads"
 GCS_OC_PROJECT = "gen-lang-client-0886209230"
 
 
-async def _require_project_manager(db: AsyncSession, project_id: str, user_id: str) -> None:
-    """Verify the user is a project_manager for the given project."""
-    stmt = select(OC_ProjectUser).where(
-        OC_ProjectUser.project_id == project_id,
-        OC_ProjectUser.user_id == user_id,
-        OC_ProjectUser.role == "project_manager",
+async def _require_manager(db: AsyncSession, project_id: str, user_id: str) -> None:
+    """Verify the user is a manager for the given project."""
+    stmt = select(ProjectUserAccess).where(
+        ProjectUserAccess.project_id == project_id,
+        ProjectUserAccess.user_id == user_id,
+        ProjectUserAccess.role == "manager",
     )
     result = await db.execute(stmt)
     if result.scalar_one_or_none() is None:
@@ -82,7 +82,7 @@ async def trigger_cleaning(db: AsyncSession, recording_id: str, user_id: str) ->
     4. On failure: set cleaning_status to 'failed'.
     """
     recording = await _get_recording(db, recording_id)
-    await _require_project_manager(db, recording.project_id, user_id)
+    await _require_manager(db, recording.project_id, user_id)
 
     if not recording.gcs_url:
         raise NotFoundError("Recording has no uploaded audio file")

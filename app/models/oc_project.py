@@ -18,7 +18,7 @@ class OCProjectStatsResponse(BaseModel):
 
 class OCProjectInviteCreate(BaseModel):
     email: EmailStr
-    role: str = Field(default="user", max_length=30)
+    role: str = Field(default="member", max_length=30)
 
 
 class OCProjectInviteResponse(BaseModel):
@@ -28,6 +28,7 @@ class OCProjectInviteResponse(BaseModel):
     invited_by: str
     status: str
     role: str
+    app_key: str | None = None
     created_at: datetime
     accepted_at: datetime | None
 

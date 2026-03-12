@@ -39,3 +39,8 @@ class ProfileUpdate(BaseModel):
 class AuthResponse(BaseModel):
     user: UserResponse
     tokens: TokenResponse
+
+
+class MyProjectRolesResponse(BaseModel):
+    is_platform_admin: bool
+    project_roles: dict[str, str]

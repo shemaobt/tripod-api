@@ -2,9 +2,8 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.oc_genre import OC_Genre, OC_Subcategory
-from app.db.models.oc_project_user import OC_ProjectUser
 from app.db.models.oc_recording import OC_Recording
-from app.db.models.project import Project
+from app.db.models.project import Project, ProjectUserAccess
 
 
 async def get_genre_stats(db: AsyncSession, project_id: str) -> dict:
@@ -81,11 +80,11 @@ async def get_admin_stats(db: AsyncSession) -> dict:
     project_result = await db.execute(project_count_stmt)
     total_projects = project_result.scalar_one()
 
-    # Count distinct languages across OC projects
+    # Count distinct languages across projects with members
     language_count_stmt = (
         select(func.count(func.distinct(Project.language_id)))
         .select_from(Project)
-        .join(OC_ProjectUser, OC_ProjectUser.project_id == Project.id)
+        .join(ProjectUserAccess, ProjectUserAccess.project_id == Project.id)
     )
     language_result = await db.execute(language_count_stmt)
     total_languages = language_result.scalar_one()
@@ -96,8 +95,8 @@ async def get_admin_stats(db: AsyncSession) -> dict:
     total_seconds = float(hours_result.scalar_one())
     total_hours = total_seconds / 3600.0
 
-    # Active users (distinct users who are OC project members)
-    users_stmt = select(func.count(func.distinct(OC_ProjectUser.user_id)))
+    # Active users (distinct users who are project members)
+    users_stmt = select(func.count(func.distinct(ProjectUserAccess.user_id)))
     users_result = await db.execute(users_stmt)
     active_users = users_result.scalar_one()
 

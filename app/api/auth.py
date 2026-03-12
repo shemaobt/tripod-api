@@ -7,6 +7,7 @@ from app.core.database import get_db
 from app.db.models.auth import User
 from app.models.auth import (
     AuthResponse,
+    MyProjectRolesResponse,
     ProfileUpdate,
     TokenRefreshRequest,
     TokenResponse,
@@ -16,6 +17,7 @@ from app.models.auth import (
 )
 from app.models.role import MyRoleResponse
 from app.services import auth_service, authorization_service
+from app.services.project import list_user_project_roles
 
 router = APIRouter()
 
@@ -84,6 +86,18 @@ async def update_me(
     await db.refresh(user)
     invalidate_user(user.id)
     return _user_response(user)
+
+
+@router.get("/my-project-roles", response_model=MyProjectRolesResponse)
+async def my_project_roles(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> MyProjectRolesResponse:
+    roles = await list_user_project_roles(db, user.id)
+    return MyProjectRolesResponse(
+        is_platform_admin=user.is_platform_admin,
+        project_roles=roles,
+    )
 
 
 @router.get("/my-roles", response_model=list[MyRoleResponse])

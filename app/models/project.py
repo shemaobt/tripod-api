@@ -50,6 +50,7 @@ class ProjectUserAccessResponse(BaseModel):
     id: str
     project_id: str
     user_id: str
+    role: str = "member"
     granted_at: datetime
 
     model_config = {"from_attributes": True}
@@ -71,6 +72,7 @@ class ProjectUserAccessDetailResponse(BaseModel):
     email: str
     display_name: str | None
     avatar_url: str | None = None
+    role: str = "member"
     granted_at: datetime
 
 

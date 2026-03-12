@@ -6,21 +6,21 @@ from app.core.auth_middleware import get_current_user
 from app.core.database import get_db
 from app.core.exceptions import AuthorizationError
 from app.db.models.auth import User
-from app.db.models.oc_project_user import OC_ProjectUser
+from app.db.models.project import ProjectUserAccess
 from app.models.oc_project import OCProjectInviteCreate, OCProjectInviteResponse
 from app.services.oral_collector import invite_service
 
 invites_router = APIRouter()
 
 
-async def _require_project_manager(project_id: str, user: User, db: AsyncSession) -> None:
-    """Verify the user is a project_manager for the given project (or platform admin)."""
+async def _require_manager(project_id: str, user: User, db: AsyncSession) -> None:
+    """Verify the user is a manager for the given project (or platform admin)."""
     if user.is_platform_admin:
         return
-    stmt = select(OC_ProjectUser).where(
-        OC_ProjectUser.project_id == project_id,
-        OC_ProjectUser.user_id == user.id,
-        OC_ProjectUser.role == "project_manager",
+    stmt = select(ProjectUserAccess).where(
+        ProjectUserAccess.project_id == project_id,
+        ProjectUserAccess.user_id == user.id,
+        ProjectUserAccess.role == "manager",
     )
     result = await db.execute(stmt)
     if result.scalar_one_or_none() is None:
@@ -43,8 +43,8 @@ async def create_invite(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> OCProjectInviteResponse:
-    """Create a project invite (project_manager only)."""
-    await _require_project_manager(project_id, user, db)
+    """Create a project invite (manager only)."""
+    await _require_manager(project_id, user, db)
     invite = await invite_service.create_invite(
         db, project_id, payload.email, payload.role, user.id
     )

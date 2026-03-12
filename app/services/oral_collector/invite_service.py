@@ -4,7 +4,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AuthorizationError, ConflictError, NotFoundError
-from app.db.models.oc_project_user import OC_ProjectInvite, OC_ProjectUser
+from app.db.models.auth import User
+from app.db.models.project import ProjectInvite, ProjectUserAccess
 
 
 async def create_invite(
@@ -13,23 +14,34 @@ async def create_invite(
     email: str,
     role: str,
     invited_by: str,
-) -> OC_ProjectInvite:
-    """Create a project invite. Raises ConflictError if a pending invite already exists."""
-    # Check for existing pending invite for same email + project
-    stmt = select(OC_ProjectInvite).where(
-        OC_ProjectInvite.project_id == project_id,
-        OC_ProjectInvite.email == email,
-        OC_ProjectInvite.status == "pending",
+) -> ProjectInvite:
+    """Create a project invite for an existing user.
+
+    Raises NotFoundError if no active user with that email exists.
+    Raises ConflictError if a pending invite already exists.
+    """
+    # Verify the email belongs to an existing active user
+    user_stmt = select(User).where(User.email == email, User.is_active.is_(True))
+    user_result = await db.execute(user_stmt)
+    if user_result.scalar_one_or_none() is None:
+        raise NotFoundError("No registered user found with that email")
+
+    # Check for duplicate pending invite
+    stmt = select(ProjectInvite).where(
+        ProjectInvite.project_id == project_id,
+        ProjectInvite.email == email,
+        ProjectInvite.status == "pending",
     )
     result = await db.execute(stmt)
     if result.scalar_one_or_none():
         raise ConflictError("A pending invite already exists for this email")
 
-    invite = OC_ProjectInvite(
+    invite = ProjectInvite(
         project_id=project_id,
         email=email,
         role=role,
         invited_by=invited_by,
+        app_key="oral-collector",
     )
     db.add(invite)
     await db.commit()
@@ -37,15 +49,15 @@ async def create_invite(
     return invite
 
 
-async def list_user_invites(db: AsyncSession, user_email: str) -> list[OC_ProjectInvite]:
+async def list_user_invites(db: AsyncSession, user_email: str) -> list[ProjectInvite]:
     """List all pending invites for a user by email."""
     stmt = (
-        select(OC_ProjectInvite)
+        select(ProjectInvite)
         .where(
-            OC_ProjectInvite.email == user_email,
-            OC_ProjectInvite.status == "pending",
+            ProjectInvite.email == user_email,
+            ProjectInvite.status == "pending",
         )
-        .order_by(OC_ProjectInvite.created_at.desc())
+        .order_by(ProjectInvite.created_at.desc())
     )
     result = await db.execute(stmt)
     return list(result.scalars().all())
@@ -53,12 +65,11 @@ async def list_user_invites(db: AsyncSession, user_email: str) -> list[OC_Projec
 
 async def accept_invite(
     db: AsyncSession, invite_id: str, user_id: str, user_email: str
-) -> OC_ProjectInvite:
-    """Accept an invite. Creates OC_ProjectUser entry with the invite's role."""
+) -> ProjectInvite:
+    """Accept an invite. Creates ProjectUserAccess entry with the invite's role."""
     invite = await _get_invite_for_user(db, invite_id, user_email)
 
-    # Create project membership with the role from the invite
-    member = OC_ProjectUser(
+    member = ProjectUserAccess(
         project_id=invite.project_id,
         user_id=user_id,
         role=invite.role,
@@ -73,7 +84,7 @@ async def accept_invite(
     return invite
 
 
-async def decline_invite(db: AsyncSession, invite_id: str, user_email: str) -> OC_ProjectInvite:
+async def decline_invite(db: AsyncSession, invite_id: str, user_email: str) -> ProjectInvite:
     """Decline an invite."""
     invite = await _get_invite_for_user(db, invite_id, user_email)
 
@@ -83,11 +94,9 @@ async def decline_invite(db: AsyncSession, invite_id: str, user_email: str) -> O
     return invite
 
 
-async def _get_invite_for_user(
-    db: AsyncSession, invite_id: str, user_email: str
-) -> OC_ProjectInvite:
+async def _get_invite_for_user(db: AsyncSession, invite_id: str, user_email: str) -> ProjectInvite:
     """Fetch a pending invite and verify it belongs to the user."""
-    stmt = select(OC_ProjectInvite).where(OC_ProjectInvite.id == invite_id)
+    stmt = select(ProjectInvite).where(ProjectInvite.id == invite_id)
     result = await db.execute(stmt)
     invite = result.scalar_one_or_none()
     if not invite:

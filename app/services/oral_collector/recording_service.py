@@ -5,8 +5,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AuthorizationError, NotFoundError
-from app.db.models.oc_project_user import OC_ProjectUser
 from app.db.models.oc_recording import OC_Recording
+from app.db.models.project import ProjectUserAccess
 from app.models.oc_recording import RecordingCreate, RecordingUpdate
 
 logger = logging.getLogger(__name__)
@@ -81,10 +81,10 @@ async def check_recording_access(db: AsyncSession, recording: OC_Recording, user
     """Verify user is the recording owner or a project manager. Raises AuthorizationError."""
     if recording.user_id == user_id:
         return
-    stmt = select(OC_ProjectUser).where(
-        OC_ProjectUser.project_id == recording.project_id,
-        OC_ProjectUser.user_id == user_id,
-        OC_ProjectUser.role == "project_manager",
+    stmt = select(ProjectUserAccess).where(
+        ProjectUserAccess.project_id == recording.project_id,
+        ProjectUserAccess.user_id == user_id,
+        ProjectUserAccess.role == "manager",
     )
     result = await db.execute(stmt)
     if result.scalar_one_or_none() is None:

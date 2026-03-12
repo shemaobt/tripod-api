@@ -23,12 +23,12 @@ from app.db.models.meaning_map import (
 )
 from app.db.models.notification import Notification, NotificationMeaningMapDetail
 from app.db.models.oc_genre import OC_Genre, OC_Subcategory
-from app.db.models.oc_project_user import OC_ProjectInvite, OC_ProjectUser
 from app.db.models.oc_recording import OC_Recording
 from app.db.models.org import Organization, OrganizationMember
 from app.db.models.phase import Phase, PhaseDependency, ProjectPhase
 from app.db.models.project import (
     Project,
+    ProjectInvite,
     ProjectOrganizationAccess,
     ProjectUserAccess,
 )
@@ -47,8 +47,6 @@ __all__ = [
     "Notification",
     "NotificationMeaningMapDetail",
     "OC_Genre",
-    "OC_ProjectInvite",
-    "OC_ProjectUser",
     "OC_Recording",
     "OC_Subcategory",
     "Organization",
@@ -58,6 +56,7 @@ __all__ = [
     "Phase",
     "PhaseDependency",
     "Project",
+    "ProjectInvite",
     "ProjectOrganizationAccess",
     "ProjectPhase",
     "ProjectUserAccess",
