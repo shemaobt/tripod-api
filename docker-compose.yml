@@ -35,6 +35,9 @@ services:
       - tf_data:/root/text-fabric-data
       - gcp_secrets_env:/run/secrets:ro
       - ${HOME}/.config/gcloud:/root/.config/gcloud:ro
+      - ./gcs-signing-key.json:/etc/gcs/signing-key.json:ro
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /etc/gcs/signing-key.json
     dns:
       - 8.8.8.8
       - 8.8.4.4

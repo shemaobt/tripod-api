@@ -16,12 +16,14 @@ Usage:
     python scripts/seed_phases.py --base-url https://tripod-backend.shemaywam.com --clean
 
     # Skip login prompt (pass credentials directly)
-    python scripts/seed_phases.py --base-url https://tripod-backend.shemaywam.com --email admin@shemaywam.com --password yourpass
+    python scripts/seed_phases.py --base-url https://tripod-backend.shemaywam.com \\
+        --email admin@shemaywam.com --password yourpass
 """
 
 import argparse
 import getpass
 import sys
+
 import requests
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -39,8 +41,8 @@ PHASES = [
     (
         "audio_segmentation",
         "Audio Segmentation",
-        "Split raw MP3 recordings into 2–10 second WAV segments (mono, 16 kHz) via silence "
-        "detection (RMS energy < −40 dB, minimum silence gap 0.5 s). Normalize loudness, "
+        "Split raw MP3 recordings into 2-10 second WAV segments (mono, 16 kHz) via silence "
+        "detection (RMS energy < -40 dB, minimum silence gap 0.5 s). Normalize loudness, "
         "resample, and upload segments to Modal cloud volume (bible-audio-data). "
         "Scripts: segment_audio.py → upload_to_modal.py.",
     ),
@@ -55,7 +57,7 @@ PHASES = [
     (
         "bpe_motif_discovery",
         "BPE Motif Discovery",
-        "Train a SentencePiece BPE tokenizer on acoustic unit sequences to discover 500–1000 "
+        "Train a SentencePiece BPE tokenizer on acoustic unit sequences to discover 500-1000 "
         "recurring acoustic motifs — analogous to morphological building blocks of the language. "
         "BPE encoding is reversible (decode is deterministic and lossless). "
         "Runs on CPU. Script: phase2_bpe.py.",
@@ -64,9 +66,10 @@ PHASES = [
         "vocoder_training",
         "Vocoder Training",
         "Train HiFi-GAN V2 (Generator + Multi-Period/Multi-Scale Discriminator) to convert "
-        "discrete acoustic units + pitch bins into 16 kHz waveform audio. Uses pitch conditioning "
-        "(F0 via pyin, 32 bins), MRF fusion, and compound loss (45× mel L1 + 2× multi-res STFT + "
-        "2× feature matching + adversarial). Runs on A100 GPU via Modal. Script: phase3_vocoder_v2.py.",
+        "discrete acoustic units + pitch bins into 16 kHz waveform audio. Uses pitch "
+        "conditioning (F0 via pyin, 32 bins), MRF fusion, and compound loss (45x mel L1 + "
+        "2x multi-res STFT + 2x feature matching + adversarial). Runs on A100 GPU via "
+        "Modal. Script: phase3_vocoder_v2.py.",
     ),
     (
         "conversational_tagging",
@@ -91,13 +94,13 @@ PHASES = [
 # Dependency definitions: phase_key → [depends_on_key, ...]
 # ──────────────────────────────────────────────────────────────────────────────
 DEPENDENCIES = {
-    "data_collection":        [],
-    "audio_segmentation":     ["data_collection"],
-    "acoustic_tokenization":  ["audio_segmentation"],
-    "bpe_motif_discovery":    ["acoustic_tokenization"],
-    "vocoder_training":       ["acoustic_tokenization"],
+    "data_collection": [],
+    "audio_segmentation": ["data_collection"],
+    "acoustic_tokenization": ["audio_segmentation"],
+    "bpe_motif_discovery": ["acoustic_tokenization"],
+    "vocoder_training": ["acoustic_tokenization"],
     "conversational_tagging": ["bpe_motif_discovery"],
-    "generative_training":    ["conversational_tagging"],
+    "generative_training": ["conversational_tagging"],
 }
 
 
@@ -173,21 +176,42 @@ def dry_run():
         print()
 
     print("=== Dependency Graph (text) ===\n")
-    print("  Data Collection → Audio Segmentation → Acoustic Tokenization ─┬→ BPE Motif Discovery → Conversational Tagging (AViTA) → Generative Model Training")
+    print(
+        "  Data Collection → Audio Segmentation → Acoustic Tokenization"
+        " ─┬→ BPE Motif Discovery → Conversational Tagging (AViTA)"
+        " → Generative Model Training"
+    )
     print("                                                                 └→ Vocoder Training")
     print()
-    print(f"Total: {len(PHASES)} phases, {sum(len(v) for v in DEPENDENCIES.values())} dependency edges")
+    total_edges = sum(len(v) for v in DEPENDENCIES.values())
+    print(f"Total: {len(PHASES)} phases, {total_edges} dependency edges")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Seed training pipeline phases into Tripod Console")
-    parser.add_argument("--base-url", default="http://localhost:8000", help="Backend API base URL")
+    parser = argparse.ArgumentParser(
+        description="Seed training pipeline phases into Tripod Console",
+    )
+    parser.add_argument(
+        "--base-url",
+        default="http://localhost:8000",
+        help="Backend API base URL",
+    )
     parser.add_argument("--email", help="Admin email (prompted if not provided)")
     parser.add_argument("--password", help="Admin password (prompted if not provided)")
-    parser.add_argument("--clean", action="store_true", help="Delete ALL existing phases before seeding")
-    parser.add_argument("--dry-run", action="store_true", help="Print phases and exit (no API calls)")
     parser.add_argument(
-        "--skip-existing", action="store_true", default=True,
+        "--clean",
+        action="store_true",
+        help="Delete ALL existing phases before seeding",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print phases and exit (no API calls)",
+    )
+    parser.add_argument(
+        "--skip-existing",
+        action="store_true",
+        default=True,
         help="Skip phases that already exist by name (default: true)",
     )
     args = parser.parse_args()
@@ -229,7 +253,7 @@ def main():
                 key_to_id[key] = phase_id
 
     # Create dependencies
-    print(f"\n--- Setting dependencies ---")
+    print("\n--- Setting dependencies ---")
     dep_count = 0
     for key, dep_keys in DEPENDENCIES.items():
         if key not in key_to_id:
