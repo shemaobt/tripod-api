@@ -17,11 +17,6 @@ from tests.baker import (
     make_user,
 )
 
-# ---------------------------------------------------------------------------
-# Delete: delete_meaning_map
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.asyncio
 async def test_delete_meaning_map_success(db_session) -> None:
     user = await make_user(db_session, email="analyst13@test.com")
@@ -32,7 +27,6 @@ async def test_delete_meaning_map_success(db_session) -> None:
     with pytest.raises(NotFoundError):
         await get_meaning_map_or_404(db_session, mm.id)
 
-
 @pytest.mark.asyncio
 async def test_delete_meaning_map_raises_if_not_draft(db_session) -> None:
     user = await make_user(db_session, email="analyst14@test.com")
@@ -41,7 +35,6 @@ async def test_delete_meaning_map_raises_if_not_draft(db_session) -> None:
     mm = await make_meaning_map(db_session, pericope.id, user.id, status="cross_check")
     with pytest.raises(AuthorizationError, match="Only draft meaning maps can be deleted"):
         await delete_meaning_map(db_session, mm, user.id)
-
 
 @pytest.mark.asyncio
 async def test_delete_meaning_map_raises_if_not_analyst(db_session) -> None:
@@ -55,12 +48,6 @@ async def test_delete_meaning_map_raises_if_not_analyst(db_session) -> None:
     ):
         await delete_meaning_map(db_session, mm, other.id)
 
-
-# ---------------------------------------------------------------------------
-# Update: update_meaning_map_data
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.asyncio
 async def test_update_meaning_map_data_success(db_session) -> None:
     user = await make_user(db_session, email="analyst16@test.com")
@@ -69,7 +56,6 @@ async def test_update_meaning_map_data_success(db_session) -> None:
     mm = await make_meaning_map(db_session, pericope.id, user.id)
     updated = await update_meaning_map_data(db_session, mm, SAMPLE_MM_DATA, user.id)
     assert updated.data == SAMPLE_MM_DATA
-
 
 @pytest.mark.asyncio
 async def test_update_meaning_map_data_by_lock_holder(db_session) -> None:
@@ -81,7 +67,6 @@ async def test_update_meaning_map_data_by_lock_holder(db_session) -> None:
     )
     updated = await update_meaning_map_data(db_session, mm, {"new": "data"}, user.id)
     assert updated.data == {"new": "data"}
-
 
 @pytest.mark.asyncio
 async def test_update_meaning_map_data_raises_if_locked_by_other(db_session) -> None:
@@ -95,7 +80,6 @@ async def test_update_meaning_map_data_raises_if_locked_by_other(db_session) -> 
     with pytest.raises(AuthorizationError, match="locked by another user"):
         await update_meaning_map_data(db_session, mm, {"x": 1}, analyst.id)
 
-
 @pytest.mark.asyncio
 async def test_update_meaning_map_data_raises_if_approved(db_session) -> None:
     user = await make_user(db_session, email="analyst19@test.com")
@@ -105,7 +89,6 @@ async def test_update_meaning_map_data_raises_if_approved(db_session) -> None:
     with pytest.raises(AuthorizationError, match="Cannot edit an approved meaning map"):
         await update_meaning_map_data(db_session, mm, {"x": 1}, user.id)
 
-
 @pytest.mark.asyncio
 async def test_update_meaning_map_data_unlocked_map(db_session) -> None:
     user = await make_user(db_session, email="analyst20@test.com")
@@ -114,12 +97,6 @@ async def test_update_meaning_map_data_unlocked_map(db_session) -> None:
     mm = await make_meaning_map(db_session, pericope.id, user.id, data={"old": "data"})
     updated = await update_meaning_map_data(db_session, mm, {"replaced": True}, user.id)
     assert updated.data == {"replaced": True}
-
-
-# ---------------------------------------------------------------------------
-# Status transitions: transition_status
-# ---------------------------------------------------------------------------
-
 
 @pytest.mark.asyncio
 async def test_transition_draft_to_cross_check(db_session) -> None:
@@ -133,7 +110,6 @@ async def test_transition_draft_to_cross_check(db_session) -> None:
     assert result.status == "cross_check"
     assert result.locked_by is None
     assert result.locked_at is None
-
 
 @pytest.mark.asyncio
 async def test_transition_cross_check_to_approved(db_session) -> None:
@@ -149,7 +125,6 @@ async def test_transition_cross_check_to_approved(db_session) -> None:
     assert result.cross_checker_id == reviewer.id
     assert result.locked_by is None
 
-
 @pytest.mark.asyncio
 async def test_transition_cross_check_to_draft(db_session) -> None:
     analyst = await make_user(db_session, email="analyst23@test.com")
@@ -161,7 +136,6 @@ async def test_transition_cross_check_to_draft(db_session) -> None:
     assert result.status == "draft"
     assert result.locked_by is None
 
-
 @pytest.mark.asyncio
 async def test_transition_invalid_draft_to_approved(db_session) -> None:
     user = await make_user(db_session, email="analyst24@test.com")
@@ -170,7 +144,6 @@ async def test_transition_invalid_draft_to_approved(db_session) -> None:
     mm = await make_meaning_map(db_session, pericope.id, user.id)
     with pytest.raises(ConflictError, match="Invalid status transition: draft -> approved"):
         await transition_status(db_session, mm, "approved", user.id)
-
 
 @pytest.mark.asyncio
 async def test_transition_approved_to_draft_invalid(db_session) -> None:
@@ -181,7 +154,6 @@ async def test_transition_approved_to_draft_invalid(db_session) -> None:
     with pytest.raises(ConflictError, match="Invalid status transition: approved -> draft"):
         await transition_status(db_session, mm, "draft", user.id)
 
-
 @pytest.mark.asyncio
 async def test_transition_approved_to_cross_check_invalid(db_session) -> None:
     user = await make_user(db_session, email="analyst26@test.com")
@@ -190,7 +162,6 @@ async def test_transition_approved_to_cross_check_invalid(db_session) -> None:
     mm = await make_meaning_map(db_session, pericope.id, user.id, status="approved")
     with pytest.raises(ConflictError, match="Invalid status transition: approved -> cross_check"):
         await transition_status(db_session, mm, "cross_check", user.id)
-
 
 @pytest.mark.asyncio
 async def test_transition_raises_if_locked_by_other(db_session) -> None:
@@ -208,7 +179,6 @@ async def test_transition_raises_if_locked_by_other(db_session) -> None:
     with pytest.raises(AuthorizationError, match="locked by another user"):
         await transition_status(db_session, mm, "cross_check", analyst.id)
 
-
 @pytest.mark.asyncio
 async def test_transition_same_status_invalid(db_session) -> None:
     user = await make_user(db_session, email="analyst28@test.com")
@@ -217,7 +187,6 @@ async def test_transition_same_status_invalid(db_session) -> None:
     mm = await make_meaning_map(db_session, pericope.id, user.id)
     with pytest.raises(ConflictError, match="Invalid status transition: draft -> draft"):
         await transition_status(db_session, mm, "draft", user.id)
-
 
 @pytest.mark.asyncio
 async def test_transition_lock_holder_can_transition(db_session) -> None:
@@ -229,7 +198,6 @@ async def test_transition_lock_holder_can_transition(db_session) -> None:
     )
     result = await transition_status(db_session, mm, "cross_check", user.id)
     assert result.status == "cross_check"
-
 
 @pytest.mark.asyncio
 async def test_transition_cross_check_to_approved_clears_lock(db_session) -> None:
@@ -249,12 +217,6 @@ async def test_transition_cross_check_to_approved_clears_lock(db_session) -> Non
     assert result.locked_by is None
     assert result.locked_at is None
 
-
-# ---------------------------------------------------------------------------
-# Locking: lock_map, unlock_map
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.asyncio
 async def test_lock_map_success(db_session) -> None:
     user = await make_user(db_session, email="analyst31@test.com")
@@ -264,7 +226,6 @@ async def test_lock_map_success(db_session) -> None:
     result = await lock_map(db_session, mm, user.id)
     assert result.locked_by == user.id
     assert result.locked_at is not None
-
 
 @pytest.mark.asyncio
 async def test_lock_map_already_locked_by_self(db_session) -> None:
@@ -276,7 +237,6 @@ async def test_lock_map_already_locked_by_self(db_session) -> None:
     )
     result = await lock_map(db_session, mm, user.id)
     assert result.locked_by == user.id
-
 
 @pytest.mark.asyncio
 async def test_lock_map_raises_if_locked_by_other(db_session) -> None:
@@ -290,7 +250,6 @@ async def test_lock_map_raises_if_locked_by_other(db_session) -> None:
     with pytest.raises(ConflictError, match="already locked by another user"):
         await lock_map(db_session, mm, user2.id)
 
-
 @pytest.mark.asyncio
 async def test_lock_map_raises_if_approved(db_session) -> None:
     user = await make_user(db_session, email="analyst34@test.com")
@@ -299,7 +258,6 @@ async def test_lock_map_raises_if_approved(db_session) -> None:
     mm = await make_meaning_map(db_session, pericope.id, user.id, status="approved")
     with pytest.raises(ConflictError, match="Cannot lock an approved meaning map"):
         await lock_map(db_session, mm, user.id)
-
 
 @pytest.mark.asyncio
 async def test_unlock_map_success(db_session) -> None:
@@ -313,7 +271,6 @@ async def test_unlock_map_success(db_session) -> None:
     assert result.locked_by is None
     assert result.locked_at is None
 
-
 @pytest.mark.asyncio
 async def test_unlock_map_not_locked_returns_unchanged(db_session) -> None:
     user = await make_user(db_session, email="analyst36@test.com")
@@ -322,7 +279,6 @@ async def test_unlock_map_not_locked_returns_unchanged(db_session) -> None:
     mm = await make_meaning_map(db_session, pericope.id, user.id)
     result = await unlock_map(db_session, mm, user.id)
     assert result.locked_by is None
-
 
 @pytest.mark.asyncio
 async def test_unlock_map_raises_if_locked_by_other_non_admin(db_session) -> None:
@@ -336,7 +292,6 @@ async def test_unlock_map_raises_if_locked_by_other_non_admin(db_session) -> Non
     with pytest.raises(AuthorizationError, match="Only the lock holder or an admin can unlock"):
         await unlock_map(db_session, mm, user2.id)
 
-
 @pytest.mark.asyncio
 async def test_unlock_map_admin_can_unlock_others(db_session) -> None:
     user1 = await make_user(db_session, email="analyst38@test.com")
@@ -348,7 +303,6 @@ async def test_unlock_map_admin_can_unlock_others(db_session) -> None:
     )
     result = await unlock_map(db_session, mm, admin.id, is_admin=True)
     assert result.locked_by is None
-
 
 @pytest.mark.asyncio
 async def test_lock_map_cross_check_status(db_session) -> None:

@@ -6,12 +6,10 @@ from app.db.models.meaning_map import Pericope
 from app.models.book_context import EstablishedItem, PassageEntryBriefResponse
 from app.services.book_context.get_latest_approved import get_latest_approved
 
-
 def _is_before(ref: dict, target_chapter: int, target_verse: int) -> bool:
     ch = ref.get("chapter", 0)
     v = ref.get("verse", 0)
     return ch < target_chapter or (ch == target_chapter and v < target_verse)
-
 
 def _slice_participants(register: list, target_chapter: int, target_verse: int) -> list:
     result = []
@@ -24,7 +22,6 @@ def _slice_participants(register: list, target_chapter: int, target_verse: int) 
         ]
         result.append({**p, "arc": sliced_arc})
     return result
-
 
 def _slice_threads(threads: list, target_chapter: int, target_verse: int) -> list:
     result = []
@@ -50,7 +47,6 @@ def _slice_threads(threads: list, target_chapter: int, target_verse: int) -> lis
         )
     return result
 
-
 def _filter_by_first_appears(items: list, key: str, target_chapter: int, target_verse: int) -> list:
     return [
         item
@@ -58,9 +54,8 @@ def _filter_by_first_appears(items: list, key: str, target_chapter: int, target_
         if _is_before(item.get(key, {}), target_chapter, target_verse)
     ]
 
-
 def _build_gloss_lookup(bcd) -> dict[str, str]:
-    """Build a name → english_gloss mapping from all BCD sections."""
+
     glosses: dict[str, str] = {}
     for section in [bcd.participant_register, bcd.places, bcd.objects, bcd.institutions]:
         for item in section or []:
@@ -70,9 +65,8 @@ def _build_gloss_lookup(bcd) -> dict[str, str]:
                 glosses[name] = gloss
     return glosses
 
-
 def _enrich_glosses(items: list, glosses: dict[str, str]) -> list:
-    """Add english_gloss from lookup if missing on an item."""
+
     result = []
     for item in items:
         name = item.get("name", "")
@@ -80,7 +74,6 @@ def _enrich_glosses(items: list, glosses: dict[str, str]) -> list:
             item = {**item, "english_gloss": glosses[name]}
         result.append(item)
     return result
-
 
 def _build_established_items(
     participants: list,
@@ -163,7 +156,6 @@ def _build_established_items(
 
     return items
 
-
 async def _is_first_pericope(
     db: AsyncSession,
     book_id: str,
@@ -185,7 +177,6 @@ async def _is_first_pericope(
         .limit(1)
     )
     return result.scalar_one_or_none() is None
-
 
 async def compute_entry_brief(
     db: AsyncSession,

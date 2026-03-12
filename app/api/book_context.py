@@ -46,9 +46,8 @@ _mm_access = require_app_access("meaning-map-generator")
 
 MM_APP_KEY = "meaning-map-generator"
 
-
 async def _resolve_user_role(db: AsyncSession, user: User) -> str:
-    """Return the highest-priority single role for permission checks."""
+
     if user.is_platform_admin:
         return "admin"
     roles = await authorization_service.list_roles(db, user.id, MM_APP_KEY)
@@ -59,14 +58,12 @@ async def _resolve_user_role(db: AsyncSession, user: User) -> str:
         return "analyst"
     return "viewer"
 
-
 async def _resolve_user_roles(db: AsyncSession, user: User) -> list[str]:
-    """Return all role keys the user holds for the MM app."""
+
     if user.is_platform_admin:
         return ["admin"]
     roles = await authorization_service.list_roles(db, user.id, MM_APP_KEY)
     return [r[1] for r in roles] or ["viewer"]
-
 
 @router.get("", response_model=list[BCDListResponse], dependencies=[_mm_access])
 async def list_book_context_documents(
@@ -75,7 +72,6 @@ async def list_book_context_documents(
 ) -> list[BCDListResponse]:
     items = await list_bcds(db, book_id=book_id)
     return [BCDListResponse.model_validate(bcd) for bcd in items]
-
 
 @router.post(
     "/{book_id}",
@@ -100,7 +96,6 @@ async def create_book_context_document(
     )
     return BCDResponse.model_validate(bcd)
 
-
 @router.get(
     "/entry-brief/{pericope_id}",
     response_model=PassageEntryBriefResponse,
@@ -111,7 +106,6 @@ async def get_entry_brief(
     db: AsyncSession = Depends(get_db),
 ) -> PassageEntryBriefResponse:
     return await compute_entry_brief(db, pericope_id)
-
 
 @router.get(
     "/staleness-check/{meaning_map_id}",
@@ -126,7 +120,6 @@ async def check_staleness(
     mm = await get_meaning_map_or_404(db, meaning_map_id)
     return await check_bcd_staleness(db, mm)
 
-
 @router.get(
     "/validate/{meaning_map_id}",
     dependencies=[_mm_access],
@@ -140,7 +133,6 @@ async def validate_meaning_map(
     mm = await get_meaning_map_or_404(db, meaning_map_id)
     return await validate_map_against_brief(db, mm)
 
-
 @router.get("/{bcd_id}", response_model=BCDResponse, dependencies=[_mm_access])
 async def get_book_context_document(
     bcd_id: str,
@@ -148,7 +140,6 @@ async def get_book_context_document(
 ) -> BCDResponse:
     bcd = await get_bcd_or_404(db, bcd_id)
     return BCDResponse.model_validate(bcd)
-
 
 @router.get(
     "/{bcd_id}/approval-status",
@@ -161,7 +152,6 @@ async def get_bcd_approval_status(
 ) -> BCDApprovalStatusResponse:
     status = await get_approval_status(db, bcd_id)
     return BCDApprovalStatusResponse(**status)
-
 
 @router.patch(
     "/{bcd_id}/sections/{section_key}",
@@ -178,7 +168,6 @@ async def update_bcd_section(
     bcd = await update_section(db, bcd_id, section_key, payload.data)
     return BCDResponse.model_validate(bcd)
 
-
 @router.post("/{bcd_id}/approve", response_model=BCDResponse, dependencies=[_mm_access])
 async def approve_book_context_document(
     bcd_id: str,
@@ -188,7 +177,6 @@ async def approve_book_context_document(
     user_roles = await _resolve_user_roles(db, user)
     bcd = await approve_bcd(db, bcd_id, user.id, user_roles)
     return BCDResponse.model_validate(bcd)
-
 
 @router.post("/{bcd_id}/set-active", response_model=BCDResponse, dependencies=[_mm_access])
 async def set_active_version(
@@ -205,7 +193,6 @@ async def set_active_version(
     bcd = await set_active_bcd(db, bcd_id)
     return BCDResponse.model_validate(bcd)
 
-
 @router.post("/{bcd_id}/cancel-generation", dependencies=[_mm_access])
 async def cancel_bcd_generation(
     bcd_id: str,
@@ -221,7 +208,6 @@ async def cancel_bcd_generation(
     book_id = await cancel_generation(db, bcd_id)
     return {"deleted": True, "book_id": book_id}
 
-
 @router.post("/{bcd_id}/request-revision", response_model=BCDResponse, dependencies=[_mm_access])
 async def request_bcd_revision(
     bcd_id: str,
@@ -231,7 +217,6 @@ async def request_bcd_revision(
     role = await _resolve_user_role(db, user)
     bcd = await request_revision(db, bcd_id, user.id, role)
     return BCDResponse.model_validate(bcd)
-
 
 @router.post(
     "/{bcd_id}/new-version",
@@ -247,7 +232,6 @@ async def create_new_bcd_version(
     bcd = await create_new_version(db, bcd_id, user.id)
     return BCDResponse.model_validate(bcd)
 
-
 @router.get(
     "/{bcd_id}/logs",
     response_model=list[BCDGenerationLogResponse],
@@ -259,7 +243,6 @@ async def get_generation_logs(
 ) -> list[BCDGenerationLogResponse]:
     logs = await list_generation_logs(db, bcd_id)
     return [BCDGenerationLogResponse.model_validate(log) for log in logs]
-
 
 @router.post(
     "/{bcd_id}/feedback",
@@ -276,7 +259,6 @@ async def add_bcd_feedback(
     fb = await add_feedback(db, bcd_id, payload.section_key, user.id, payload.content)
     return BCDFeedbackResponse.model_validate(fb)
 
-
 @router.get(
     "/{bcd_id}/feedback",
     response_model=list[BCDFeedbackResponse],
@@ -288,7 +270,6 @@ async def list_bcd_feedback(
 ) -> list[BCDFeedbackResponse]:
     items = await list_feedback(db, bcd_id)
     return [BCDFeedbackResponse.model_validate(fb) for fb in items]
-
 
 @router.patch(
     "/{bcd_id}/feedback/{feedback_id}",
@@ -303,7 +284,6 @@ async def resolve_bcd_feedback(
 ) -> BCDFeedbackResponse:
     fb = await resolve_feedback(db, bcd_id, feedback_id)
     return BCDFeedbackResponse.model_validate(fb)
-
 
 @router.post(
     "/{bcd_id}/generate",

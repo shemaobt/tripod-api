@@ -3,9 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.phase import Phase, PhaseDependency
 
-
 async def list_all_phases_with_deps(db: AsyncSession) -> dict:
-    """Return all phases with all dependencies in a single response."""
+
     phases_result = await db.execute(select(Phase).order_by(Phase.name))
     phases = list(phases_result.scalars().all())
 

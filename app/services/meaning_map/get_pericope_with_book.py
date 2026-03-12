@@ -4,9 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import NotFoundError
 from app.db.models.meaning_map import BibleBook, Pericope
 
-
 async def get_pericope_with_book(db: AsyncSession, pericope_id: str) -> tuple[Pericope, BibleBook]:
-    """Fetch a pericope and its associated book in a single JOIN query."""
+
     stmt = (
         select(Pericope, BibleBook)
         .join(BibleBook, Pericope.book_id == BibleBook.id)

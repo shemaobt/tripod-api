@@ -3,7 +3,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.meaning_map import MeaningMap, Pericope
 
-
 async def list_meaning_maps(
     db: AsyncSession,
     *,
@@ -11,7 +10,7 @@ async def list_meaning_maps(
     chapter: int | None = None,
     status: str | None = None,
 ) -> list:
-    """List meaning maps excluding the heavy `data` JSON column."""
+
     cols = [c for c in MeaningMap.__table__.columns if c.key != "data"]
     stmt = select(*cols).join(Pericope, MeaningMap.pericope_id == Pericope.id)
     if book_id:

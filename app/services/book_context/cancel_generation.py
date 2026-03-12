@@ -7,9 +7,8 @@ from app.core.exceptions import ConflictError
 from app.db.models.book_context import BCDGenerationLog, BCDStatus
 from app.services.book_context.get_bcd import get_bcd_or_404
 
-
 async def cancel_generation(db: AsyncSession, bcd_id: str) -> str:
-    """Cancel an in-progress generation by deleting the BCD. Returns the book_id."""
+
     bcd = await get_bcd_or_404(db, bcd_id)
 
     if bcd.status != BCDStatus.GENERATING:

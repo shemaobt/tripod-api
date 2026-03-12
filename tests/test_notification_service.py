@@ -10,11 +10,6 @@ from app.services.notifications.mark_as_read import mark_as_read
 from app.services.notifications.unread_count import unread_count
 from tests.baker import make_app, make_user
 
-# ---------------------------------------------------------------------------
-# create_notification
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.asyncio
 async def test_create_notification_basic(db_session) -> None:
     user = await make_user(db_session, email="notif-user1@test.com")
@@ -36,7 +31,6 @@ async def test_create_notification_basic(db_session) -> None:
     assert notif.title == "Your map was approved"
     assert notif.is_read is False
 
-
 @pytest.mark.asyncio
 async def test_create_notification_with_actor(db_session) -> None:
     user = await make_user(db_session, email="notif-user2@test.com")
@@ -54,7 +48,6 @@ async def test_create_notification_with_actor(db_session) -> None:
     )
 
     assert notif.actor_id == actor.id
-
 
 @pytest.mark.asyncio
 async def test_create_notification_with_mm_detail(db_session) -> None:
@@ -81,7 +74,6 @@ async def test_create_notification_with_mm_detail(db_session) -> None:
     assert detail.related_map_id == "fake-map-id"
     assert detail.pericope_reference == "Ruth 1:1-5"
 
-
 @pytest.mark.asyncio
 async def test_create_notification_without_mm_detail_no_child_row(db_session) -> None:
     user = await make_user(db_session, email="notif-user4@test.com")
@@ -102,12 +94,6 @@ async def test_create_notification_without_mm_detail_no_child_row(db_session) ->
         )
     )
     assert result.scalar_one_or_none() is None
-
-
-# ---------------------------------------------------------------------------
-# list_notifications
-# ---------------------------------------------------------------------------
-
 
 @pytest.mark.asyncio
 async def test_list_notifications_returns_all(db_session) -> None:
@@ -136,7 +122,6 @@ async def test_list_notifications_returns_all(db_session) -> None:
     assert n1.id in result_ids
     assert n2.id in result_ids
 
-
 @pytest.mark.asyncio
 async def test_list_notifications_unread_only(db_session) -> None:
     user = await make_user(db_session, email="notif-user6@test.com")
@@ -164,7 +149,6 @@ async def test_list_notifications_unread_only(db_session) -> None:
     assert len(results) == 1
     assert results[0].title == "Unread"
 
-
 @pytest.mark.asyncio
 async def test_list_notifications_respects_limit(db_session) -> None:
     user = await make_user(db_session, email="notif-user7@test.com")
@@ -182,7 +166,6 @@ async def test_list_notifications_respects_limit(db_session) -> None:
 
     results = await list_notifications(db_session, user.id, app.id, limit=3)
     assert len(results) == 3
-
 
 @pytest.mark.asyncio
 async def test_list_notifications_filters_by_app(db_session) -> None:
@@ -210,12 +193,6 @@ async def test_list_notifications_filters_by_app(db_session) -> None:
     results = await list_notifications(db_session, user.id, app1.id)
     assert all(r.app_id == app1.id for r in results)
 
-
-# ---------------------------------------------------------------------------
-# unread_count
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.asyncio
 async def test_unread_count_zero_when_none(db_session) -> None:
     user = await make_user(db_session, email="notif-user9@test.com")
@@ -223,7 +200,6 @@ async def test_unread_count_zero_when_none(db_session) -> None:
 
     count = await unread_count(db_session, user.id, app.id)
     assert count == 0
-
 
 @pytest.mark.asyncio
 async def test_unread_count_increments(db_session) -> None:
@@ -250,7 +226,6 @@ async def test_unread_count_increments(db_session) -> None:
     count = await unread_count(db_session, user.id, app.id)
     assert count == 2
 
-
 @pytest.mark.asyncio
 async def test_unread_count_decrements_after_mark_read(db_session) -> None:
     user = await make_user(db_session, email="notif-user11@test.com")
@@ -268,12 +243,6 @@ async def test_unread_count_decrements_after_mark_read(db_session) -> None:
 
     count = await unread_count(db_session, user.id, app.id)
     assert count == 0
-
-
-# ---------------------------------------------------------------------------
-# mark_as_read
-# ---------------------------------------------------------------------------
-
 
 @pytest.mark.asyncio
 async def test_mark_as_read_success(db_session) -> None:
@@ -293,7 +262,6 @@ async def test_mark_as_read_success(db_session) -> None:
     updated = await mark_as_read(db_session, n.id, user.id)
     assert updated.is_read is True
 
-
 @pytest.mark.asyncio
 async def test_mark_as_read_wrong_user_raises(db_session) -> None:
     user = await make_user(db_session, email="notif-user13@test.com")
@@ -312,19 +280,12 @@ async def test_mark_as_read_wrong_user_raises(db_session) -> None:
     with pytest.raises(NotFoundError):
         await mark_as_read(db_session, n.id, other.id)
 
-
 @pytest.mark.asyncio
 async def test_mark_as_read_nonexistent_raises(db_session) -> None:
     user = await make_user(db_session, email="notif-user14@test.com")
 
     with pytest.raises(NotFoundError):
         await mark_as_read(db_session, "nonexistent-id", user.id)
-
-
-# ---------------------------------------------------------------------------
-# mark_all_as_read
-# ---------------------------------------------------------------------------
-
 
 @pytest.mark.asyncio
 async def test_mark_all_as_read_success(db_session) -> None:
@@ -353,7 +314,6 @@ async def test_mark_all_as_read_success(db_session) -> None:
 
     remaining = await unread_count(db_session, user.id, app.id)
     assert remaining == 0
-
 
 @pytest.mark.asyncio
 async def test_mark_all_as_read_idempotent(db_session) -> None:

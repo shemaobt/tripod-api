@@ -15,14 +15,12 @@ _is_loaded: bool = False
 _is_loading: bool = False
 _message: str = "Not loaded"
 
-
 def get_status() -> dict[str, Any]:
     return {
         "is_loaded": _is_loaded,
         "is_loading": _is_loading,
         "message": _message,
     }
-
 
 def load(*, settings: Settings | None = None, force: bool = False) -> None:
     from tf.app import use
@@ -62,12 +60,11 @@ def load(*, settings: Settings | None = None, force: bool = False) -> None:
     finally:
         _is_loading = False
 
-
 def _download_from_gcs(bucket_name: str) -> None:
     global _message
 
     try:
-        from google.cloud import storage  # type: ignore[import-untyped]
+        from google.cloud import storage
     except ImportError:
         logger.warning("google-cloud-storage not installed, skipping GCS")
         return
@@ -101,15 +98,13 @@ def _download_from_gcs(bucket_name: str) -> None:
     logger.info("Downloaded %d files from GCS", count)
     _message = "GCS download complete, initializing TF..."
 
-
 def fetch_passage(ref: str) -> dict[str, Any]:
     if not _is_loaded or _tf_api is None:
         raise RuntimeError("BHSA not loaded — call /api/bhsa/load first")
     return extract_passage(_tf_api, ref)
 
-
 def get_verse_counts(book: str) -> dict[int, int]:
-    """Return {chapter_number: verse_count} for every chapter of *book*."""
+
     if not _is_loaded or _tf_api is None:
         raise RuntimeError("BHSA not loaded — call /api/bhsa/load first")
 

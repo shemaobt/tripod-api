@@ -7,13 +7,11 @@ from app.services.meaning_map.add_feedback import add_feedback
 from app.services.meaning_map.transition_status import transition_status
 from tests.baker import make_bible_book, make_meaning_map, make_pericope, make_user
 
-
 @pytest.fixture
 async def mm_app(db_session):
-    """Fetch the pre-seeded meaning-map-generator app."""
+
     result = await db_session.execute(select(App).where(App.app_key == "meaning-map-generator"))
     return result.scalar_one()
-
 
 async def _get_notifications(db_session, user_id: str) -> list[Notification]:
     result = await db_session.execute(
@@ -22,12 +20,6 @@ async def _get_notifications(db_session, user_id: str) -> list[Notification]:
         .order_by(Notification.created_at.desc())
     )
     return list(result.scalars().all())
-
-
-# ---------------------------------------------------------------------------
-# transition_status hooks
-# ---------------------------------------------------------------------------
-
 
 @pytest.mark.asyncio
 async def test_approve_creates_notification_for_analyst(db_session, mm_app) -> None:
@@ -47,7 +39,6 @@ async def test_approve_creates_notification_for_analyst(db_session, mm_app) -> N
     assert notifs[0].actor_id == checker.id
     assert notifs[0].app_id == mm_app.id
 
-
 @pytest.mark.asyncio
 async def test_revisions_requested_creates_notification(db_session, mm_app) -> None:
     analyst = await make_user(db_session, email="hook-analyst2@test.com")
@@ -63,7 +54,6 @@ async def test_revisions_requested_creates_notification(db_session, mm_app) -> N
     assert notifs[0].event_type == "revisions_requested"
     assert "Gen 1:1-5" in notifs[0].body
 
-
 @pytest.mark.asyncio
 async def test_draft_to_crosscheck_creates_no_notification(db_session, mm_app) -> None:
     analyst = await make_user(db_session, email="hook-analyst3@test.com")
@@ -75,12 +65,6 @@ async def test_draft_to_crosscheck_creates_no_notification(db_session, mm_app) -
 
     notifs = await _get_notifications(db_session, analyst.id)
     assert len(notifs) == 0
-
-
-# ---------------------------------------------------------------------------
-# add_feedback hook
-# ---------------------------------------------------------------------------
-
 
 @pytest.mark.asyncio
 async def test_add_feedback_creates_notification_for_analyst(db_session, mm_app) -> None:
@@ -96,7 +80,6 @@ async def test_add_feedback_creates_notification_for_analyst(db_session, mm_app)
     assert len(notifs) == 1
     assert notifs[0].event_type == "feedback_added"
     assert "Exod 2:1-10" in notifs[0].body
-
 
 @pytest.mark.asyncio
 async def test_add_feedback_no_notification_when_self(db_session, mm_app) -> None:

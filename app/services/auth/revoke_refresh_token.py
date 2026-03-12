@@ -6,9 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models.auth import RefreshToken
 from app.services.auth.hash_refresh_token import hash_refresh_token
 
-
 async def revoke_refresh_token(db: AsyncSession, refresh_token: str) -> None:
-    """Revoke an existing refresh token."""
+
     token_hash = hash_refresh_token(refresh_token)
     stmt: Select[tuple[RefreshToken]] = select(RefreshToken).where(
         RefreshToken.token_hash == token_hash,

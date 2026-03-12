@@ -3,9 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.meaning_map import BibleBook, MeaningMap, MeaningMapStatus, Pericope
 
-
 async def list_books(db: AsyncSession) -> list[dict]:
-    """Return all books with pericope_count and approved_count."""
+
     j = outerjoin(Pericope, MeaningMap, Pericope.id == MeaningMap.pericope_id)
 
     counts_q = (

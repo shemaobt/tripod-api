@@ -7,7 +7,6 @@ from app.core.exceptions import NotFoundError, RoleError
 from app.db.models.auth import AccessRequest, App, User
 from app.services.authorization.assign_role import assign_role
 
-
 async def review_access_request(
     db: AsyncSession,
     actor: User,
@@ -15,7 +14,7 @@ async def review_access_request(
     status: str,
     reason: str | None = None,
 ) -> AccessRequest:
-    """Approve or reject an access request. On approval, auto-assigns analyst role."""
+
     if status not in ("approved", "rejected"):
         raise RoleError("Status must be 'approved' or 'rejected'")
 
@@ -34,7 +33,7 @@ async def review_access_request(
     request.review_reason = reason
 
     if status == "approved":
-        # Resolve app_key for assign_role
+
         app_stmt: Select[tuple[App]] = select(App).where(App.id == request.app_id)
         app_result = await db.execute(app_stmt)
         app = app_result.scalar_one()

@@ -14,13 +14,12 @@ from app.services.oral_collector import project_service
 
 projects_router = APIRouter()
 
-
 @projects_router.get("", response_model=list[OCProjectListResponse])
 async def list_projects(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[OCProjectListResponse]:
-    """List projects the current user has access to, with member counts."""
+
     projects = await project_service.list_user_projects(db, user.id)
     if not projects:
         return []
@@ -53,13 +52,12 @@ async def list_projects(
         for p in projects
     ]
 
-
 @projects_router.get("/{project_id}/stats", response_model=OCProjectStatsResponse)
 async def get_project_stats(
     project_id: str,
     _: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> OCProjectStatsResponse:
-    """Get recording stats for a project."""
+
     stats = await project_service.get_project_stats(db, project_id)
     return OCProjectStatsResponse(**stats)

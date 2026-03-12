@@ -11,7 +11,6 @@ from app.models.oc_recording import RecordingCreate, RecordingUpdate
 
 logger = logging.getLogger(__name__)
 
-# Format extension mapping for GCS paths
 FORMAT_EXTENSIONS: dict[str, str] = {
     "m4a": ".m4a",
     "aac": ".aac",
@@ -25,12 +24,6 @@ GCS_OC_BUCKET = "tripod-image-uploads"
 GCS_OC_PROJECT = "gen-lang-client-0886209230"
 SIGNED_URL_EXPIRY_MINUTES = 15
 
-
-# ---------------------------------------------------------------------------
-# Recording CRUD
-# ---------------------------------------------------------------------------
-
-
 async def list_recordings(
     db: AsyncSession,
     project_id: str,
@@ -43,7 +36,7 @@ async def list_recordings(
     offset: int = 0,
     limit: int = 50,
 ) -> list[OC_Recording]:
-    """Return recordings for a project, optionally filtered."""
+
     stmt = (
         select(OC_Recording)
         .where(OC_Recording.project_id == project_id)
@@ -56,7 +49,7 @@ async def list_recordings(
     if upload_status:
         stmt = stmt.where(OC_Recording.upload_status == upload_status)
     else:
-        # By default only return uploaded recordings (exclude orphaned "local" records)
+
         stmt = stmt.where(OC_Recording.upload_status == "uploaded")
     if cleaning_status:
         stmt = stmt.where(OC_Recording.cleaning_status == cleaning_status)
@@ -66,9 +59,8 @@ async def list_recordings(
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
-
 async def get_recording(db: AsyncSession, recording_id: str) -> OC_Recording:
-    """Return a single recording by ID or raise NotFoundError."""
+
     stmt = select(OC_Recording).where(OC_Recording.id == recording_id)
     result = await db.execute(stmt)
     recording = result.scalar_one_or_none()
@@ -76,9 +68,8 @@ async def get_recording(db: AsyncSession, recording_id: str) -> OC_Recording:
         raise NotFoundError("Recording not found")
     return recording
 
-
 async def check_recording_access(db: AsyncSession, recording: OC_Recording, user_id: str) -> None:
-    """Verify user is the recording owner or a project manager. Raises AuthorizationError."""
+
     if recording.user_id == user_id:
         return
     stmt = select(ProjectUserAccess).where(
@@ -92,9 +83,8 @@ async def check_recording_access(db: AsyncSession, recording: OC_Recording, user
             "Only the recording owner or a project manager can modify this recording"
         )
 
-
 async def create_recording(db: AsyncSession, data: RecordingCreate, user_id: str) -> OC_Recording:
-    """Create a new recording entry."""
+
     recording = OC_Recording(
         project_id=data.project_id,
         genre_id=data.genre_id,
@@ -111,11 +101,10 @@ async def create_recording(db: AsyncSession, data: RecordingCreate, user_id: str
     await db.refresh(recording)
     return recording
 
-
 async def update_recording(
     db: AsyncSession, recording_id: str, data: RecordingUpdate
 ) -> OC_Recording:
-    """Update an existing recording. Only provided fields are changed."""
+
     recording = await get_recording(db, recording_id)
     update_fields = data.model_dump(exclude_unset=True)
     for field, value in update_fields.items():
@@ -124,26 +113,18 @@ async def update_recording(
     await db.refresh(recording)
     return recording
 
-
 async def delete_recording(db: AsyncSession, recording_id: str) -> None:
-    """Delete a recording. Also removes file from GCS if uploaded."""
+
     recording = await get_recording(db, recording_id)
     if recording.upload_status == "uploaded" and recording.gcs_url:
         _delete_gcs_blob(recording.gcs_url)
     await db.delete(recording)
     await db.commit()
 
-
-# ---------------------------------------------------------------------------
-# GCS Signed URL Upload
-# ---------------------------------------------------------------------------
-
-
 def _gcs_blob_path(project_id: str, genre_id: str, recording_id: str, fmt: str) -> str:
-    """Build the GCS object path for a recording."""
+
     ext = FORMAT_EXTENSIONS.get(fmt.lower(), f".{fmt.lower()}")
     return f"oral-collector/{project_id}/{genre_id}/{recording_id}{ext}"
-
 
 async def generate_upload_url(
     db: AsyncSession,
@@ -151,11 +132,8 @@ async def generate_upload_url(
     fmt: str,
     user_id: str,
 ) -> dict:
-    """Generate a signed GCS upload URL for a recording.
 
-    Returns dict with upload_url, server_id, recording_id, and expires_at.
-    """
-    from google.cloud import storage  # type: ignore[import-untyped]
+    from google.cloud import storage
 
     recording = await get_recording(db, recording_id)
     await check_recording_access(db, recording, user_id)
@@ -183,9 +161,8 @@ async def generate_upload_url(
         "expires_at": expires_at,
     }
 
-
 async def confirm_upload(db: AsyncSession, recording_id: str) -> OC_Recording:
-    """Mark a recording as uploaded and set its GCS URL."""
+
     recording = await get_recording(db, recording_id)
 
     blob_path = _gcs_blob_path(
@@ -203,16 +180,10 @@ async def confirm_upload(db: AsyncSession, recording_id: str) -> OC_Recording:
     await db.refresh(recording)
     return recording
 
-
-# ---------------------------------------------------------------------------
-# GCS Helpers
-# ---------------------------------------------------------------------------
-
-
 def _delete_gcs_blob(gcs_url: str) -> None:
-    """Best-effort delete of a GCS object by its public URL."""
+
     try:
-        from google.cloud import storage  # type: ignore[import-untyped]
+        from google.cloud import storage
 
         prefix = f"https://storage.googleapis.com/{GCS_OC_BUCKET}/"
         if not gcs_url.startswith(prefix):

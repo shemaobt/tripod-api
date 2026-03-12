@@ -9,9 +9,8 @@ from app.utils.jwt import create_token
 
 settings = get_settings()
 
-
 async def issue_tokens(db: AsyncSession, user: User) -> tuple[str, str]:
-    """Issue access and refresh token pair and persist refresh token hash."""
+
     access_token = create_token(user.id, "access", settings.access_token_expire_minutes)
     refresh_token = create_token(user.id, "refresh", settings.refresh_token_expire_minutes)
 

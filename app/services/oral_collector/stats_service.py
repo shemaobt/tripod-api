@@ -5,11 +5,8 @@ from app.db.models.oc_genre import OC_Genre, OC_Subcategory
 from app.db.models.oc_recording import OC_Recording
 from app.db.models.project import Project, ProjectUserAccess
 
-
 async def get_genre_stats(db: AsyncSession, project_id: str) -> dict:
-    """Return recording count and duration per genre and subcategory for a project."""
 
-    # Genre-level aggregation
     genre_stmt = (
         select(
             OC_Recording.genre_id,
@@ -34,7 +31,6 @@ async def get_genre_stats(db: AsyncSession, project_id: str) -> dict:
         for row in genre_result.all()
     ]
 
-    # Subcategory-level aggregation
     sub_stmt = (
         select(
             OC_Recording.subcategory_id,
@@ -71,16 +67,12 @@ async def get_genre_stats(db: AsyncSession, project_id: str) -> dict:
         "subcategories": subcategories,
     }
 
-
 async def get_admin_stats(db: AsyncSession) -> dict:
-    """Return system-wide totals: project count, language count, total hours, active users."""
 
-    # Count projects that have OC recordings
     project_count_stmt = select(func.count(func.distinct(OC_Recording.project_id)))
     project_result = await db.execute(project_count_stmt)
     total_projects = project_result.scalar_one()
 
-    # Count distinct languages across projects with members
     language_count_stmt = (
         select(func.count(func.distinct(Project.language_id)))
         .select_from(Project)
@@ -89,13 +81,11 @@ async def get_admin_stats(db: AsyncSession) -> dict:
     language_result = await db.execute(language_count_stmt)
     total_languages = language_result.scalar_one()
 
-    # Total hours of recordings
     hours_stmt = select(func.coalesce(func.sum(OC_Recording.duration_seconds), 0.0))
     hours_result = await db.execute(hours_stmt)
     total_seconds = float(hours_result.scalar_one())
     total_hours = total_seconds / 3600.0
 
-    # Active users (distinct users who are project members)
     users_stmt = select(func.count(func.distinct(ProjectUserAccess.user_id)))
     users_result = await db.execute(users_stmt)
     active_users = users_result.scalar_one()

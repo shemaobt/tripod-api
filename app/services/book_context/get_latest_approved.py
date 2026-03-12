@@ -3,13 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.book_context import BCDStatus, BookContextDocument
 
-
 async def get_latest_approved(db: AsyncSession, book_id: str) -> BookContextDocument | None:
-    """Return the latest approved BCD for a book.
 
-    Prefers explicitly active, falls back to latest approved.
-    """
-    # First: check for an explicitly active + approved BCD
     result = await db.execute(
         select(BookContextDocument)
         .where(
@@ -23,7 +18,6 @@ async def get_latest_approved(db: AsyncSession, book_id: str) -> BookContextDocu
     if active:
         return active
 
-    # Fallback: latest approved version
     result = await db.execute(
         select(BookContextDocument)
         .where(

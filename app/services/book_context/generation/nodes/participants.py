@@ -52,11 +52,9 @@ and appearance_count MUST be copied exactly — these are static fields.
 what_audience_knows_at_entry, arc, and status_at_end.
 """
 
-
 async def generate_participants(state: BCDGenerationState) -> dict:
     bhsa_entities = state.get("bhsa_entities", [])
 
-    # Pre-filter to person entities only (+ ambiguous defaults to person)
     person_entities = [e for e in bhsa_entities if e.get("entity_type") in ("person", "ambiguous")]
 
     prompt = PARTICIPANT_PROMPT.format(

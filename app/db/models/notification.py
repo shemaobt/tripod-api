@@ -7,9 +7,7 @@ from sqlalchemy.sql import func
 
 from app.core.database import Base
 
-
 class Notification(Base):
-    """App-agnostic notification record."""
 
     __tablename__ = "notifications"
     __table_args__ = (
@@ -34,9 +32,7 @@ class Notification(Base):
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-
 class NotificationMeaningMapDetail(Base):
-    """Meaning-map-specific detail for a notification (child table)."""
 
     __tablename__ = "notification_meaning_map_details"
 

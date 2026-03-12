@@ -4,9 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models.auth import User
 from app.db.models.meaning_map import BibleBook, MeaningMap, Pericope
 
-
 async def get_dashboard_summary(db: AsyncSession) -> dict:
-    """Return dashboard stats in a single query: status counts + per-analyst breakdown."""
+
     analyst = User.__table__.alias("analyst")
 
     stmt = (
@@ -32,7 +31,6 @@ async def get_dashboard_summary(db: AsyncSession) -> dict:
     result = await db.execute(stmt)
     row = result.one()
 
-    # Per-analyst breakdown
     analyst_stmt = (
         select(
             analyst.c.display_name.label("name"),

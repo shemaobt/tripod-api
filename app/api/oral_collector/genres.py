@@ -17,21 +17,14 @@ from app.services.oral_collector import genre_service
 genres_router = APIRouter()
 subcategories_router = APIRouter()
 
-
-# ---------------------------------------------------------------------------
-# Genre endpoints  (prefix: /api/oc/genres)
-# ---------------------------------------------------------------------------
-
-
 @genres_router.get("", response_model=list[GenreResponse])
 async def list_genres(
     _: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[GenreResponse]:
-    """List all active genres with their subcategories."""
+
     genres = await genre_service.list_genres(db)
     return [GenreResponse.model_validate(g) for g in genres]
-
 
 @genres_router.post(
     "",
@@ -43,10 +36,9 @@ async def create_genre(
     _: User = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> GenreResponse:
-    """Create a new genre (admin only)."""
+
     genre = await genre_service.create_genre(db, payload)
     return GenreResponse.model_validate(genre)
-
 
 @genres_router.patch("/{genre_id}", response_model=GenreResponse)
 async def update_genre(
@@ -55,10 +47,9 @@ async def update_genre(
     _: User = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> GenreResponse:
-    """Update a genre (admin only)."""
+
     genre = await genre_service.update_genre(db, genre_id, payload)
     return GenreResponse.model_validate(genre)
-
 
 @genres_router.delete("/{genre_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_genre(
@@ -66,14 +57,8 @@ async def delete_genre(
     _: User = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> None:
-    """Soft-delete a genre (admin only)."""
+
     await genre_service.delete_genre(db, genre_id)
-
-
-# ---------------------------------------------------------------------------
-# Subcategory endpoints
-# ---------------------------------------------------------------------------
-
 
 @genres_router.post(
     "/{genre_id}/subcategories",
@@ -86,13 +71,9 @@ async def create_subcategory(
     _: User = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> SubcategoryResponse:
-    """Create a subcategory under a genre (admin only)."""
+
     subcategory = await genre_service.create_subcategory(db, genre_id, payload)
     return SubcategoryResponse.model_validate(subcategory)
-
-
-# Subcategory update/delete at /api/oc/subcategories/{id}
-
 
 @subcategories_router.patch("/{subcategory_id}", response_model=SubcategoryResponse)
 async def update_subcategory(
@@ -101,10 +82,9 @@ async def update_subcategory(
     _: User = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> SubcategoryResponse:
-    """Update a subcategory (admin only)."""
+
     subcategory = await genre_service.update_subcategory(db, subcategory_id, payload)
     return SubcategoryResponse.model_validate(subcategory)
-
 
 @subcategories_router.delete("/{subcategory_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_subcategory(
@@ -112,5 +92,5 @@ async def delete_subcategory(
     _: User = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> None:
-    """Soft-delete a subcategory (admin only)."""
+
     await genre_service.delete_subcategory(db, subcategory_id)

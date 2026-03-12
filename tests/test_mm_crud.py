@@ -15,11 +15,6 @@ from tests.baker import (
     make_user,
 )
 
-# ---------------------------------------------------------------------------
-# CRUD: create_pericope, create_meaning_map, add_feedback
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.asyncio
 async def test_create_pericope_success(db_session) -> None:
     book = await make_bible_book(db_session)
@@ -28,7 +23,6 @@ async def test_create_pericope_success(db_session) -> None:
     assert pericope.book_id == book.id
     assert pericope.reference == "Gen 1:1-5"
     assert pericope.title == "Creation"
-
 
 @pytest.mark.asyncio
 async def test_create_meaning_map_success(db_session) -> None:
@@ -42,7 +36,6 @@ async def test_create_meaning_map_success(db_session) -> None:
     assert mm.status == "draft"
     assert mm.data == SAMPLE_MM_DATA
 
-
 @pytest.mark.asyncio
 async def test_create_meaning_map_custom_status(db_session) -> None:
     user = await make_user(db_session, email="analyst2@test.com")
@@ -50,7 +43,6 @@ async def test_create_meaning_map_custom_status(db_session) -> None:
     pericope = await make_pericope(db_session, book.id)
     mm = await create_meaning_map(db_session, pericope.id, user.id, {}, status="cross_check")
     assert mm.status == "cross_check"
-
 
 @pytest.mark.asyncio
 async def test_add_feedback_success(db_session) -> None:
@@ -67,18 +59,11 @@ async def test_add_feedback_success(db_session) -> None:
     assert fb.content == "Needs work"
     assert fb.resolved is False
 
-
 @pytest.mark.asyncio
 async def test_create_pericope_without_title(db_session) -> None:
     book = await make_bible_book(db_session)
     pericope = await create_pericope(db_session, book.id, 2, 1, 2, 10, "Gen 2:1-10")
     assert pericope.title is None
-
-
-# ---------------------------------------------------------------------------
-# Get-or-404: get_book_or_404, get_pericope_or_404, get_meaning_map_or_404
-# ---------------------------------------------------------------------------
-
 
 @pytest.mark.asyncio
 async def test_get_book_or_404_success(db_session) -> None:
@@ -87,12 +72,10 @@ async def test_get_book_or_404_success(db_session) -> None:
     assert found.id == book.id
     assert found.name == "Genesis"
 
-
 @pytest.mark.asyncio
 async def test_get_book_or_404_raises(db_session) -> None:
     with pytest.raises(NotFoundError, match=r"Bible book .* not found"):
         await get_book_or_404(db_session, "nonexistent-id")
-
 
 @pytest.mark.asyncio
 async def test_get_pericope_or_404_success(db_session) -> None:
@@ -101,12 +84,10 @@ async def test_get_pericope_or_404_success(db_session) -> None:
     found = await get_pericope_or_404(db_session, pericope.id)
     assert found.id == pericope.id
 
-
 @pytest.mark.asyncio
 async def test_get_pericope_or_404_raises(db_session) -> None:
     with pytest.raises(NotFoundError, match=r"Pericope .* not found"):
         await get_pericope_or_404(db_session, "nonexistent-id")
-
 
 @pytest.mark.asyncio
 async def test_get_meaning_map_or_404_success(db_session) -> None:
@@ -116,7 +97,6 @@ async def test_get_meaning_map_or_404_success(db_session) -> None:
     mm = await make_meaning_map(db_session, pericope.id, user.id)
     found = await get_meaning_map_or_404(db_session, mm.id)
     assert found.id == mm.id
-
 
 @pytest.mark.asyncio
 async def test_get_meaning_map_or_404_raises(db_session) -> None:

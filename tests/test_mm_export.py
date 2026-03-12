@@ -18,11 +18,6 @@ from tests.baker import (
     make_user,
 )
 
-# ---------------------------------------------------------------------------
-# Exports: export_json, export_prose
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.asyncio
 async def test_export_json_returns_valid_json(db_session) -> None:
     user = await make_user(db_session, email="analyst43@test.com")
@@ -33,7 +28,6 @@ async def test_export_json_returns_valid_json(db_session) -> None:
     parsed = json.loads(result)
     assert parsed == SAMPLE_MM_DATA
 
-
 @pytest.mark.asyncio
 async def test_export_json_empty_data(db_session) -> None:
     user = await make_user(db_session, email="analyst44@test.com")
@@ -42,7 +36,6 @@ async def test_export_json_empty_data(db_session) -> None:
     mm = await make_meaning_map(db_session, pericope.id, user.id, data={})
     result = export_json(mm)
     assert json.loads(result) == {}
-
 
 @pytest.mark.asyncio
 async def test_export_prose_contains_arc(db_session) -> None:
@@ -54,7 +47,6 @@ async def test_export_prose_contains_arc(db_session) -> None:
     assert "God creates the heavens and the earth." in result
     assert "# Bible Meaning Map" in result
     assert "Level 1 — The Arc" in result
-
 
 @pytest.mark.asyncio
 async def test_export_prose_contains_scene_details(db_session) -> None:
@@ -71,7 +63,6 @@ async def test_export_prose_contains_scene_details(db_session) -> None:
     assert "2D — What Happens" in result
     assert "2E — Communicative Purpose" in result
 
-
 @pytest.mark.asyncio
 async def test_export_prose_contains_propositions(db_session) -> None:
     user = await make_user(db_session, email="analyst47@test.com")
@@ -82,7 +73,6 @@ async def test_export_prose_contains_propositions(db_session) -> None:
     assert "Proposition 1" in result
     assert "What happens?" in result
 
-
 @pytest.mark.asyncio
 async def test_export_prose_empty_data(db_session) -> None:
     user = await make_user(db_session, email="analyst48@test.com")
@@ -91,12 +81,6 @@ async def test_export_prose_empty_data(db_session) -> None:
     mm = await make_meaning_map(db_session, pericope.id, user.id, data={})
     result = export_prose(mm)
     assert "# Bible Meaning Map" in result
-
-
-# ---------------------------------------------------------------------------
-# Feedback: resolve_feedback
-# ---------------------------------------------------------------------------
-
 
 @pytest.mark.asyncio
 async def test_resolve_feedback_success(db_session) -> None:
@@ -110,7 +94,6 @@ async def test_resolve_feedback_success(db_session) -> None:
     resolved = await resolve_feedback(db_session, mm.id, fb.id)
     assert resolved.resolved is True
 
-
 @pytest.mark.asyncio
 async def test_resolve_feedback_raises_if_not_found(db_session) -> None:
     user = await make_user(db_session, email="analyst50@test.com")
@@ -119,7 +102,6 @@ async def test_resolve_feedback_raises_if_not_found(db_session) -> None:
     mm = await make_meaning_map(db_session, pericope.id, user.id)
     with pytest.raises(NotFoundError, match=r"Feedback .* not found"):
         await resolve_feedback(db_session, mm.id, "nonexistent-id")
-
 
 @pytest.mark.asyncio
 async def test_resolve_feedback_wrong_meaning_map(db_session) -> None:
@@ -134,19 +116,12 @@ async def test_resolve_feedback_wrong_meaning_map(db_session) -> None:
     with pytest.raises(NotFoundError, match=r"Feedback .* not found"):
         await resolve_feedback(db_session, mm2.id, fb.id)
 
-
-# ---------------------------------------------------------------------------
-# Seed: seed_books
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.asyncio
 async def test_seed_books_inserts_all_66(db_session) -> None:
     count = await seed_books(db_session)
     assert count == 66
     books = await list_books(db_session)
     assert len(books) == 66
-
 
 @pytest.mark.asyncio
 async def test_seed_books_idempotent(db_session) -> None:
@@ -156,7 +131,6 @@ async def test_seed_books_idempotent(db_session) -> None:
     assert second == 0
     books = await list_books(db_session)
     assert len(books) == 66
-
 
 @pytest.mark.asyncio
 async def test_seed_books_ot_enabled_nt_disabled(db_session) -> None:
@@ -168,17 +142,10 @@ async def test_seed_books_ot_enabled_nt_disabled(db_session) -> None:
         else:
             assert book["is_enabled"] is False, f"{book['name']} should be disabled"
 
-
-# ---------------------------------------------------------------------------
-# Validation: ensure_ot
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.asyncio
 async def test_ensure_ot_passes_for_enabled_book(db_session) -> None:
     book = await make_bible_book(db_session, is_enabled=True)
     ensure_ot(book)
-
 
 @pytest.mark.asyncio
 async def test_ensure_ot_raises_for_disabled_book(db_session) -> None:

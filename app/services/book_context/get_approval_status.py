@@ -5,9 +5,8 @@ from app.db.models.auth import User
 from app.db.models.book_context import BCDApproval
 from app.services.book_context.approve_bcd import SPECIALIST_ROLES
 
-
 async def get_approval_status(db: AsyncSession, bcd_id: str) -> dict:
-    """Return the current approval progress for a BCD."""
+
     result = await db.execute(select(BCDApproval).where(BCDApproval.bcd_id == bcd_id))
     approvals = list(result.scalars().all())
 

@@ -12,9 +12,8 @@ from app.utils.jwt import create_token, decode_token
 
 settings = get_settings()
 
-
 async def refresh_access_token(db: AsyncSession, refresh_token: str) -> str:
-    """Validate refresh token and issue a new access token."""
+
     payload = decode_token(refresh_token)
     if payload.get("type") != "refresh":
         raise AuthenticationError("Invalid token type")

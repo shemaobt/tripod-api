@@ -16,7 +16,6 @@ from app.services import app_service
 
 router = APIRouter()
 
-
 @router.get("", response_model=list[AppResponse])
 async def list_apps(
     db: AsyncSession = Depends(get_db),
@@ -25,14 +24,13 @@ async def list_apps(
     apps = await app_service.list_apps(db)
     return [AppResponse.model_validate(a) for a in apps]
 
-
 @router.get("/my-apps", response_model=list[UserAppResponse])
 async def my_apps(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[UserAppResponse]:
     if current_user.is_platform_admin:
-        # Platform admins see ALL active apps; merge their explicit roles if any
+
         all_apps = await app_service.list_apps(db)
         user_apps_map: dict[str, list[str]] = {}
         for app, role_keys in await app_service.list_user_apps(db, current_user.id):
@@ -76,7 +74,6 @@ async def my_apps(
         for app, role_keys in user_apps
     ]
 
-
 @router.post("", response_model=AppResponse, status_code=201)
 async def create_app(
     payload: AppCreate,
@@ -97,7 +94,6 @@ async def create_app(
     )
     return AppResponse.model_validate(app)
 
-
 @router.get("/{app_id}", response_model=AppResponse)
 async def get_app(
     app_id: str,
@@ -106,7 +102,6 @@ async def get_app(
 ) -> AppResponse:
     app = await app_service.get_app_or_404(db, app_id)
     return AppResponse.model_validate(app)
-
 
 @router.patch("/{app_id}", response_model=AppResponse)
 async def update_app(
@@ -129,7 +124,6 @@ async def update_app(
     )
     return AppResponse.model_validate(app)
 
-
 @router.delete("/{app_id}", status_code=204)
 async def delete_app(
     app_id: str,
@@ -137,7 +131,6 @@ async def delete_app(
     _: User = Depends(require_platform_admin),
 ) -> None:
     await app_service.delete_app(db, app_id)
-
 
 @router.get("/{app_id}/roles", response_model=list[AppRoleResponse])
 async def list_app_roles(
@@ -147,7 +140,6 @@ async def list_app_roles(
 ) -> list[AppRoleResponse]:
     roles = await app_service.list_app_roles(db, app_id)
     return [AppRoleResponse.model_validate(r) for r in roles]
-
 
 @router.post("/{app_id}/roles", response_model=AppRoleResponse, status_code=status.HTTP_201_CREATED)
 async def create_app_role(
@@ -164,7 +156,6 @@ async def create_app_role(
         description=payload.description,
     )
     return AppRoleResponse.model_validate(role)
-
 
 @router.delete("/{app_id}/roles/{role_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_app_role(

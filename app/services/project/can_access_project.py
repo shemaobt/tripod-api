@@ -4,13 +4,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models.org import OrganizationMember
 from app.db.models.project import ProjectOrganizationAccess, ProjectUserAccess
 
-
 async def can_access_project(
     db: AsyncSession,
     user_id: str,
     project_id: str,
 ) -> bool:
-    # Check direct user access
+
     direct = await db.execute(
         select(ProjectUserAccess.id)
         .where(
@@ -22,7 +21,6 @@ async def can_access_project(
     if direct.scalar_one_or_none():
         return True
 
-    # Check org-based access in a single query (JOIN instead of N+1)
     org_access = await db.execute(
         select(ProjectOrganizationAccess.id)
         .join(

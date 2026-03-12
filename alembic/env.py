@@ -8,7 +8,7 @@ from alembic import context
 from app.core.config import get_settings
 from app.core.database import Base
 from app.core.db_url import async_database_url, ssl_connect_args
-from app.db.models import (  # noqa: F401
+from app.db.models import (
     auth,
     language,
     meaning_map,
@@ -30,7 +30,6 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
-
 def run_migrations_offline() -> None:
     context.configure(
         url=config.get_main_option("sqlalchemy.url"),
@@ -42,13 +41,11 @@ def run_migrations_offline() -> None:
     with context.begin_transaction():
         context.run_migrations()
 
-
 def do_run_migrations(connection: Connection) -> None:
     context.configure(connection=connection, target_metadata=target_metadata)
 
     with context.begin_transaction():
         context.run_migrations()
-
 
 async def run_migrations_online() -> None:
     connectable = create_async_engine(
@@ -61,7 +58,6 @@ async def run_migrations_online() -> None:
         await connection.run_sync(do_run_migrations)
 
     await connectable.dispose()
-
 
 if context.is_offline_mode():
     run_migrations_offline()

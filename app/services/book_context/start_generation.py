@@ -10,7 +10,6 @@ from app.db.models.book_context import BCDStatus, BookContextDocument
 from app.db.models.meaning_map import BibleBook
 from app.services.book_context.get_bcd import get_bcd_or_404
 
-
 @dataclass
 class GenerationTarget:
     target_bcd: BookContextDocument
@@ -19,18 +18,13 @@ class GenerationTarget:
     chapter_count: int
     user_feedback: str | None = None
 
-
 class GenerationAlreadyInProgress(Exception):
     pass
-
 
 async def start_generation(
     db: AsyncSession, bcd_id: str, user_id: str, user_feedback: str | None = None
 ) -> GenerationTarget:
-    """Prepare the target BCD for generation.
 
-    Returns everything needed to run the background task.
-    """
     source = await get_bcd_or_404(db, bcd_id)
 
     if source.status == BCDStatus.GENERATING:

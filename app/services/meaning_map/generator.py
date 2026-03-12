@@ -14,10 +14,8 @@ from app.services.rag.query import query as rag_query
 
 logger = logging.getLogger(__name__)
 
-
 class GenerationError(Exception):
-    """Raised when a required generation data source is unavailable."""
-
+    pass
 
 GENERATION_PROMPT_TEMPLATE = """\
 You are an expert biblical exegete and mapper for the "Tripod Method for AI-Assisted \
@@ -98,9 +96,8 @@ Format Example for Level 3:
 Now, generate the complete Bible Meaning Map for {reference}.
 """
 
-
 def _format_bhsa_clauses(clauses: list[dict[str, Any]]) -> str:
-    """Format BHSA clause dicts into rich multi-line text for the LLM prompt."""
+
     lines: list[str] = []
     for c in clauses:
         line = (
@@ -126,7 +123,6 @@ def _format_bhsa_clauses(clauses: list[dict[str, Any]]) -> str:
 
         lines.append(line)
     return "\n".join(lines)
-
 
 def _format_entry_brief(entry_brief: dict[str, Any]) -> str:
     lines: list[str] = []
@@ -184,7 +180,6 @@ def _format_entry_brief(entry_brief: dict[str, Any]) -> str:
 
     return "\n".join(lines)
 
-
 def _build_generation_prompt(
     reference: str,
     bhsa_data: dict[str, Any] | None,
@@ -218,7 +213,6 @@ def _build_generation_prompt(
 
     return prompt
 
-
 async def generate_meaning_map(
     reference: str,
     *,
@@ -228,7 +222,6 @@ async def generate_meaning_map(
 ) -> dict[str, Any]:
     settings = settings or get_settings()
 
-    # --- BHSA (required) ---
     if not bhsa_loader.get_status()["is_loaded"]:
         raise GenerationError("BHSA data is not loaded. Contact an administrator.")
 
@@ -240,7 +233,6 @@ async def generate_meaning_map(
     if not bhsa_data or not bhsa_data.get("clauses"):
         raise GenerationError(f"BHSA returned no clause data for {reference}.")
 
-    # --- RAG (required) ---
     if qdrant_client is None:
         raise GenerationError("RAG service is not available. Contact an administrator.")
 
@@ -261,7 +253,6 @@ async def generate_meaning_map(
 
     prompt = _build_generation_prompt(reference, bhsa_data, rag_context, entry_brief)
 
-    # --- LLM ---
     try:
         llm = ChatGoogleGenerativeAI(
             model=settings.google_llm_model,

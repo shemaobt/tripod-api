@@ -4,18 +4,12 @@ from pydantic import BaseModel, Field
 
 from app.db.models.meaning_map import MeaningMapStatus, Testament
 
-# ---------------------------------------------------------------------------
-# PMM structured-output models (used by LLM generator)
-# ---------------------------------------------------------------------------
-
-
 class PMMPerson(BaseModel):
     name: str
     role: str
     relationship: str
     wants: str
     carries: str
-
 
 class PMMPlace(BaseModel):
     name: str
@@ -24,13 +18,11 @@ class PMMPlace(BaseModel):
     meaning: str
     effect_on_scene: str
 
-
 class PMMObject(BaseModel):
     name: str
     what_it_is: str
     function_in_scene: str
     signals: str
-
 
 class PMMScene(BaseModel):
     scene_number: int
@@ -43,32 +35,22 @@ class PMMScene(BaseModel):
     what_happens: str
     communicative_purpose: str
 
-
 class PMMQAPair(BaseModel):
     question: str
     answer: str
-
 
 class PMMProposition(BaseModel):
     proposition_number: int
     verse: str
     content: list[PMMQAPair]
 
-
 class PMMLevel1(BaseModel):
     arc: str
-
 
 class ProseMeaningMap(BaseModel):
     level_1: PMMLevel1
     level_2_scenes: list[PMMScene]
     level_3_propositions: list[PMMProposition]
-
-
-# ---------------------------------------------------------------------------
-# API request/response schemas
-# ---------------------------------------------------------------------------
-
 
 class BibleBookResponse(BaseModel):
     id: str
@@ -84,14 +66,12 @@ class BibleBookResponse(BaseModel):
 
     model_config = {"from_attributes": True}
 
-
 class ChapterSummary(BaseModel):
     chapter: int
     pericope_count: int = 0
     draft_count: int = 0
     cross_check_count: int = 0
     approved_count: int = 0
-
 
 class PericopeCreate(BaseModel):
     book_id: str
@@ -101,7 +81,6 @@ class PericopeCreate(BaseModel):
     verse_end: int = Field(ge=1)
     reference: str = Field(min_length=1, max_length=100)
     title: str | None = Field(default=None, max_length=300)
-
 
 class PericopeResponse(BaseModel):
     id: str
@@ -116,7 +95,6 @@ class PericopeResponse(BaseModel):
 
     model_config = {"from_attributes": True}
 
-
 class PericopeWithStatusResponse(PericopeResponse):
     meaning_map_id: str | None = None
     status: MeaningMapStatus | None = None
@@ -125,23 +103,18 @@ class PericopeWithStatusResponse(PericopeResponse):
     analyst_name: str | None = None
     unresolved_feedback_count: int = 0
 
-
 class MeaningMapCreate(BaseModel):
     pericope_id: str
     data: dict = Field(default_factory=dict)
 
-
 class MeaningMapGenerateRequest(BaseModel):
     pericope_id: str
-
 
 class MeaningMapUpdateData(BaseModel):
     data: dict
 
-
 class MeaningMapStatusUpdate(BaseModel):
     status: MeaningMapStatus
-
 
 class MeaningMapListResponse(BaseModel):
     id: str
@@ -162,19 +135,15 @@ class MeaningMapListResponse(BaseModel):
 
     model_config = {"from_attributes": True}
 
-
 class MeaningMapResponse(MeaningMapListResponse):
     data: dict
-
 
 class FeedbackCreate(BaseModel):
     section_key: str = Field(min_length=1, max_length=100)
     content: str = Field(min_length=1)
 
-
 class FeedbackUpdate(BaseModel):
     resolved: bool
-
 
 class FeedbackResponse(BaseModel):
     id: str

@@ -10,7 +10,6 @@ from app.services.authorization.assert_can_manage_roles import assert_can_manage
 from app.services.authorization.get_app_by_key import get_app_by_key
 from app.services.authorization.get_role import get_role
 
-
 async def revoke_role(
     db: AsyncSession,
     actor_user: User,
@@ -18,7 +17,7 @@ async def revoke_role(
     app_key: str,
     role_key: str,
 ) -> UserAppRole:
-    """Revoke an active role assignment."""
+
     await assert_can_manage_roles(db, actor_user, app_key)
 
     app = await get_app_by_key(db, app_key)

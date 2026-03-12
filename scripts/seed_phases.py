@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+
 """
 Seed all training pipeline phases with correct dependencies into Tripod Console.
 
@@ -26,9 +26,6 @@ import sys
 
 import requests
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Phase definitions: (key, name, description)
-# ──────────────────────────────────────────────────────────────────────────────
 PHASES = [
     (
         "data_collection",
@@ -90,9 +87,6 @@ PHASES = [
     ),
 ]
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Dependency definitions: phase_key → [depends_on_key, ...]
-# ──────────────────────────────────────────────────────────────────────────────
 DEPENDENCIES = {
     "data_collection": [],
     "audio_segmentation": ["data_collection"],
@@ -102,7 +96,6 @@ DEPENDENCIES = {
     "conversational_tagging": ["bpe_motif_discovery"],
     "generative_training": ["conversational_tagging"],
 }
-
 
 def login(base_url: str, email: str, password: str) -> str:
     resp = requests.post(
@@ -117,16 +110,13 @@ def login(base_url: str, email: str, password: str) -> str:
     print(f"Authenticated as {email}")
     return token
 
-
 def get_headers(token: str) -> dict:
     return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-
 
 def fetch_existing_phases(base_url: str, headers: dict) -> list[dict]:
     resp = requests.get(f"{base_url}/api/phases", headers=headers, timeout=15)
     resp.raise_for_status()
     return resp.json()
-
 
 def delete_phase(base_url: str, headers: dict, phase_id: str, name: str):
     resp = requests.delete(f"{base_url}/api/phases/{phase_id}", headers=headers, timeout=15)
@@ -134,7 +124,6 @@ def delete_phase(base_url: str, headers: dict, phase_id: str, name: str):
         print(f"  Deleted: {name}")
     else:
         print(f"  Failed to delete {name} ({resp.status_code}): {resp.text}")
-
 
 def create_phase(base_url: str, headers: dict, name: str, description: str) -> str | None:
     resp = requests.post(
@@ -151,7 +140,6 @@ def create_phase(base_url: str, headers: dict, name: str, description: str) -> s
         print(f"  Failed to create {name} ({resp.status_code}): {resp.text}")
         return None
 
-
 def add_dependency(base_url: str, headers: dict, phase_id: str, depends_on_id: str, label: str):
     resp = requests.post(
         f"{base_url}/api/phases/{phase_id}/dependencies",
@@ -163,7 +151,6 @@ def add_dependency(base_url: str, headers: dict, phase_id: str, depends_on_id: s
         print(f"  Linked: {label}")
     else:
         print(f"  Failed to link {label} ({resp.status_code}): {resp.text}")
-
 
 def dry_run():
     print("\n=== DRY RUN — Phases to create ===\n")
@@ -185,7 +172,6 @@ def dry_run():
     print()
     total_edges = sum(len(v) for v in DEPENDENCIES.values())
     print(f"Total: {len(PHASES)} phases, {total_edges} dependency edges")
-
 
 def main():
     parser = argparse.ArgumentParser(
@@ -220,13 +206,11 @@ def main():
         dry_run()
         return
 
-    # Auth
     email = args.email or input("Admin email: ")
     password = args.password or getpass.getpass("Admin password: ")
     token = login(args.base_url, email, password)
     headers = get_headers(token)
 
-    # Clean if requested
     if args.clean:
         print("\n--- Cleaning existing phases ---")
         existing = fetch_existing_phases(args.base_url, headers)
@@ -235,11 +219,9 @@ def main():
         for phase in existing:
             delete_phase(args.base_url, headers, phase["id"], phase["name"])
 
-    # Fetch existing phases (after potential clean) to enable skip-by-name
     existing = fetch_existing_phases(args.base_url, headers)
     existing_by_name = {p["name"]: p["id"] for p in existing}
 
-    # Create phases
     print(f"\n--- Creating {len(PHASES)} phases ---")
     key_to_id: dict[str, str] = {}
 
@@ -252,7 +234,6 @@ def main():
             if phase_id:
                 key_to_id[key] = phase_id
 
-    # Create dependencies
     print("\n--- Setting dependencies ---")
     dep_count = 0
     for key, dep_keys in DEPENDENCIES.items():
@@ -271,7 +252,6 @@ def main():
             dep_count += 1
 
     print(f"\n--- Done! Created/verified {len(key_to_id)} phases with {dep_count} dependencies ---")
-
 
 if __name__ == "__main__":
     main()

@@ -9,7 +9,6 @@ from app.services.oral_collector import stats_service
 
 stats_router = APIRouter()
 
-
 @stats_router.get(
     "/projects/{project_id}/genre-stats",
     response_model=GenreStatsResponse,
@@ -19,10 +18,9 @@ async def get_genre_stats(
     _: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> GenreStatsResponse:
-    """Get recording stats per genre/subcategory for a project (any authenticated user)."""
+
     stats = await stats_service.get_genre_stats(db, project_id)
     return GenreStatsResponse(**stats)
-
 
 @stats_router.get(
     "/admin/stats",
@@ -32,6 +30,6 @@ async def get_admin_stats(
     _: User = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> AdminStatsResponse:
-    """Get system-wide stats (admin only)."""
+
     stats = await stats_service.get_admin_stats(db)
     return AdminStatsResponse(**stats)

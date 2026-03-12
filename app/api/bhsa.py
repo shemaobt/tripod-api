@@ -5,7 +5,6 @@ from app.services.bhsa import loader
 
 router = APIRouter()
 
-
 @router.get("/status", response_model=BHSAStatusResponse)
 async def get_bhsa_status() -> BHSAStatusResponse | Response:
     status = loader.get_status()
@@ -30,7 +29,6 @@ async def get_bhsa_status() -> BHSAStatusResponse | Response:
         media_type="application/json",
     )
 
-
 @router.post("/load")
 async def load_bhsa_data(background_tasks: BackgroundTasks) -> dict[str, str]:
     status = loader.get_status()
@@ -44,7 +42,6 @@ async def load_bhsa_data(background_tasks: BackgroundTasks) -> dict[str, str]:
         "status": "loading_started",
         "message": "BHSA data loading started in background",
     }
-
 
 @router.get("/passage", response_model=PassageResponse)
 async def fetch_passage(ref: str) -> PassageResponse:
@@ -73,10 +70,9 @@ async def fetch_passage(ref: str) -> PassageResponse:
         clauses=[ClauseData(**c) for c in data["clauses"]],
     )
 
-
 @router.get("/books/{book_name}/verse-counts")
 async def get_verse_counts(book_name: str) -> dict[str, int]:
-    """Return ``{chapter: verse_count}`` for every chapter of *book_name*."""
+
     status = loader.get_status()
     if not status["is_loaded"]:
         raise HTTPException(status_code=503, detail="BHSA not loaded")
@@ -84,5 +80,5 @@ async def get_verse_counts(book_name: str) -> dict[str, int]:
         counts = loader.get_verse_counts(book_name)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    # JSON keys must be strings
+
     return {str(k): v for k, v in counts.items()}

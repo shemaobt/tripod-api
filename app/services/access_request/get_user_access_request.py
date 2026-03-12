@@ -5,13 +5,12 @@ from app.core.exceptions import NotFoundError
 from app.db.models.auth import AccessRequest
 from app.services.authorization.get_app_by_key import get_app_by_key
 
-
 async def get_user_access_request(
     db: AsyncSession,
     user_id: str,
     app_key: str,
 ) -> AccessRequest | None:
-    """Return the most recent access request for a user+app."""
+
     app = await get_app_by_key(db, app_key)
     if not app:
         raise NotFoundError(f"App not found: {app_key}")

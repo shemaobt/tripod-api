@@ -37,16 +37,14 @@ from app.core.qdrant import close_qdrant, init_qdrant
 from app.services.bhsa import loader
 from app.services.meaning_map.seed_books import seed_books
 
-
 def _load_bhsa_background() -> None:
-    """Load BHSA data in a background thread."""
+
     try:
         print("[STARTUP] Loading BHSA data in background...", flush=True)
         loader.load()
         print("[STARTUP] BHSA data loaded successfully!", flush=True)
     except Exception as e:
         print(f"[STARTUP] Failed to load BHSA data: {e}", flush=True)
-
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -63,7 +61,6 @@ async def lifespan(_: FastAPI):
     finally:
         await close_qdrant()
         await close_db()
-
 
 def create_app() -> FastAPI:
     settings = get_settings()
@@ -135,6 +132,5 @@ def create_app() -> FastAPI:
     register_exception_handlers(app)
 
     return app
-
 
 app = create_app()

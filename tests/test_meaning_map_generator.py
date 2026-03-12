@@ -37,16 +37,9 @@ FAKE_BHSA_DATA = {
     ]
 }
 
-
-# ---------------------------------------------------------------------------
-# _build_generation_prompt
-# ---------------------------------------------------------------------------
-
-
 def test_build_prompt_includes_reference() -> None:
     prompt = _build_generation_prompt("Genesis 1:1-5", None, None)
     assert "Genesis 1:1-5" in prompt
-
 
 def test_build_prompt_includes_bhsa_data() -> None:
     prompt = _build_generation_prompt("Genesis 1:1", FAKE_BHSA_DATA, None)
@@ -57,27 +50,18 @@ def test_build_prompt_includes_bhsa_data() -> None:
     assert "verb: BRJ (qal, perf)" in prompt
     assert "subj: God" in prompt
 
-
 def test_build_prompt_includes_rag_context() -> None:
     prompt = _build_generation_prompt("Genesis 1:1", None, "Use the Tripod Method steps.")
     assert "Methodology Reference" in prompt
     assert "Use the Tripod Method steps." in prompt
 
-
 def test_build_prompt_excludes_bhsa_when_none() -> None:
     prompt = _build_generation_prompt("Genesis 1:1", None, None)
     assert "BHSA Linguistic Data" not in prompt
 
-
 def test_build_prompt_excludes_rag_when_none() -> None:
     prompt = _build_generation_prompt("Genesis 1:1", None, None)
     assert "Methodology Reference" not in prompt
-
-
-# ---------------------------------------------------------------------------
-# generate_meaning_map — fail-fast behaviour
-# ---------------------------------------------------------------------------
-
 
 @pytest.fixture()
 def mock_settings():
@@ -91,7 +75,6 @@ def mock_settings():
         rag_top_k=3,
     )
 
-
 @pytest.mark.asyncio
 @patch("app.services.meaning_map.generator.bhsa_loader")
 async def test_generate_raises_when_bhsa_not_loaded(mock_bhsa, mock_settings) -> None:
@@ -99,7 +82,6 @@ async def test_generate_raises_when_bhsa_not_loaded(mock_bhsa, mock_settings) ->
 
     with pytest.raises(GenerationError, match="BHSA data is not loaded"):
         await generate_meaning_map("Genesis 1:1-5", settings=mock_settings)
-
 
 @pytest.mark.asyncio
 @patch("app.services.meaning_map.generator.bhsa_loader")
@@ -109,7 +91,6 @@ async def test_generate_raises_when_qdrant_client_none(mock_bhsa, mock_settings)
 
     with pytest.raises(GenerationError, match="RAG service is not available"):
         await generate_meaning_map("Genesis 1:1-5", settings=mock_settings, qdrant_client=None)
-
 
 @pytest.mark.asyncio
 @patch("app.services.meaning_map.generator.rag_query")
@@ -134,7 +115,6 @@ async def test_generate_raises_on_llm_failure(
     qdrant = AsyncMock()
     with pytest.raises(GenerationError, match="LLM generation failed"):
         await generate_meaning_map("Genesis 1:1-5", settings=mock_settings, qdrant_client=qdrant)
-
 
 @pytest.mark.asyncio
 @patch("app.services.meaning_map.generator.rag_query")

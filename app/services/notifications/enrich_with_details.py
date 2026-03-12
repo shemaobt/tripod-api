@@ -4,12 +4,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models.notification import NotificationMeaningMapDetail
 from app.models.notification import NotificationResponse
 
-
 async def enrich_with_details(
     db: AsyncSession,
     notifications: list,
 ) -> list[NotificationResponse]:
-    """Build response list with meaning-map detail joined in."""
+
     if not notifications:
         return []
 

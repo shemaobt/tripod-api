@@ -4,9 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models.meaning_map import MeaningMap, Pericope
 from app.models.meaning_map import ChapterSummary
 
-
 async def get_chapter_summaries(db: AsyncSession, book_id: str) -> list[ChapterSummary]:
-    """Return per-chapter pericope/status tallies, selecting only needed columns."""
+
     stmt = (
         select(Pericope.chapter_start, Pericope.chapter_end, MeaningMap.status)
         .outerjoin(MeaningMap, MeaningMap.pericope_id == Pericope.id)

@@ -38,16 +38,14 @@ router = APIRouter()
 _mm_access = require_app_access("meaning-map-generator")
 _mm_analyst = require_role("meaning-map-generator", "analyst")
 
-
 async def _enrich_response(db: AsyncSession, mm: MeaningMapModel) -> MeaningMapResponse:
-    """Build MeaningMapResponse with book/pericope context."""
+
     pericope, book = await meaning_map_service.get_pericope_with_book(db, mm.pericope_id)
     resp = MeaningMapResponse.model_validate(mm)
     resp.book_id = book.id
     resp.book_name = book.name
     resp.pericope_reference = pericope.reference
     return resp
-
 
 @router.get("", response_model=list[MeaningMapListResponse], dependencies=[_mm_access])
 async def list_meaning_maps(
@@ -62,7 +60,6 @@ async def list_meaning_maps(
     )
     return [MeaningMapListResponse.model_validate(m) for m in maps]
 
-
 @router.get("/{map_id}", response_model=MeaningMapResponse, dependencies=[_mm_access])
 async def get_meaning_map(
     map_id: str,
@@ -71,7 +68,6 @@ async def get_meaning_map(
 ) -> MeaningMapResponse:
     mm = await meaning_map_service.get_meaning_map_or_404(db, map_id)
     return await _enrich_response(db, mm)
-
 
 @router.put("/{map_id}", response_model=MeaningMapResponse, dependencies=[_mm_analyst])
 async def update_meaning_map(
@@ -85,7 +81,6 @@ async def update_meaning_map(
     mm = await meaning_map_service.update_meaning_map_data(db, mm, payload.data, user.id)
     return await _enrich_response(db, mm)
 
-
 @router.patch("/{map_id}/status", response_model=MeaningMapResponse, dependencies=[_mm_analyst])
 async def update_status(
     map_id: str,
@@ -97,7 +92,6 @@ async def update_status(
     mm = await meaning_map_service.transition_status(db, mm, payload.status, user.id)
     return await _enrich_response(db, mm)
 
-
 @router.post("/{map_id}/lock", response_model=MeaningMapResponse, dependencies=[_mm_analyst])
 async def lock_map(
     map_id: str,
@@ -107,7 +101,6 @@ async def lock_map(
     mm = await meaning_map_service.get_meaning_map_or_404(db, map_id)
     mm = await meaning_map_service.lock_map(db, mm, user.id)
     return await _enrich_response(db, mm)
-
 
 @router.post("/{map_id}/unlock", response_model=MeaningMapResponse, dependencies=[_mm_analyst])
 async def unlock_map(
@@ -119,7 +112,6 @@ async def unlock_map(
     mm = await meaning_map_service.unlock_map(db, mm, user.id, is_admin=user.is_platform_admin)
     return await _enrich_response(db, mm)
 
-
 @router.delete("/{map_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[_mm_analyst])
 async def delete_meaning_map(
     map_id: str,
@@ -128,7 +120,6 @@ async def delete_meaning_map(
 ) -> None:
     mm = await meaning_map_service.get_meaning_map_or_404(db, map_id)
     await meaning_map_service.delete_meaning_map(db, mm, user.id)
-
 
 @router.post(
     "/generate",
@@ -178,7 +169,6 @@ async def generate_meaning_map(
     )
     return await _enrich_response(db, mm)
 
-
 @router.get("/{map_id}/export/json", dependencies=[_mm_access])
 async def export_json(
     map_id: str,
@@ -191,7 +181,6 @@ async def export_json(
     content = meaning_map_service.export_json(mm)
     return PlainTextResponse(content, media_type="application/json")
 
-
 @router.get("/{map_id}/export/prose", dependencies=[_mm_access])
 async def export_prose(
     map_id: str,
@@ -203,7 +192,6 @@ async def export_prose(
         raise AuthorizationError("Only approved meaning maps can be exported")
     content = meaning_map_service.export_prose(mm)
     return PlainTextResponse(content, media_type="text/markdown")
-
 
 @router.post(
     "/{map_id}/feedback",
@@ -229,7 +217,6 @@ async def add_feedback(
     resp.author_name = user.display_name
     return resp
 
-
 @router.get("/{map_id}/feedback", response_model=list[FeedbackResponse], dependencies=[_mm_access])
 async def list_feedback(
     map_id: str,
@@ -238,7 +225,6 @@ async def list_feedback(
 ) -> list[FeedbackResponse]:
     items = await meaning_map_service.list_feedback(db, map_id)
     return [FeedbackResponse.model_validate(fb) for fb in items]
-
 
 @router.patch(
     "/{map_id}/feedback/{feedback_id}",

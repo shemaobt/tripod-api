@@ -8,14 +8,13 @@ from app.services.book_context.get_bcd import get_bcd_or_404
 SPECIALIST_ROLES = {"exegete", "biblical_language_specialist", "translation_specialist"}
 APPROVE_CAPABLE = {"admin", *SPECIALIST_ROLES}
 
-
 async def approve_bcd(
     db: AsyncSession,
     bcd_id: str,
     user_id: str,
     user_roles: list[str],
 ) -> BookContextDocument:
-    """Approve a BCD using multi-specialist workflow."""
+
     capable_roles = [r for r in user_roles if r in APPROVE_CAPABLE]
     if not capable_roles:
         raise AuthorizationError("You need an admin or specialist role to approve.")

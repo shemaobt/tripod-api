@@ -6,9 +6,8 @@ from app.db.models.auth import User
 from app.services.auth.get_user_by_id import get_user_by_id
 from app.utils.jwt import decode_token
 
-
 async def get_current_user_from_access_token(db: AsyncSession, token: str) -> User:
-    """Resolve current user from access token, using in-memory cache."""
+
     payload = decode_token(token)
     if payload.get("type") != "access":
         raise AuthenticationError("Invalid token type")

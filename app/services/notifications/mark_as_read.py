@@ -4,9 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import NotFoundError
 from app.db.models.notification import Notification
 
-
 async def mark_as_read(db: AsyncSession, notification_id: str, user_id: str) -> Notification:
-    """Mark a single notification as read."""
+
     stmt = select(Notification).where(
         Notification.id == notification_id,
         Notification.user_id == user_id,

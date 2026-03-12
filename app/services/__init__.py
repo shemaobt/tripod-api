@@ -13,7 +13,6 @@ from app.services import (
     user,
 )
 
-# Expose sub-packages under backward-compatible names
 access_request_service = access_request
 app_service = app
 auth_service = auth

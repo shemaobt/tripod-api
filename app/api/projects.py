@@ -24,15 +24,13 @@ from app.services import phase_service, project_service
 
 router = APIRouter()
 
-
 async def _assert_project_access(db: AsyncSession, user: User, project_id: str) -> None:
-    """Raise AuthorizationError unless the user is a platform admin or has project access."""
+
     if user.is_platform_admin:
         return
     allowed = await project_service.can_access_project(db, user.id, project_id)
     if not allowed:
         raise AuthorizationError("You do not have access to this project")
-
 
 @router.get("", response_model=list[ProjectResponse])
 async def list_projects(
@@ -48,7 +46,6 @@ async def list_projects(
     if language_id is not None:
         projects = [p for p in projects if p.language_id == language_id]
     return [ProjectResponse.model_validate(p) for p in projects]
-
 
 @router.post("", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
 async def create_project(
@@ -68,7 +65,6 @@ async def create_project(
     )
     return ProjectResponse.model_validate(project)
 
-
 @router.get("/{project_id}", response_model=ProjectResponse)
 async def get_project(
     project_id: str,
@@ -78,7 +74,6 @@ async def get_project(
     project = await project_service.get_project_or_404(db, project_id)
     await _assert_project_access(db, user, project_id)
     return ProjectResponse.model_validate(project)
-
 
 @router.patch("/{project_id}", response_model=ProjectResponse)
 async def update_project(
@@ -97,7 +92,6 @@ async def update_project(
     )
     return ProjectResponse.model_validate(project)
 
-
 @router.patch("/{project_id}/location", response_model=ProjectResponse)
 async def update_project_location(
     project_id: str,
@@ -115,7 +109,6 @@ async def update_project_location(
     )
     return ProjectResponse.model_validate(project)
 
-
 @router.post(
     "/{project_id}/access/users",
     response_model=ProjectUserAccessResponse,
@@ -131,7 +124,6 @@ async def grant_user_access(
     await project_service.get_project_or_404(db, project_id)
     access = await project_service.grant_user_access(db, project_id, payload.user_id)
     return ProjectUserAccessResponse.model_validate(access)
-
 
 @router.post(
     "/{project_id}/access/organizations",
@@ -150,7 +142,6 @@ async def grant_organization_access(
         db, project_id, payload.organization_id
     )
     return ProjectOrganizationAccessResponse.model_validate(access)
-
 
 @router.get(
     "/{project_id}/access/users",
@@ -178,7 +169,6 @@ async def list_user_access(
         for access, user in rows
     ]
 
-
 @router.get(
     "/{project_id}/access/organizations",
     response_model=list[ProjectOrganizationAccessDetailResponse],
@@ -203,7 +193,6 @@ async def list_organization_access(
         for access, org in rows
     ]
 
-
 @router.delete(
     "/{project_id}/access/users/{user_id}",
     status_code=status.HTTP_204_NO_CONTENT,
@@ -216,7 +205,6 @@ async def revoke_user_access(
 ) -> None:
     await _assert_project_access(db, actor, project_id)
     await project_service.revoke_user_access(db, project_id, user_id)
-
 
 @router.delete(
     "/{project_id}/access/organizations/{organization_id}",
@@ -231,7 +219,6 @@ async def revoke_organization_access(
     await _assert_project_access(db, actor, project_id)
     await project_service.revoke_organization_access(db, project_id, organization_id)
 
-
 @router.get("/{project_id}/phases-with-deps")
 async def list_project_phases_with_deps(
     project_id: str,
@@ -240,7 +227,6 @@ async def list_project_phases_with_deps(
 ) -> dict:
     await _assert_project_access(db, user, project_id)
     return await phase_service.list_project_phases_with_deps(db, project_id)
-
 
 @router.get("/{project_id}/phases", response_model=list[ProjectPhaseResponse])
 async def list_project_phases(
@@ -251,7 +237,6 @@ async def list_project_phases(
     await _assert_project_access(db, user, project_id)
     details = await phase_service.list_project_phases_with_details(db, project_id)
     return [ProjectPhaseResponse(**d) for d in details]
-
 
 @router.post(
     "/{project_id}/phases",
@@ -266,7 +251,6 @@ async def attach_phase_to_project(
     await _assert_project_access(db, user, project_id)
     await phase_service.attach_phase_to_project(db, project_id, payload.phase_id)
 
-
 @router.delete("/{project_id}/phases/{phase_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def detach_phase_from_project(
     project_id: str,
@@ -276,7 +260,6 @@ async def detach_phase_from_project(
 ) -> None:
     await _assert_project_access(db, user, project_id)
     await phase_service.detach_phase_from_project(db, project_id, phase_id)
-
 
 @router.patch("/{project_id}/phases/{phase_id}", response_model=ProjectPhaseResponse)
 async def update_project_phase_status(

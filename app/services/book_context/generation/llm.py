@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 MAX_RETRIES = 3
 RETRY_BASE_DELAY = 2
 
-
 async def call_llm(
     prompt: str,
     *,
@@ -51,4 +50,4 @@ async def call_llm(
             else:
                 logger.error("LLM call failed after %d attempts: %s", MAX_RETRIES, exc)
 
-    raise last_exc  # type: ignore[misc]
+    raise last_exc

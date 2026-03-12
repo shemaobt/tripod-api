@@ -8,7 +8,6 @@ from app.services.authorization.assert_can_manage_roles import assert_can_manage
 from app.services.authorization.get_app_by_key import get_app_by_key
 from app.services.authorization.get_role import get_role
 
-
 async def assign_role(
     db: AsyncSession,
     actor_user: User,
@@ -16,7 +15,7 @@ async def assign_role(
     app_key: str,
     role_key: str,
 ) -> UserAppRole:
-    """Assign role to a target user in app context."""
+
     await assert_can_manage_roles(db, actor_user, app_key)
 
     app = await get_app_by_key(db, app_key)
