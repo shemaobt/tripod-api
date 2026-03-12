@@ -2,21 +2,28 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ConflictError, NotFoundError
-from app.db.models.oc_project_user import OC_ProjectUser
 from app.db.models.oc_recording import OC_Recording
 from app.db.models.org import OrganizationMember
 from app.db.models.project import Project, ProjectOrganizationAccess, ProjectUserAccess
 
 
+async def get_user_project_role(db: AsyncSession, user_id: str, project_id: str) -> str | None:
+    """Return the user's role in the project, or None if not a member."""
+    stmt = select(ProjectUserAccess.role).where(
+        ProjectUserAccess.project_id == project_id,
+        ProjectUserAccess.user_id == user_id,
+    )
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
+
+
 async def list_user_projects(db: AsyncSession, user_id: str) -> list[Project]:
     """Return all projects the user has access to.
 
-    Checks three access sources:
-    - OC project membership (oc_project_users)
+    Checks two access sources:
     - Direct project access (project_user_access)
     - Organization-based access (project_organization_access via org membership)
     """
-    oc_project_ids = select(OC_ProjectUser.project_id).where(OC_ProjectUser.user_id == user_id)
     direct_project_ids = select(ProjectUserAccess.project_id).where(
         ProjectUserAccess.user_id == user_id
     )
@@ -31,7 +38,6 @@ async def list_user_projects(db: AsyncSession, user_id: str) -> list[Project]:
         select(Project)
         .where(
             or_(
-                Project.id.in_(oc_project_ids),
                 Project.id.in_(direct_project_ids),
                 Project.id.in_(via_org_project_ids),
             )
@@ -49,34 +55,38 @@ async def list_all_projects(db: AsyncSession) -> list[Project]:
     return list(result.scalars().unique().all())
 
 
-async def get_project_members(db: AsyncSession, project_id: str) -> list[OC_ProjectUser]:
+async def get_project_members(db: AsyncSession, project_id: str) -> list[ProjectUserAccess]:
     """Return all members of a project."""
     stmt = (
-        select(OC_ProjectUser)
-        .where(OC_ProjectUser.project_id == project_id)
-        .order_by(OC_ProjectUser.joined_at)
+        select(ProjectUserAccess)
+        .where(ProjectUserAccess.project_id == project_id)
+        .order_by(ProjectUserAccess.granted_at)
     )
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
 
 async def add_member(
-    db: AsyncSession, project_id: str, user_id: str, role: str = "user"
-) -> OC_ProjectUser:
+    db: AsyncSession,
+    project_id: str,
+    user_id: str,
+    role: str = "member",
+    invited_by: str | None = None,
+) -> ProjectUserAccess:
     """Add a user to a project. Raises ConflictError if already a member."""
-    # Check membership doesn't already exist
-    stmt = select(OC_ProjectUser).where(
-        OC_ProjectUser.project_id == project_id,
-        OC_ProjectUser.user_id == user_id,
+    stmt = select(ProjectUserAccess).where(
+        ProjectUserAccess.project_id == project_id,
+        ProjectUserAccess.user_id == user_id,
     )
     result = await db.execute(stmt)
     if result.scalar_one_or_none():
         raise ConflictError("User is already a member of this project")
 
-    member = OC_ProjectUser(
+    member = ProjectUserAccess(
         project_id=project_id,
         user_id=user_id,
         role=role,
+        invited_by=invited_by,
     )
     db.add(member)
     await db.commit()
@@ -86,9 +96,9 @@ async def add_member(
 
 async def remove_member(db: AsyncSession, project_id: str, user_id: str) -> None:
     """Remove a user from a project. Raises NotFoundError if not a member."""
-    stmt = select(OC_ProjectUser).where(
-        OC_ProjectUser.project_id == project_id,
-        OC_ProjectUser.user_id == user_id,
+    stmt = select(ProjectUserAccess).where(
+        ProjectUserAccess.project_id == project_id,
+        ProjectUserAccess.user_id == user_id,
     )
     result = await db.execute(stmt)
     member = result.scalar_one_or_none()
