@@ -11,6 +11,7 @@ from app.services.project.list_project_user_access import list_project_user_acce
 from app.services.project.list_projects_accessible_to_user import (
     list_projects_accessible_to_user,
 )
+from app.services.project.list_user_project_roles import list_user_project_roles
 from app.services.project.revoke_organization_access import revoke_organization_access
 from app.services.project.revoke_user_access import revoke_user_access
 from app.services.project.update_project import update_project
@@ -26,6 +27,7 @@ __all__ = [
     "list_project_organization_access",
     "list_project_user_access",
     "list_projects_accessible_to_user",
+    "list_user_project_roles",
     "revoke_organization_access",
     "revoke_user_access",
     "update_project",
