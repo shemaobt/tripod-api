@@ -1,22 +1,54 @@
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ConflictError, NotFoundError
 from app.db.models.oc_project_user import OC_ProjectUser
 from app.db.models.oc_recording import OC_Recording
-from app.db.models.project import Project
+from app.db.models.org import OrganizationMember
+from app.db.models.project import Project, ProjectOrganizationAccess, ProjectUserAccess
 
 
 async def list_user_projects(db: AsyncSession, user_id: str) -> list[Project]:
-    """Return all projects the user is a member of."""
+    """Return all projects the user has access to.
+
+    Checks three access sources:
+    - OC project membership (oc_project_users)
+    - Direct project access (project_user_access)
+    - Organization-based access (project_organization_access via org membership)
+    """
+    oc_project_ids = select(OC_ProjectUser.project_id).where(
+        OC_ProjectUser.user_id == user_id
+    )
+    direct_project_ids = select(ProjectUserAccess.project_id).where(
+        ProjectUserAccess.user_id == user_id
+    )
+    user_org_ids = select(OrganizationMember.organization_id).where(
+        OrganizationMember.user_id == user_id
+    )
+    via_org_project_ids = select(ProjectOrganizationAccess.project_id).where(
+        ProjectOrganizationAccess.organization_id.in_(user_org_ids)
+    )
+
     stmt = (
         select(Project)
-        .join(OC_ProjectUser, OC_ProjectUser.project_id == Project.id)
-        .where(OC_ProjectUser.user_id == user_id)
+        .where(
+            or_(
+                Project.id.in_(oc_project_ids),
+                Project.id.in_(direct_project_ids),
+                Project.id.in_(via_org_project_ids),
+            )
+        )
         .order_by(Project.name)
     )
     result = await db.execute(stmt)
-    return list(result.scalars().all())
+    return list(result.scalars().unique().all())
+
+
+async def list_all_projects(db: AsyncSession) -> list[Project]:
+    """Return all projects (for platform admins)."""
+    stmt = select(Project).order_by(Project.name)
+    result = await db.execute(stmt)
+    return list(result.scalars().unique().all())
 
 
 async def get_project_members(

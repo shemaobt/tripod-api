@@ -1,76 +1,57 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth_middleware import get_current_user, require_platform_admin
+from app.core.auth_middleware import get_current_user
 from app.core.database import get_db
 from app.db.models.auth import User
+from app.db.models.project import ProjectUserAccess
 from app.models.oc_project import (
-    OCAddMemberRequest,
+    OCProjectListResponse,
     OCProjectStatsResponse,
-    OCProjectUserResponse,
 )
-from app.models.project import ProjectResponse
 from app.services.oral_collector import project_service
 
 projects_router = APIRouter()
 
 
-# ---------------------------------------------------------------------------
-# Project membership endpoints  (prefix: /api/oc/projects)
-# ---------------------------------------------------------------------------
-
-
-@projects_router.get("", response_model=list[ProjectResponse])
+@projects_router.get("", response_model=list[OCProjectListResponse])
 async def list_projects(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-) -> list[ProjectResponse]:
-    """List all projects the current user is a member of."""
+) -> list[OCProjectListResponse]:
+    """List projects the current user has access to, with member counts."""
     projects = await project_service.list_user_projects(db, user.id)
-    return [ProjectResponse.model_validate(p) for p in projects]
+    if not projects:
+        return []
 
-
-@projects_router.get("/{project_id}/members", response_model=list[OCProjectUserResponse])
-async def list_members(
-    project_id: str,
-    _: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-) -> list[OCProjectUserResponse]:
-    """List all members of a project."""
-    members = await project_service.get_project_members(db, project_id)
-    return [OCProjectUserResponse.model_validate(m) for m in members]
-
-
-@projects_router.post(
-    "/{project_id}/members",
-    response_model=OCProjectUserResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-async def add_member(
-    project_id: str,
-    payload: OCAddMemberRequest,
-    _: User = Depends(require_platform_admin),
-    db: AsyncSession = Depends(get_db),
-) -> OCProjectUserResponse:
-    """Add a member to a project (admin only)."""
-    member = await project_service.add_member(
-        db, project_id, payload.user_id, payload.role
+    project_ids = [p.id for p in projects]
+    count_stmt = (
+        select(
+            ProjectUserAccess.project_id,
+            func.count().label("member_count"),
+        )
+        .where(ProjectUserAccess.project_id.in_(project_ids))
+        .group_by(ProjectUserAccess.project_id)
     )
-    return OCProjectUserResponse.model_validate(member)
+    result = await db.execute(count_stmt)
+    counts = {row.project_id: row.member_count for row in result.all()}
 
-
-@projects_router.delete(
-    "/{project_id}/members/{user_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-)
-async def remove_member(
-    project_id: str,
-    user_id: str,
-    _: User = Depends(require_platform_admin),
-    db: AsyncSession = Depends(get_db),
-) -> None:
-    """Remove a member from a project (admin only)."""
-    await project_service.remove_member(db, project_id, user_id)
+    return [
+        OCProjectListResponse(
+            id=p.id,
+            name=p.name,
+            description=p.description,
+            language_id=p.language_id,
+            latitude=p.latitude,
+            longitude=p.longitude,
+            location_display_name=p.location_display_name,
+            created_at=p.created_at,
+            updated_at=p.updated_at,
+            member_count=counts.get(p.id, 0),
+        )
+        for p in projects
+    ]
 
 
 @projects_router.get("/{project_id}/stats", response_model=OCProjectStatsResponse)

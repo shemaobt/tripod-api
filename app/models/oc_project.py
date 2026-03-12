@@ -2,20 +2,11 @@ from datetime import datetime
 
 from pydantic import BaseModel, EmailStr, Field
 
-
-class OCProjectUserResponse(BaseModel):
-    project_id: str
-    user_id: str
-    role: str
-    joined_at: datetime
-    invited_by: str | None
-
-    model_config = {"from_attributes": True}
+from app.models.project import ProjectResponse
 
 
-class OCAddMemberRequest(BaseModel):
-    user_id: str
-    role: str = Field(default="user", max_length=30)
+class OCProjectListResponse(ProjectResponse):
+    member_count: int = 0
 
 
 class OCProjectStatsResponse(BaseModel):

@@ -40,11 +40,10 @@ from app.models.oc_genre import (
     SubcategoryUpdate,
 )
 from app.models.oc_project import (
-    OCAddMemberRequest,
     OCProjectInviteCreate,
     OCProjectInviteResponse,
+    OCProjectListResponse,
     OCProjectStatsResponse,
-    OCProjectUserResponse,
 )
 from app.models.oc_recording import (
     RecordingCreate,
@@ -81,11 +80,10 @@ __all__ = [
     "OrganizationCreate",
     "OrganizationMemberAdd",
     "OrganizationMemberResponse",
-    "OCAddMemberRequest",
     "OCProjectInviteCreate",
     "OCProjectInviteResponse",
+    "OCProjectListResponse",
     "OCProjectStatsResponse",
-    "OCProjectUserResponse",
     "OrganizationResponse",
     "PhaseCreate",
     "PhaseDependencyResponse",
