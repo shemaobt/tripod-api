@@ -171,6 +171,7 @@ async def list_user_access(
             user_id=access.user_id,
             email=user.email,
             display_name=user.display_name,
+            avatar_url=user.avatar_url,
             granted_at=access.granted_at,
         )
         for access, user in rows

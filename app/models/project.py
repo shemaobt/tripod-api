@@ -70,6 +70,7 @@ class ProjectUserAccessDetailResponse(BaseModel):
     user_id: str
     email: str
     display_name: str | None
+    avatar_url: str | None = None
     granted_at: datetime
 
 
