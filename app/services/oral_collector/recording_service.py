@@ -55,6 +55,9 @@ async def list_recordings(
         stmt = stmt.where(OC_Recording.subcategory_id == subcategory_id)
     if upload_status:
         stmt = stmt.where(OC_Recording.upload_status == upload_status)
+    else:
+        # By default only return uploaded recordings (exclude orphaned "local" records)
+        stmt = stmt.where(OC_Recording.upload_status == "uploaded")
     if cleaning_status:
         stmt = stmt.where(OC_Recording.cleaning_status == cleaning_status)
     if user_id:
@@ -150,14 +153,16 @@ async def generate_upload_url(
     db: AsyncSession,
     recording_id: str,
     fmt: str,
+    user_id: str,
 ) -> dict:
     """Generate a signed GCS upload URL for a recording.
 
-    Returns dict with signed_url, recording_id, and expires_at.
+    Returns dict with upload_url, server_id, recording_id, and expires_at.
     """
     from google.cloud import storage  # type: ignore[import-untyped]
 
     recording = await get_recording(db, recording_id)
+    await check_recording_access(db, recording, user_id)
 
     blob_path = _gcs_blob_path(
         recording.project_id, recording.genre_id, recording_id, fmt
@@ -168,18 +173,19 @@ async def generate_upload_url(
     blob = bucket.blob(blob_path)
 
     expiry = timedelta(minutes=SIGNED_URL_EXPIRY_MINUTES)
-    signed_url = blob.generate_signed_url(
+    upload_url = blob.generate_signed_url(
         version="v4",
         expiration=expiry,
         method="PUT",
-        content_type="application/octet-stream",
+        content_type="audio/mp4",
     )
 
     expires_at = datetime.now(timezone.utc) + expiry
 
     return {
         "recording_id": recording_id,
-        "signed_url": signed_url,
+        "server_id": recording_id,
+        "upload_url": upload_url,
         "expires_at": expires_at,
     }
 
