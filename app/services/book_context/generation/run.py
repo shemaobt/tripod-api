@@ -69,10 +69,10 @@ async def run_bcd_generation(
         for order, step_name, node_fn, is_async in steps:
             async with track_step(db, bcd_id, step_name, order, input_summary=step_name) as log:
                 if is_async:
-                    result = await node_fn(state)
+                    result = await node_fn(state)  # type: ignore[misc]
                 else:
                     result = node_fn(state)
-                state.update(result)
+                state.update(result)  # type: ignore[typeddict-item]
                 log.output_summary = f"Completed {step_name}"
     except Exception as exc:
         logger.exception("BCD generation failed at step for %s", bcd_id)
@@ -86,9 +86,10 @@ async def run_bcd_generation(
         raise
 
     bcd = await get_bcd_or_404(db, bcd_id)
+    state_dict: dict[str, object] = dict(state)
     for field in SECTION_FIELDS:
-        if field in state:
-            setattr(bcd, field, state[field])
+        if field in state_dict:
+            setattr(bcd, field, state_dict[field])
 
     bcd.status = BCDStatus.REVIEW
     bcd.generation_metadata = {

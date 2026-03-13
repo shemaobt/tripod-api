@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 
 from app.services.book_context.generation.llm import call_llm
 from app.services.book_context.generation.schemas import DiscourseThreadsSchema
@@ -37,7 +38,7 @@ For each thread, provide:
 """
 
 
-async def generate_discourse_threads(state: BCDGenerationState) -> dict:
+async def generate_discourse_threads(state: BCDGenerationState) -> dict[str, list[dict[str, Any]]]:
     prompt = DISCOURSE_PROMPT.format(
         book_name=state["book_name"],
         outline=json.dumps(state.get("structural_outline", {}), indent=2),

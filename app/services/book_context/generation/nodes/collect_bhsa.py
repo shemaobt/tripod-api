@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from app.services.bhsa import loader as bhsa_loader
 from app.services.bhsa.reference import normalize_book_name
 from app.services.book_context.generation.bhsa_entities import extract_bhsa_entities
@@ -7,8 +9,8 @@ from app.services.book_context.generation.bhsa_summary import build_bhsa_summary
 from app.services.book_context.generation.state import BCDGenerationState
 
 
-def collect_bhsa(state: BCDGenerationState) -> dict:
-    if not bhsa_loader.get_status()["is_loaded"]:
+def collect_bhsa(state: BCDGenerationState) -> dict[str, Any]:
+    if not bhsa_loader.get_status().is_loaded:
         raise RuntimeError("BHSA data is not loaded. Cannot generate Book Context.")
 
     tf_api = bhsa_loader._tf_api

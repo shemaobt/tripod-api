@@ -1,17 +1,25 @@
+from typing import Any
+
 from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError
+from app.db.models.book_context import BookContextDocument
 from app.db.models.meaning_map import Pericope
 from app.models.book_context import EstablishedItem, PassageEntryBriefResponse
 from app.services.book_context.get_latest_approved import get_latest_approved
 
-def _is_before(ref: dict, target_chapter: int, target_verse: int) -> bool:
-    ch = ref.get("chapter", 0)
-    v = ref.get("verse", 0)
+
+def _is_before(ref: dict[str, int], target_chapter: int, target_verse: int) -> bool:
+    ch: int = ref.get("chapter", 0)
+    v: int = ref.get("verse", 0)
     return ch < target_chapter or (ch == target_chapter and v < target_verse)
 
-def _slice_participants(register: list, target_chapter: int, target_verse: int) -> list:
+def _slice_participants(
+    register: list[dict[str, Any]] | None,
+    target_chapter: int,
+    target_verse: int,
+) -> list[dict[str, Any]]:
     result = []
     for p in register or []:
         entry = p.get("entry_verse", {})
@@ -23,7 +31,11 @@ def _slice_participants(register: list, target_chapter: int, target_verse: int) 
         result.append({**p, "arc": sliced_arc})
     return result
 
-def _slice_threads(threads: list, target_chapter: int, target_verse: int) -> list:
+def _slice_threads(
+    threads: list[dict[str, Any]] | None,
+    target_chapter: int,
+    target_verse: int,
+) -> list[dict[str, Any]]:
     result = []
     for t in threads or []:
         opened = t.get("opened_at", {})
@@ -47,14 +59,19 @@ def _slice_threads(threads: list, target_chapter: int, target_verse: int) -> lis
         )
     return result
 
-def _filter_by_first_appears(items: list, key: str, target_chapter: int, target_verse: int) -> list:
+def _filter_by_first_appears(
+    items: list[dict[str, Any]] | None,
+    key: str,
+    target_chapter: int,
+    target_verse: int,
+) -> list[dict[str, Any]]:
     return [
         item
         for item in (items or [])
         if _is_before(item.get(key, {}), target_chapter, target_verse)
     ]
 
-def _build_gloss_lookup(bcd) -> dict[str, str]:
+def _build_gloss_lookup(bcd: BookContextDocument) -> dict[str, str]:
 
     glosses: dict[str, str] = {}
     for section in [bcd.participant_register, bcd.places, bcd.objects, bcd.institutions]:
@@ -65,7 +82,7 @@ def _build_gloss_lookup(bcd) -> dict[str, str]:
                 glosses[name] = gloss
     return glosses
 
-def _enrich_glosses(items: list, glosses: dict[str, str]) -> list:
+def _enrich_glosses(items: list[dict[str, Any]], glosses: dict[str, str]) -> list[dict[str, Any]]:
 
     result = []
     for item in items:
@@ -76,11 +93,11 @@ def _enrich_glosses(items: list, glosses: dict[str, str]) -> list:
     return result
 
 def _build_established_items(
-    participants: list,
-    threads: list,
-    institutions: list,
-    places: list | None = None,
-    objects: list | None = None,
+    participants: list[dict[str, Any]],
+    threads: list[dict[str, Any]],
+    institutions: list[dict[str, Any]],
+    places: list[dict[str, Any]] | None = None,
+    objects: list[dict[str, Any]] | None = None,
 ) -> list[EstablishedItem]:
     items = []
 
@@ -242,13 +259,15 @@ async def compute_entry_brief(
         objects=objects,
     )
 
-    return PassageEntryBriefResponse(
-        participants=participants,
-        active_threads=threads,
-        places=places,
-        objects=objects,
-        institutions=institutions,
-        established_items=established_items,
-        is_first_pericope=False,
-        bcd_version=bcd.version,
+    return PassageEntryBriefResponse.model_validate(
+        {
+            "participants": participants,
+            "active_threads": threads,
+            "places": places,
+            "objects": objects,
+            "institutions": institutions,
+            "established_items": established_items,
+            "is_first_pericope": False,
+            "bcd_version": bcd.version,
+        }
     )

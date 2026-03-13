@@ -1,8 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import NotFoundError
 from app.db.models.book_context import BookContextDocument
+from app.services.common import get_or_raise
 
 
 async def get_bcd(db: AsyncSession, bcd_id: str) -> BookContextDocument | None:
@@ -11,7 +11,4 @@ async def get_bcd(db: AsyncSession, bcd_id: str) -> BookContextDocument | None:
 
 
 async def get_bcd_or_404(db: AsyncSession, bcd_id: str) -> BookContextDocument:
-    bcd = await get_bcd(db, bcd_id)
-    if not bcd:
-        raise NotFoundError(f"Book Context Document {bcd_id} not found.")
-    return bcd
+    return await get_or_raise(db, BookContextDocument, bcd_id, label="Book Context Document")

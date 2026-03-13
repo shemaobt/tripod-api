@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import Any, TypedDict
 
 
 class BCDGenerationState(TypedDict, total=False):
@@ -8,14 +8,14 @@ class BCDGenerationState(TypedDict, total=False):
     genre: str
     chapter_count: int
     bhsa_summary: str
-    bhsa_entities: list
-    structural_outline: dict
-    participant_register: list
-    discourse_threads: list
+    bhsa_entities: list[dict[str, Any]]
+    structural_outline: dict[str, Any]
+    participant_register: list[dict[str, Any]]
+    discourse_threads: list[dict[str, Any]]
     theological_spine: str
-    places: list
-    objects: list
-    institutions: list
-    genre_context: dict
-    maintenance_notes: dict
+    places: list[dict[str, Any]]
+    objects: list[dict[str, Any]]
+    institutions: list[dict[str, Any]]
+    genre_context: dict[str, Any]
+    maintenance_notes: dict[str, Any]
     user_feedback: str

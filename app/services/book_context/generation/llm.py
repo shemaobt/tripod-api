@@ -50,4 +50,5 @@ async def call_llm(
             else:
                 logger.error("LLM call failed after %d attempts: %s", MAX_RETRIES, exc)
 
+    assert last_exc is not None
     raise last_exc
