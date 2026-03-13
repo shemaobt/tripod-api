@@ -19,8 +19,7 @@ async def get_genre_stats(
     db: AsyncSession = Depends(get_db),
 ) -> GenreStatsResponse:
 
-    stats = await stats_service.get_genre_stats(db, project_id)
-    return GenreStatsResponse(**stats)
+    return await stats_service.get_genre_stats(db, project_id)
 
 @stats_router.get(
     "/admin/stats",
@@ -31,5 +30,4 @@ async def get_admin_stats(
     db: AsyncSession = Depends(get_db),
 ) -> AdminStatsResponse:
 
-    stats = await stats_service.get_admin_stats(db)
-    return AdminStatsResponse(**stats)
+    return await stats_service.get_admin_stats(db)

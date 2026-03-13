@@ -9,12 +9,13 @@ from app.models.access_request import (
     AccessRequestResponse,
     AccessRequestReviewRequest,
 )
+from app.db.models.auth import AccessRequest
 from app.services import access_request_service
 
 router = APIRouter()
 
 
-def _to_response(request, app_key: str) -> AccessRequestResponse:
+def _to_response(request: AccessRequest, app_key: str) -> AccessRequestResponse:
     return AccessRequestResponse(
         id=request.id,
         user_id=request.user_id,

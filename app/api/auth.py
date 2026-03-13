@@ -16,7 +16,7 @@ from app.models.auth import (
     UserSignupRequest,
 )
 from app.models.role import MyRoleResponse
-from app.services import auth_service, authorization_service
+from app.services import auth_service, authorization_service, user_service
 from app.services.project import list_user_project_roles
 
 router = APIRouter()
@@ -77,13 +77,12 @@ async def update_me(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> UserResponse:
-    user = await db.get(User, current_user.id)
-    if payload.display_name is not None:
-        user.display_name = payload.display_name
-    if payload.avatar_url is not None:
-        user.avatar_url = payload.avatar_url if payload.avatar_url else None
-    await db.commit()
-    await db.refresh(user)
+    user = await user_service.update_user(
+        db,
+        current_user.id,
+        display_name=payload.display_name,
+        avatar_url=payload.avatar_url,
+    )
     invalidate_user(user.id)
     return _user_response(user)
 

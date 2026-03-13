@@ -98,10 +98,9 @@ async def request_upload_url(
     db: AsyncSession = Depends(get_db),
 ) -> UploadUrlResponse:
 
-    result = await recording_service.generate_upload_url(
+    return await recording_service.generate_upload_url(
         db, payload.recording_id, payload.format, user.id
     )
-    return UploadUrlResponse(**result)
 
 @recordings_router.post("/{recording_id}/confirm-upload", response_model=RecordingResponse)
 async def confirm_upload(

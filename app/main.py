@@ -1,4 +1,5 @@
 import threading
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -47,7 +48,7 @@ def _load_bhsa_background() -> None:
         print(f"[STARTUP] Failed to load BHSA data: {e}", flush=True)
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     setup_logging()
     await init_db()
     async with AsyncSessionLocal() as db:

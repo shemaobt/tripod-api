@@ -29,50 +29,9 @@ async def my_apps(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[UserAppResponse]:
-    if current_user.is_platform_admin:
-
-        all_apps = await app_service.list_apps(db)
-        user_apps_map: dict[str, list[str]] = {}
-        for app, role_keys in await app_service.list_user_apps(db, current_user.id):
-            user_apps_map[app.id] = role_keys
-        return [
-            UserAppResponse(
-                id=app.id,
-                app_key=app.app_key,
-                name=app.name,
-                description=app.description,
-                icon_url=app.icon_url,
-                app_url=app.app_url,
-                ios_url=app.ios_url,
-                android_url=app.android_url,
-                platform=app.platform,
-                is_active=app.is_active,
-                created_at=app.created_at,
-                roles=user_apps_map.get(app.id, []),
-                is_platform_admin=True,
-            )
-            for app in all_apps
-        ]
-
-    user_apps = await app_service.list_user_apps(db, current_user.id)
-    return [
-        UserAppResponse(
-            id=app.id,
-            app_key=app.app_key,
-            name=app.name,
-            description=app.description,
-            icon_url=app.icon_url,
-            app_url=app.app_url,
-            ios_url=app.ios_url,
-            android_url=app.android_url,
-            platform=app.platform,
-            is_active=app.is_active,
-            created_at=app.created_at,
-            roles=role_keys,
-            is_platform_admin=False,
-        )
-        for app, role_keys in user_apps
-    ]
+    return await app_service.list_user_apps_display(
+        db, current_user.id, is_admin=current_user.is_platform_admin
+    )
 
 @router.post("", response_model=AppResponse, status_code=201)
 async def create_app(

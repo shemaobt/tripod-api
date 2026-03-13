@@ -1,14 +1,12 @@
 from fastapi import APIRouter, Depends, status
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth_middleware import get_current_user
 from app.core.database import get_db
-from app.core.exceptions import AuthorizationError
 from app.db.models.auth import User
-from app.db.models.project import ProjectUserAccess
 from app.models.oc_project import OCProjectInviteCreate, OCProjectInviteResponse
 from app.services.oral_collector import invite_service
+from app.services.oral_collector.require_manager import require_project_manager
 
 invites_router = APIRouter()
 
@@ -16,14 +14,7 @@ async def _require_manager(project_id: str, user: User, db: AsyncSession) -> Non
 
     if user.is_platform_admin:
         return
-    stmt = select(ProjectUserAccess).where(
-        ProjectUserAccess.project_id == project_id,
-        ProjectUserAccess.user_id == user.id,
-        ProjectUserAccess.role == "manager",
-    )
-    result = await db.execute(stmt)
-    if result.scalar_one_or_none() is None:
-        raise AuthorizationError("Only project managers can manage invites")
+    await require_project_manager(db, project_id, user.id, action="manage invites")
 
 @invites_router.post(
     "/projects/{project_id}/invites",
