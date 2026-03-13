@@ -10,7 +10,7 @@ from tests.baker import make_bible_book, make_meaning_map, make_pericope, make_u
 
 @pytest.fixture
 async def mm_app(db_session):
-    """Fetch the pre-seeded meaning-map-generator app."""
+
     result = await db_session.execute(select(App).where(App.app_key == "meaning-map-generator"))
     return result.scalar_one()
 
@@ -22,11 +22,6 @@ async def _get_notifications(db_session, user_id: str) -> list[Notification]:
         .order_by(Notification.created_at.desc())
     )
     return list(result.scalars().all())
-
-
-# ---------------------------------------------------------------------------
-# transition_status hooks
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
@@ -75,11 +70,6 @@ async def test_draft_to_crosscheck_creates_no_notification(db_session, mm_app) -
 
     notifs = await _get_notifications(db_session, analyst.id)
     assert len(notifs) == 0
-
-
-# ---------------------------------------------------------------------------
-# add_feedback hook
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio

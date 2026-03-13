@@ -10,13 +10,12 @@ async def set_active_bcd(
     db: AsyncSession,
     bcd_id: str,
 ) -> BookContextDocument:
-    """Mark a BCD as the active version for its book, deactivating all others."""
+
     bcd = await get_bcd_or_404(db, bcd_id)
 
     if bcd.status == BCDStatus.GENERATING:
         raise ConflictError("Cannot set a generating document as active.")
 
-    # Deactivate all other BCDs for this book
     await db.execute(
         update(BookContextDocument)
         .where(

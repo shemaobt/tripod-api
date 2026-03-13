@@ -50,5 +50,15 @@ class PhaseDependencyResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class PhasesWithDepsResponse(BaseModel):
+    phases: list[PhaseResponse]
+    dependencies: dict[str, list[str]]
+
+
+class ProjectPhasesWithDepsResponse(BaseModel):
+    phases: list[ProjectPhaseResponse]
+    dependencies: dict[str, list[str]]
+
+
 class AttachPhaseRequest(BaseModel):
     phase_id: str

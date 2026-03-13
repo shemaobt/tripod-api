@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Seed all training pipeline phases with correct dependencies into Tripod Console.
 
@@ -26,9 +25,6 @@ import sys
 
 import requests
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Phase definitions: (key, name, description)
-# ──────────────────────────────────────────────────────────────────────────────
 PHASES = [
     (
         "data_collection",
@@ -90,9 +86,6 @@ PHASES = [
     ),
 ]
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Dependency definitions: phase_key → [depends_on_key, ...]
-# ──────────────────────────────────────────────────────────────────────────────
 DEPENDENCIES = {
     "data_collection": [],
     "audio_segmentation": ["data_collection"],
@@ -220,13 +213,11 @@ def main():
         dry_run()
         return
 
-    # Auth
     email = args.email or input("Admin email: ")
     password = args.password or getpass.getpass("Admin password: ")
     token = login(args.base_url, email, password)
     headers = get_headers(token)
 
-    # Clean if requested
     if args.clean:
         print("\n--- Cleaning existing phases ---")
         existing = fetch_existing_phases(args.base_url, headers)
@@ -235,11 +226,9 @@ def main():
         for phase in existing:
             delete_phase(args.base_url, headers, phase["id"], phase["name"])
 
-    # Fetch existing phases (after potential clean) to enable skip-by-name
     existing = fetch_existing_phases(args.base_url, headers)
     existing_by_name = {p["name"]: p["id"] for p in existing}
 
-    # Create phases
     print(f"\n--- Creating {len(PHASES)} phases ---")
     key_to_id: dict[str, str] = {}
 
@@ -252,7 +241,6 @@ def main():
             if phase_id:
                 key_to_id[key] = phase_id
 
-    # Create dependencies
     print("\n--- Setting dependencies ---")
     dep_count = 0
     for key, dep_keys in DEPENDENCIES.items():

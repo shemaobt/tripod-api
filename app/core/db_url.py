@@ -14,7 +14,7 @@ def async_database_url(url: str) -> str:
     return url
 
 
-def ssl_connect_args(original_url: str) -> dict:
+def ssl_connect_args(original_url: str) -> dict[str, bool]:
     if "sslmode=require" in original_url or "sslmode=verify" in original_url:
         return {"ssl": True}
     return {}

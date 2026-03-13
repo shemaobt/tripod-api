@@ -11,7 +11,7 @@ async def get_user_access_request(
     user_id: str,
     app_key: str,
 ) -> AccessRequest | None:
-    """Return the most recent access request for a user+app."""
+
     app = await get_app_by_key(db, app_key)
     if not app:
         raise NotFoundError(f"App not found: {app_key}")

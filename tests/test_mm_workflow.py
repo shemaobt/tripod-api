@@ -17,10 +17,6 @@ from tests.baker import (
     make_user,
 )
 
-# ---------------------------------------------------------------------------
-# Delete: delete_meaning_map
-# ---------------------------------------------------------------------------
-
 
 @pytest.mark.asyncio
 async def test_delete_meaning_map_success(db_session) -> None:
@@ -54,11 +50,6 @@ async def test_delete_meaning_map_raises_if_not_analyst(db_session) -> None:
         AuthorizationError, match="Only the analyst who created the map can delete it"
     ):
         await delete_meaning_map(db_session, mm, other.id)
-
-
-# ---------------------------------------------------------------------------
-# Update: update_meaning_map_data
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
@@ -114,11 +105,6 @@ async def test_update_meaning_map_data_unlocked_map(db_session) -> None:
     mm = await make_meaning_map(db_session, pericope.id, user.id, data={"old": "data"})
     updated = await update_meaning_map_data(db_session, mm, {"replaced": True}, user.id)
     assert updated.data == {"replaced": True}
-
-
-# ---------------------------------------------------------------------------
-# Status transitions: transition_status
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
@@ -248,11 +234,6 @@ async def test_transition_cross_check_to_approved_clears_lock(db_session) -> Non
     result = await transition_status(db_session, mm, "approved", reviewer.id)
     assert result.locked_by is None
     assert result.locked_at is None
-
-
-# ---------------------------------------------------------------------------
-# Locking: lock_map, unlock_map
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio

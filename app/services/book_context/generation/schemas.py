@@ -1,27 +1,14 @@
 from pydantic import BaseModel, Field
 
-
-class VerseRefSchema(BaseModel):
-    chapter: int
-    verse: int
-
-
-class ChapterOutline(BaseModel):
-    chapter: int
-    title: str
-    summary: str
-    key_events: list[str] = Field(default_factory=list)
-
-
-class StructuralOutlineSchema(BaseModel):
-    book_arc: str
-    chapters: list[ChapterOutline] = Field(default_factory=list)
-    literary_structure: str = ""
-
-
-class ArcEntrySchema(BaseModel):
-    at: VerseRefSchema
-    state: str
+from app.models.book_context import ArcEntry as ArcEntrySchema
+from app.models.book_context import BCDInstitution as InstitutionSchema
+from app.models.book_context import BCDObject as ObjectSchema
+from app.models.book_context import BCDPlace as PlaceSchema
+from app.models.book_context import EpisodeStatus as EpisodeStatusSchema
+from app.models.book_context import GenreContext as GenreContextSchema
+from app.models.book_context import MaintenanceNotes as MaintenanceNotesSchema
+from app.models.book_context import StructuralOutline as StructuralOutlineSchema  # noqa: F401
+from app.models.book_context import VerseRef as VerseRefSchema
 
 
 class ParticipantSchema(BaseModel):
@@ -44,11 +31,6 @@ class ParticipantRegisterSchema(BaseModel):
     participants: list[ParticipantSchema] = Field(default_factory=list)
 
 
-class EpisodeStatusSchema(BaseModel):
-    at: VerseRefSchema
-    status: str
-
-
 class DiscourseThreadSchema(BaseModel):
     label: str
     opened_at: VerseRefSchema
@@ -59,46 +41,6 @@ class DiscourseThreadSchema(BaseModel):
 
 class DiscourseThreadsSchema(BaseModel):
     threads: list[DiscourseThreadSchema] = Field(default_factory=list)
-
-
-class PlaceSchema(BaseModel):
-    name: str
-    english_gloss: str = ""
-    entity_type: str = "place"
-    first_appears: VerseRefSchema
-    type: str = ""
-    meaning_and_function: str = ""
-    appears_in: list[VerseRefSchema] = Field(default_factory=list)
-    appearance_count: int = 0
-
-
-class ObjectSchema(BaseModel):
-    name: str
-    first_appears: VerseRefSchema
-    what_it_is: str = ""
-    meaning_across_scenes: str = ""
-    appears_in: list[VerseRefSchema] = Field(default_factory=list)
-
-
-class InstitutionSchema(BaseModel):
-    name: str
-    first_invoked: VerseRefSchema
-    what_it_is: str = ""
-    role_in_book: str = ""
-    appears_in: list[VerseRefSchema] = Field(default_factory=list)
-
-
-class GenreContextSchema(BaseModel):
-    primary_genre: str = ""
-    sub_genres: list[str] = Field(default_factory=list)
-    narrative_voice: str = ""
-    temporal_setting: str = ""
-    audience_positioning: str = ""
-
-
-class MaintenanceNotesSchema(BaseModel):
-    generation_notes: str = ""
-    known_limitations: list[str] = Field(default_factory=list)
 
 
 class ContextSectionsSchema(BaseModel):

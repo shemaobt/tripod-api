@@ -68,7 +68,7 @@ async def test_list_languages_ordered_by_code(db_session) -> None:
 
 @pytest.mark.asyncio
 async def test_get_language_or_404_raises_when_missing(db_session) -> None:
-    with pytest.raises(NotFoundError, match="Language not found"):
+    with pytest.raises(NotFoundError, match=r"Language .* not found"):
         await language_service.get_language_or_404(
             db_session, "00000000-0000-0000-0000-000000000000"
         )

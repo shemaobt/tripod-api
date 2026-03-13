@@ -9,7 +9,7 @@ async def list_access_requests(
     app_key: str | None = None,
     status: str | None = None,
 ) -> list[tuple[AccessRequest, str]]:
-    """List access requests with resolved app_key. Returns (request, app_key) tuples."""
+
     stmt: Select[tuple[AccessRequest, str]] = select(AccessRequest, App.app_key).join(
         App, AccessRequest.app_id == App.id
     )
@@ -21,4 +21,4 @@ async def list_access_requests(
 
     stmt = stmt.order_by(AccessRequest.requested_at.desc())
     result = await db.execute(stmt)
-    return list(result.all())
+    return [row._tuple() for row in result.all()]

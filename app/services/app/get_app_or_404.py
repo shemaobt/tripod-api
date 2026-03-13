@@ -1,14 +1,8 @@
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import NotFoundError
 from app.db.models.auth import App
+from app.services.common import get_or_raise
 
 
 async def get_app_or_404(db: AsyncSession, app_id: str) -> App:
-    stmt = select(App).where(App.id == app_id)
-    result = await db.execute(stmt)
-    app = result.scalar_one_or_none()
-    if not app:
-        raise NotFoundError(f"App {app_id} not found")
-    return app
+    return await get_or_raise(db, App, app_id, label="App")

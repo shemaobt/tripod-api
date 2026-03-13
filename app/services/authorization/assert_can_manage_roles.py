@@ -6,7 +6,7 @@ from app.services.authorization.has_role import has_role
 
 
 async def assert_can_manage_roles(db: AsyncSession, actor_user: User, app_key: str) -> None:
-    """Assert actor can assign and revoke roles for an app."""
+
     if actor_user.is_platform_admin:
         return
     if await has_role(db, actor_user.id, app_key, "admin"):

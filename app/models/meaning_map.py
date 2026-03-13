@@ -1,12 +1,9 @@
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, Field
 
 from app.db.models.meaning_map import MeaningMapStatus, Testament
-
-# ---------------------------------------------------------------------------
-# PMM structured-output models (used by LLM generator)
-# ---------------------------------------------------------------------------
 
 
 class PMMPerson(BaseModel):
@@ -63,11 +60,6 @@ class ProseMeaningMap(BaseModel):
     level_1: PMMLevel1
     level_2_scenes: list[PMMScene]
     level_3_propositions: list[PMMProposition]
-
-
-# ---------------------------------------------------------------------------
-# API request/response schemas
-# ---------------------------------------------------------------------------
 
 
 class BibleBookResponse(BaseModel):
@@ -128,7 +120,7 @@ class PericopeWithStatusResponse(PericopeResponse):
 
 class MeaningMapCreate(BaseModel):
     pericope_id: str
-    data: dict = Field(default_factory=dict)
+    data: dict[str, Any] = Field(default_factory=dict)
 
 
 class MeaningMapGenerateRequest(BaseModel):
@@ -136,7 +128,7 @@ class MeaningMapGenerateRequest(BaseModel):
 
 
 class MeaningMapUpdateData(BaseModel):
-    data: dict
+    data: dict[str, Any]
 
 
 class MeaningMapStatusUpdate(BaseModel):
@@ -164,7 +156,25 @@ class MeaningMapListResponse(BaseModel):
 
 
 class MeaningMapResponse(MeaningMapListResponse):
-    data: dict
+    data: dict[str, Any]
+
+
+class AnalystSummary(BaseModel):
+    name: str
+    assigned: int
+    draft: int
+    cross_check: int
+    approved: int
+
+
+class DashboardSummaryResponse(BaseModel):
+    total: int
+    draft: int
+    cross_check: int
+    approved: int
+    unstarted: int
+    enabled_books: int
+    analysts: list[AnalystSummary]
 
 
 class FeedbackCreate(BaseModel):

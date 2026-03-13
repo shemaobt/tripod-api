@@ -16,7 +16,7 @@ async def list_pericopes(
         select(func.count())
         .where(
             MeaningMapFeedback.meaning_map_id == MeaningMap.id,
-            MeaningMapFeedback.resolved == False,  # noqa: E712
+            MeaningMapFeedback.resolved.is_(False),
         )
         .correlate(MeaningMap)
         .scalar_subquery()

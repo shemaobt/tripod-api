@@ -15,7 +15,7 @@ async def approve_bcd(
     user_id: str,
     user_roles: list[str],
 ) -> BookContextDocument:
-    """Approve a BCD using multi-specialist workflow."""
+
     capable_roles = [r for r in user_roles if r in APPROVE_CAPABLE]
     if not capable_roles:
         raise AuthorizationError("You need an admin or specialist role to approve.")
@@ -52,7 +52,7 @@ async def approve_bcd(
         all_approvals = [*approvals, approval]
         distinct_users = len({a.user_id for a in all_approvals})
 
-        covered_specialties = set()
+        covered_specialties: set[str] = set()
         for a in all_approvals:
             roles = a.roles_at_approval or [a.role_at_approval]
             covered_specialties.update(r for r in roles if r in SPECIALIST_ROLES)

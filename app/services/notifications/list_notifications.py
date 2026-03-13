@@ -12,7 +12,7 @@ async def list_notifications(
     unread_only: bool = False,
     limit: int = 50,
 ) -> list[Notification]:
-    """List notifications for a user within an app, newest first."""
+
     stmt = select(Notification).where(
         Notification.user_id == user_id,
         Notification.app_id == app_id,

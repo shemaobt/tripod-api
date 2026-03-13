@@ -9,6 +9,7 @@ from app.models.phase import (
     PhaseCreate,
     PhaseDependencyResponse,
     PhaseResponse,
+    PhasesWithDepsResponse,
     PhaseUpdate,
 )
 from app.services import phase_service
@@ -40,16 +41,12 @@ async def list_phases(
     return result
 
 
-@router.get("/with-dependencies")
+@router.get("/with-dependencies", response_model=PhasesWithDepsResponse)
 async def list_phases_with_dependencies(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> dict:
-    result = await phase_service.list_all_phases_with_deps(db)
-    return {
-        "phases": [PhaseResponse.model_validate(p) for p in result["phases"]],
-        "dependencies": result["dependencies"],
-    }
+) -> PhasesWithDepsResponse:
+    return await phase_service.list_all_phases_with_deps(db)
 
 
 @router.get("/{phase_id}", response_model=PhaseResponse)

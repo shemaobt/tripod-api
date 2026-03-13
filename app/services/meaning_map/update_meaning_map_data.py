@@ -1,3 +1,5 @@
+from typing import Any
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AuthorizationError
@@ -5,7 +7,7 @@ from app.db.models.meaning_map import MeaningMap
 
 
 async def update_meaning_map_data(
-    db: AsyncSession, mm: MeaningMap, data: dict, user_id: str
+    db: AsyncSession, mm: MeaningMap, data: dict[str, Any], user_id: str
 ) -> MeaningMap:
     if mm.locked_by and mm.locked_by != user_id:
         raise AuthorizationError("This meaning map is locked by another user")

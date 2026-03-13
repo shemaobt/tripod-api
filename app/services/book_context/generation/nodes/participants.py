@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 
 from app.services.book_context.generation.llm import call_llm
 from app.services.book_context.generation.schemas import ParticipantRegisterSchema
@@ -53,10 +54,9 @@ what_audience_knows_at_entry, arc, and status_at_end.
 """
 
 
-async def generate_participants(state: BCDGenerationState) -> dict:
+async def generate_participants(state: BCDGenerationState) -> dict[str, list[dict[str, Any]]]:
     bhsa_entities = state.get("bhsa_entities", [])
 
-    # Pre-filter to person entities only (+ ambiguous defaults to person)
     person_entities = [e for e in bhsa_entities if e.get("entity_type") in ("person", "ambiguous")]
 
     prompt = PARTICIPANT_PROMPT.format(

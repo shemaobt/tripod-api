@@ -39,7 +39,7 @@ async def upload_document(
 
     embeddings = embeddings or GoogleGenerativeAIEmbeddings(
         model=settings.google_embedding_model,
-        google_api_key=settings.google_api_key,
+        google_api_key=settings.google_api_key,  # type: ignore[call-arg]
     )
     vectors = await embeddings.aembed_documents(chunk_texts)
 

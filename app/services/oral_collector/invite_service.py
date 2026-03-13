@@ -15,18 +15,12 @@ async def create_invite(
     role: str,
     invited_by: str,
 ) -> ProjectInvite:
-    """Create a project invite for an existing user.
 
-    Raises NotFoundError if no active user with that email exists.
-    Raises ConflictError if a pending invite already exists.
-    """
-    # Verify the email belongs to an existing active user
     user_stmt = select(User).where(User.email == email, User.is_active.is_(True))
     user_result = await db.execute(user_stmt)
     if user_result.scalar_one_or_none() is None:
         raise NotFoundError("No registered user found with that email")
 
-    # Check for duplicate pending invite
     stmt = select(ProjectInvite).where(
         ProjectInvite.project_id == project_id,
         ProjectInvite.email == email,
@@ -50,7 +44,7 @@ async def create_invite(
 
 
 async def list_user_invites(db: AsyncSession, user_email: str) -> list[ProjectInvite]:
-    """List all pending invites for a user by email."""
+
     stmt = (
         select(ProjectInvite)
         .where(
@@ -66,7 +60,7 @@ async def list_user_invites(db: AsyncSession, user_email: str) -> list[ProjectIn
 async def accept_invite(
     db: AsyncSession, invite_id: str, user_id: str, user_email: str
 ) -> ProjectInvite:
-    """Accept an invite. Creates ProjectUserAccess entry with the invite's role."""
+
     invite = await _get_invite_for_user(db, invite_id, user_email)
 
     member = ProjectUserAccess(
@@ -85,7 +79,7 @@ async def accept_invite(
 
 
 async def decline_invite(db: AsyncSession, invite_id: str, user_email: str) -> ProjectInvite:
-    """Decline an invite."""
+
     invite = await _get_invite_for_user(db, invite_id, user_email)
 
     invite.status = "declined"
@@ -95,7 +89,7 @@ async def decline_invite(db: AsyncSession, invite_id: str, user_email: str) -> P
 
 
 async def _get_invite_for_user(db: AsyncSession, invite_id: str, user_email: str) -> ProjectInvite:
-    """Fetch a pending invite and verify it belongs to the user."""
+
     stmt = select(ProjectInvite).where(ProjectInvite.id == invite_id)
     result = await db.execute(stmt)
     invite = result.scalar_one_or_none()

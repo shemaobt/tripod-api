@@ -6,6 +6,7 @@ from app.core.database import get_db
 from app.models.meaning_map import (
     BibleBookResponse,
     ChapterSummary,
+    DashboardSummaryResponse,
     PericopeWithStatusResponse,
 )
 from app.services import meaning_map_service
@@ -21,10 +22,12 @@ async def list_books(
     return await meaning_map_service.list_books(db)
 
 
-@router.get("/dashboard-summary", dependencies=[_mm_access])
+@router.get(
+    "/dashboard-summary", response_model=DashboardSummaryResponse, dependencies=[_mm_access]
+)
 async def dashboard_summary(
     db: AsyncSession = Depends(get_db),
-) -> dict:
+) -> DashboardSummaryResponse:
     return await meaning_map_service.get_dashboard_summary(db)
 
 

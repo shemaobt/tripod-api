@@ -15,10 +15,6 @@ from tests.baker import (
     make_user,
 )
 
-# ---------------------------------------------------------------------------
-# CRUD: create_pericope, create_meaning_map, add_feedback
-# ---------------------------------------------------------------------------
-
 
 @pytest.mark.asyncio
 async def test_create_pericope_success(db_session) -> None:
@@ -73,11 +69,6 @@ async def test_create_pericope_without_title(db_session) -> None:
     book = await make_bible_book(db_session)
     pericope = await create_pericope(db_session, book.id, 2, 1, 2, 10, "Gen 2:1-10")
     assert pericope.title is None
-
-
-# ---------------------------------------------------------------------------
-# Get-or-404: get_book_or_404, get_pericope_or_404, get_meaning_map_or_404
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio

@@ -1,3 +1,5 @@
+from typing import Any
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.meaning_map import MeaningMap
@@ -7,7 +9,7 @@ async def create_meaning_map(
     db: AsyncSession,
     pericope_id: str,
     analyst_id: str,
-    data: dict,
+    data: dict[str, Any],
     status: str = "draft",
     bcd_version_at_creation: int | None = None,
 ) -> MeaningMap:

@@ -45,7 +45,7 @@ async def test_get_organization_by_slug(db_session) -> None:
 
 @pytest.mark.asyncio
 async def test_get_organization_or_404_raises_when_missing(db_session) -> None:
-    with pytest.raises(NotFoundError, match="Organization not found"):
+    with pytest.raises(NotFoundError, match=r"Organization .* not found"):
         await organization_service.get_organization_or_404(
             db_session, "00000000-0000-0000-0000-000000000000"
         )
@@ -105,7 +105,7 @@ async def test_update_organization_slug(db_session) -> None:
 
 @pytest.mark.asyncio
 async def test_update_organization_raises_not_found(db_session) -> None:
-    with pytest.raises(NotFoundError, match="Organization not found"):
+    with pytest.raises(NotFoundError, match=r"Organization .* not found"):
         await organization_service.update_organization(
             db_session, "00000000-0000-0000-0000-000000000000", name="X"
         )

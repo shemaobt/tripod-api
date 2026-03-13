@@ -13,7 +13,7 @@ async def test_list_apps(db_session) -> None:
     keys = [a.app_key for a in apps]
     assert "alpha-app" in keys
     assert "beta-app" in keys
-    # db_session seeds "meaning-map-generator" by default
+
     assert "meaning-map-generator" in keys
 
 

@@ -5,7 +5,7 @@ from app.db.models.project import ProjectUserAccess
 
 
 async def list_user_project_roles(db: AsyncSession, user_id: str) -> dict[str, str]:
-    """Return a map of project_id → role for all projects the user has access to."""
+
     stmt = select(ProjectUserAccess.project_id, ProjectUserAccess.role).where(
         ProjectUserAccess.user_id == user_id
     )

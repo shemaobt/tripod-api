@@ -30,7 +30,7 @@ async def query(
 
     embeddings = embeddings or GoogleGenerativeAIEmbeddings(
         model=settings.google_embedding_model,
-        google_api_key=settings.google_api_key,
+        google_api_key=settings.google_api_key,  # type: ignore[call-arg]
     )
     question_vector = await embeddings.aembed_query(question)
 

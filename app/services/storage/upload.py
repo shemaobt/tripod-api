@@ -6,11 +6,11 @@ GCS_UPLOADS_BUCKET = "tripod-image-uploads"
 GCS_PROJECT = "gen-lang-client-0886209230"
 
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp", "image/svg+xml"}
-MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
+MAX_FILE_SIZE = 5 * 1024 * 1024
 
 
 async def upload_image(file: UploadFile, folder: str = "images") -> str:
-    from google.cloud import storage  # type: ignore[import-untyped]
+    from google.cloud import storage
 
     if file.content_type not in ALLOWED_CONTENT_TYPES:
         raise ValueError(f"Unsupported file type: {file.content_type}")

@@ -126,7 +126,7 @@ async def test_warns_missing_established_list_non_first_pericope(db_session):
 
     issues = await validate_map_against_brief(db_session, mm)
 
-    assert any(i["severity"] == "error" and "Already Established" in i["message"] for i in issues)
+    assert any(i.severity == "error" and "Already Established" in i.message for i in issues)
 
 
 @pytest.mark.asyncio
@@ -157,7 +157,7 @@ async def test_passes_first_pericope_with_nothing_entry(db_session):
 
     issues = await validate_map_against_brief(db_session, mm)
 
-    assert not any(i["severity"] == "error" for i in issues)
+    assert not any(i.severity == "error" for i in issues)
 
 
 @pytest.mark.asyncio
@@ -197,7 +197,7 @@ async def test_warns_established_name_in_level_3(db_session):
 
     issues = await validate_map_against_brief(db_session, mm)
 
-    assert any("Naomi" in i["message"] and i["section"].startswith("prop_") for i in issues)
+    assert any("Naomi" in i.message and i.section.startswith("prop_") for i in issues)
 
 
 @pytest.mark.asyncio
@@ -232,4 +232,4 @@ async def test_passes_when_level_3_has_no_established_names(db_session):
 
     issues = await validate_map_against_brief(db_session, mm)
 
-    assert not any(i["section"].startswith("prop_") for i in issues)
+    assert not any(i.section.startswith("prop_") for i in issues)

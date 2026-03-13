@@ -1,4 +1,4 @@
-name: Lint (Ruff)
+name: Lint
 
 on:
   pull_request:
@@ -24,3 +24,21 @@ jobs:
 
       - name: Run Ruff format check
         run: uv run ruff format --check .
+
+  mypy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: uv sync --frozen --group dev
+
+      - name: Run mypy
+        run: uv run mypy app/

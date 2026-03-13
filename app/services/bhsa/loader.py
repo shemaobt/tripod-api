@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from app.core.config import Settings, get_settings
+from app.models.bhsa import BHSAStatus
 from app.services.bhsa.passage import extract_passage
 
 logger = logging.getLogger(__name__)
@@ -16,12 +17,12 @@ _is_loading: bool = False
 _message: str = "Not loaded"
 
 
-def get_status() -> dict[str, Any]:
-    return {
-        "is_loaded": _is_loaded,
-        "is_loading": _is_loading,
-        "message": _message,
-    }
+def get_status() -> BHSAStatus:
+    return BHSAStatus(
+        is_loaded=_is_loaded,
+        is_loading=_is_loading,
+        message=_message,
+    )
 
 
 def load(*, settings: Settings | None = None, force: bool = False) -> None:
@@ -67,7 +68,7 @@ def _download_from_gcs(bucket_name: str) -> None:
     global _message
 
     try:
-        from google.cloud import storage  # type: ignore[import-untyped]
+        from google.cloud import storage
     except ImportError:
         logger.warning("google-cloud-storage not installed, skipping GCS")
         return
@@ -109,7 +110,7 @@ def fetch_passage(ref: str) -> dict[str, Any]:
 
 
 def get_verse_counts(book: str) -> dict[int, int]:
-    """Return {chapter_number: verse_count} for every chapter of *book*."""
+
     if not _is_loaded or _tf_api is None:
         raise RuntimeError("BHSA not loaded — call /api/bhsa/load first")
 

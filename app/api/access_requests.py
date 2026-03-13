@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth_middleware import get_current_user, require_platform_admin
 from app.core.database import get_db
-from app.db.models.auth import User
+from app.db.models.auth import AccessRequest, User
 from app.models.access_request import (
     AccessRequestCreate,
     AccessRequestResponse,
@@ -14,7 +14,7 @@ from app.services import access_request_service
 router = APIRouter()
 
 
-def _to_response(request, app_key: str) -> AccessRequestResponse:
+def _to_response(request: AccessRequest, app_key: str) -> AccessRequestResponse:
     return AccessRequestResponse(
         id=request.id,
         user_id=request.user_id,

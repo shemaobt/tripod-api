@@ -1,12 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import NotFoundError
 from app.db.models.phase import Phase
-from app.services.phase.get_phase_by_id import get_phase_by_id
+from app.services.common import get_or_raise
 
 
 async def get_phase_or_404(db: AsyncSession, phase_id: str) -> Phase:
-    phase = await get_phase_by_id(db, phase_id)
-    if not phase:
-        raise NotFoundError("Phase not found")
-    return phase
+    return await get_or_raise(db, Phase, phase_id, label="Phase")

@@ -18,10 +18,6 @@ from tests.baker import (
     make_user,
 )
 
-# ---------------------------------------------------------------------------
-# Exports: export_json, export_prose
-# ---------------------------------------------------------------------------
-
 
 @pytest.mark.asyncio
 async def test_export_json_returns_valid_json(db_session) -> None:
@@ -93,11 +89,6 @@ async def test_export_prose_empty_data(db_session) -> None:
     assert "# Bible Meaning Map" in result
 
 
-# ---------------------------------------------------------------------------
-# Feedback: resolve_feedback
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.asyncio
 async def test_resolve_feedback_success(db_session) -> None:
     user = await make_user(db_session, email="analyst49@test.com")
@@ -135,11 +126,6 @@ async def test_resolve_feedback_wrong_meaning_map(db_session) -> None:
         await resolve_feedback(db_session, mm2.id, fb.id)
 
 
-# ---------------------------------------------------------------------------
-# Seed: seed_books
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.asyncio
 async def test_seed_books_inserts_all_66(db_session) -> None:
     count = await seed_books(db_session)
@@ -163,15 +149,10 @@ async def test_seed_books_ot_enabled_nt_disabled(db_session) -> None:
     await seed_books(db_session)
     books = await list_books(db_session)
     for book in books:
-        if book["testament"] == "OT":
-            assert book["is_enabled"] is True, f"{book['name']} should be enabled"
+        if book.testament == "OT":
+            assert book.is_enabled is True, f"{book.name} should be enabled"
         else:
-            assert book["is_enabled"] is False, f"{book['name']} should be disabled"
-
-
-# ---------------------------------------------------------------------------
-# Validation: ensure_ot
-# ---------------------------------------------------------------------------
+            assert book.is_enabled is False, f"{book.name} should be disabled"
 
 
 @pytest.mark.asyncio

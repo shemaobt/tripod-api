@@ -9,8 +9,6 @@ from app.core.database import Base
 
 
 class Notification(Base):
-    """App-agnostic notification record."""
-
     __tablename__ = "notifications"
     __table_args__ = (
         Index(
@@ -36,8 +34,6 @@ class Notification(Base):
 
 
 class NotificationMeaningMapDetail(Base):
-    """Meaning-map-specific detail for a notification (child table)."""
-
     __tablename__ = "notification_meaning_map_details"
 
     notification_id: Mapped[str] = mapped_column(

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 
 from app.services.book_context.generation.llm import call_llm
 from app.services.book_context.generation.schemas import ContextSectionsSchema
@@ -72,10 +73,9 @@ For each: name, first_invoked (chapter/verse), what_it_is, role_in_book, appears
 """
 
 
-async def generate_context_sections(state: BCDGenerationState) -> dict:
+async def generate_context_sections(state: BCDGenerationState) -> dict[str, Any]:
     bhsa_entities = state.get("bhsa_entities", [])
 
-    # Pre-filter to place entities only
     place_entities = [e for e in bhsa_entities if e.get("entity_type") == "place"]
 
     prompt = CONTEXT_SECTIONS_PROMPT.format(

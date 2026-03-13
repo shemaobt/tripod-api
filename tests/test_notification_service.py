@@ -10,10 +10,6 @@ from app.services.notifications.mark_as_read import mark_as_read
 from app.services.notifications.unread_count import unread_count
 from tests.baker import make_app, make_user
 
-# ---------------------------------------------------------------------------
-# create_notification
-# ---------------------------------------------------------------------------
-
 
 @pytest.mark.asyncio
 async def test_create_notification_basic(db_session) -> None:
@@ -102,11 +98,6 @@ async def test_create_notification_without_mm_detail_no_child_row(db_session) ->
         )
     )
     assert result.scalar_one_or_none() is None
-
-
-# ---------------------------------------------------------------------------
-# list_notifications
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
@@ -211,11 +202,6 @@ async def test_list_notifications_filters_by_app(db_session) -> None:
     assert all(r.app_id == app1.id for r in results)
 
 
-# ---------------------------------------------------------------------------
-# unread_count
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.asyncio
 async def test_unread_count_zero_when_none(db_session) -> None:
     user = await make_user(db_session, email="notif-user9@test.com")
@@ -270,11 +256,6 @@ async def test_unread_count_decrements_after_mark_read(db_session) -> None:
     assert count == 0
 
 
-# ---------------------------------------------------------------------------
-# mark_as_read
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.asyncio
 async def test_mark_as_read_success(db_session) -> None:
     user = await make_user(db_session, email="notif-user12@test.com")
@@ -319,11 +300,6 @@ async def test_mark_as_read_nonexistent_raises(db_session) -> None:
 
     with pytest.raises(NotFoundError):
         await mark_as_read(db_session, "nonexistent-id", user.id)
-
-
-# ---------------------------------------------------------------------------
-# mark_all_as_read
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio

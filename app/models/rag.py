@@ -37,3 +37,8 @@ class QueryRequest(BaseModel):
 class QueryResponse(BaseModel):
     answer: str
     sources: list[SourceChunk]
+
+
+class DeleteDocumentResponse(BaseModel):
+    deleted_chunks: int
+    doc_id: str

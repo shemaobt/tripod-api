@@ -13,7 +13,7 @@ async def create_app_role(
     label: str,
     description: str | None = None,
 ) -> Role:
-    """Create a custom (non-system) role for an app."""
+
     app = await get_app_or_404(db, app_id)
 
     existing = await db.execute(

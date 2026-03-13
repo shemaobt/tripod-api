@@ -16,10 +16,6 @@ from tests.baker import (
     make_user,
 )
 
-# ---------------------------------------------------------------------------
-# list_books
-# ---------------------------------------------------------------------------
-
 
 @pytest.mark.asyncio
 async def test_list_books_empty(db_session) -> None:
@@ -33,13 +29,8 @@ async def test_list_books_ordered(db_session) -> None:
     await make_bible_book(db_session, name="Genesis", abbreviation="Gen", order=1)
     result = await list_books(db_session)
     assert len(result) == 2
-    assert result[0]["name"] == "Genesis"
-    assert result[1]["name"] == "Exodus"
-
-
-# ---------------------------------------------------------------------------
-# list_meaning_maps
-# ---------------------------------------------------------------------------
+    assert result[0].name == "Genesis"
+    assert result[1].name == "Exodus"
 
 
 @pytest.mark.asyncio
@@ -98,11 +89,6 @@ async def test_list_meaning_maps_empty(db_session) -> None:
     assert result == []
 
 
-# ---------------------------------------------------------------------------
-# list_feedback
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.asyncio
 async def test_list_feedback_returns_ordered(db_session) -> None:
     user = await make_user(db_session, email="analyst9@test.com")
@@ -130,11 +116,6 @@ async def test_list_feedback_empty(db_session) -> None:
     mm = await make_meaning_map(db_session, pericope.id, user.id)
     result = await list_feedback(db_session, mm.id)
     assert result == []
-
-
-# ---------------------------------------------------------------------------
-# list_pericopes
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
@@ -175,11 +156,6 @@ async def test_list_pericopes_without_meaning_map(db_session) -> None:
     result = await list_pericopes(db_session, book.id)
     assert len(result) == 1
     assert result[0].meaning_map_id is None
-
-
-# ---------------------------------------------------------------------------
-# get_chapter_summaries
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
@@ -248,11 +224,6 @@ async def test_get_chapter_summaries_approved_count(db_session) -> None:
     assert len(result) == 1
     assert result[0].chapter == 5
     assert result[0].approved_count == 1
-
-
-# ---------------------------------------------------------------------------
-# Join lookups: get_map_with_book, get_pericope_with_book
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio

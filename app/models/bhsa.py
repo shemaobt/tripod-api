@@ -27,7 +27,18 @@ class PassageResponse(BaseModel):
     clauses: list[ClauseData]
 
 
+class BHSAStatus(BaseModel):
+    is_loaded: bool
+    is_loading: bool
+    message: str
+
+
 class BHSAStatusResponse(BaseModel):
     status: str
     bhsa_loaded: bool
+    message: str
+
+
+class BHSALoadResponse(BaseModel):
+    status: str
     message: str

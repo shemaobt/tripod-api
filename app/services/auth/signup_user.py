@@ -8,7 +8,7 @@ from app.services.auth.hash_password import hash_password
 
 
 async def signup_user(db: AsyncSession, payload: UserSignupRequest) -> User:
-    """Create a new local user."""
+
     existing_user = await get_user_by_email(db, payload.email)
     if existing_user:
         raise ConflictError("Email already exists")

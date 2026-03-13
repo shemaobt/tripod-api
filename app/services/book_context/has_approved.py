@@ -5,7 +5,7 @@ from app.db.models.book_context import BCDStatus, BookContextDocument
 
 
 async def has_approved_bcd(db: AsyncSession, book_id: str) -> bool:
-    """Check whether a book has at least one approved Book Context Document."""
+
     result = await db.execute(
         select(BookContextDocument.id)
         .where(

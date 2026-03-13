@@ -16,4 +16,4 @@ async def list_members(
         .order_by(OrganizationMember.joined_at)
     )
     result = await db.execute(stmt)
-    return list(result.all())
+    return [row._tuple() for row in result.all()]

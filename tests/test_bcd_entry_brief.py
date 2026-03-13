@@ -46,6 +46,7 @@ SAMPLE_THREADS = [
     {
         "label": "Famine migration",
         "opened_at": {"chapter": 1, "verse": 1},
+        "question": "What will happen due to the famine?",
         "status_by_episode": [
             {"at": {"chapter": 1, "verse": 1}, "status": "famine drives family to Moab"},
         ],
@@ -54,6 +55,7 @@ SAMPLE_THREADS = [
     {
         "label": "Loyalty of Ruth",
         "opened_at": {"chapter": 1, "verse": 8},
+        "question": "Will Ruth stay loyal to Naomi?",
         "status_by_episode": [
             {"at": {"chapter": 1, "verse": 16}, "status": "Ruth commits to Naomi"},
         ],
@@ -150,7 +152,7 @@ async def test_non_first_pericope_slices_by_entry_verse(db_session):
 
     assert brief.is_first_pericope is False
     assert brief.bcd_version == 2
-    participant_names = [p["name"] for p in brief.participants]
+    participant_names = [p.name for p in brief.participants]
     assert "Naomi" in participant_names
     assert "Ruth" in participant_names
     assert "Boaz" not in participant_names
@@ -195,7 +197,7 @@ async def test_entry_brief_filters_threads_by_opened_at(db_session):
 
     brief = await compute_entry_brief(db_session, pericope2.id)
 
-    thread_labels = [t["label"] for t in brief.active_threads]
+    thread_labels = [t.label for t in brief.active_threads]
     assert "Famine migration" in thread_labels
     assert "Loyalty of Ruth" not in thread_labels
 

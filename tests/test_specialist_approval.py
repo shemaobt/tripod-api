@@ -1,13 +1,9 @@
-"""Tests for Phase 5: multi-specialist approval workflow."""
-
 import pytest
 
 from app.core.exceptions import AuthorizationError
 from app.services.book_context.approve_bcd import approve_bcd
 from app.services.book_context.get_approval_status import get_approval_status
 from tests.baker import make_bcd, make_bible_book, make_user
-
-# ─── Specialist roles can approve ────────────────────────────────────────────
 
 
 @pytest.mark.asyncio
@@ -58,9 +54,6 @@ async def test_translation_specialist_can_approve(db_session):
     assert result.status.value == "review"
 
 
-# ─── Two specialists covering 2+ specialties ─────────────────────────────────
-
-
 @pytest.mark.asyncio
 async def test_two_specialists_covering_two_specialties_approve(db_session):
     user1 = await make_user(db_session, email="spec1@test.com")
@@ -99,9 +92,6 @@ async def test_two_specialists_same_specialty_stay_review(db_session):
     assert result.status.value == "review"
 
 
-# ─── Mixed roles ─────────────────────────────────────────────────────────────
-
-
 @pytest.mark.asyncio
 async def test_specialist_with_two_roles_plus_another_specialist_approves(db_session):
     spec1 = await make_user(db_session, email="spec1_multi@test.com")
@@ -134,9 +124,8 @@ async def test_user_with_multiple_specialist_roles(db_session):
     )
     bcd = await make_bcd(db_session, book.id, user1.id)
 
-    # User1 covers 2 specialties but is only 1 person
     await approve_bcd(db_session, bcd.id, user1.id, ["exegete", "biblical_language_specialist"])
-    # Still need 2nd distinct user with a specialist role
+
     result = await approve_bcd(db_session, bcd.id, user2.id, ["translation_specialist"])
 
     assert result.status.value == "approved"
@@ -177,11 +166,7 @@ async def test_single_user_with_two_specialties_stays_review(db_session):
         ["exegete", "biblical_language_specialist", "translation_specialist"],
     )
 
-    # Has 3 specialties but only 1 distinct user — needs 2
     assert result.status.value == "review"
-
-
-# ─── Admin still instant-approves ────────────────────────────────────────────
 
 
 @pytest.mark.asyncio
@@ -219,9 +204,6 @@ async def test_specialist_then_admin_approves(db_session):
     assert result.status.value == "approved"
 
 
-# ─── Rejection cases ────────────────────────────────────────────────────────
-
-
 @pytest.mark.asyncio
 async def test_viewer_cannot_approve(db_session):
     user = await make_user(db_session, email="viewer_spec@test.com")
@@ -254,9 +236,6 @@ async def test_analyst_cannot_approve(db_session):
         await approve_bcd(db_session, bcd.id, user.id, ["analyst"])
 
 
-# ─── get_approval_status ─────────────────────────────────────────────────────
-
-
 @pytest.mark.asyncio
 async def test_approval_status_empty(db_session):
     user = await make_user(db_session, email="status1@test.com")
@@ -271,11 +250,11 @@ async def test_approval_status_empty(db_session):
 
     status = await get_approval_status(db_session, bcd.id)
 
-    assert status["approvals"] == []
-    assert status["covered_specialties"] == []
-    assert len(status["missing_specialties"]) == 3
-    assert status["distinct_reviewers"] == 0
-    assert status["is_complete"] is False
+    assert status.approvals == []
+    assert status.covered_specialties == []
+    assert len(status.missing_specialties) == 3
+    assert status.distinct_reviewers == 0
+    assert status.is_complete is False
 
 
 @pytest.mark.asyncio
@@ -294,10 +273,10 @@ async def test_approval_status_partial(db_session):
 
     status = await get_approval_status(db_session, bcd.id)
 
-    assert len(status["approvals"]) == 1
-    assert "exegete" in status["covered_specialties"]
-    assert status["distinct_reviewers"] == 1
-    assert status["is_complete"] is False
+    assert len(status.approvals) == 1
+    assert "exegete" in status.covered_specialties
+    assert status.distinct_reviewers == 1
+    assert status.is_complete is False
 
 
 @pytest.mark.asyncio
@@ -318,8 +297,8 @@ async def test_approval_status_complete(db_session):
 
     status = await get_approval_status(db_session, bcd.id)
 
-    assert len(status["approvals"]) == 2
-    assert "exegete" in status["covered_specialties"]
-    assert "biblical_language_specialist" in status["covered_specialties"]
-    assert status["distinct_reviewers"] == 2
-    assert status["is_complete"] is True
+    assert len(status.approvals) == 2
+    assert "exegete" in status.covered_specialties
+    assert "biblical_language_specialist" in status.covered_specialties
+    assert status.distinct_reviewers == 2
+    assert status.is_complete is True

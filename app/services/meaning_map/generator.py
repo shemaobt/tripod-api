@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class GenerationError(Exception):
-    """Raised when a required generation data source is unavailable."""
+    pass
 
 
 GENERATION_PROMPT_TEMPLATE = """\
@@ -100,7 +100,7 @@ Now, generate the complete Bible Meaning Map for {reference}.
 
 
 def _format_bhsa_clauses(clauses: list[dict[str, Any]]) -> str:
-    """Format BHSA clause dicts into rich multi-line text for the LLM prompt."""
+
     lines: list[str] = []
     for c in clauses:
         line = (
@@ -228,8 +228,7 @@ async def generate_meaning_map(
 ) -> dict[str, Any]:
     settings = settings or get_settings()
 
-    # --- BHSA (required) ---
-    if not bhsa_loader.get_status()["is_loaded"]:
+    if not bhsa_loader.get_status().is_loaded:
         raise GenerationError("BHSA data is not loaded. Contact an administrator.")
 
     try:
@@ -240,7 +239,6 @@ async def generate_meaning_map(
     if not bhsa_data or not bhsa_data.get("clauses"):
         raise GenerationError(f"BHSA returned no clause data for {reference}.")
 
-    # --- RAG (required) ---
     if qdrant_client is None:
         raise GenerationError("RAG service is not available. Contact an administrator.")
 
@@ -261,7 +259,6 @@ async def generate_meaning_map(
 
     prompt = _build_generation_prompt(reference, bhsa_data, rag_context, entry_brief)
 
-    # --- LLM ---
     try:
         llm = ChatGoogleGenerativeAI(
             model=settings.google_llm_model,
@@ -269,6 +266,8 @@ async def generate_meaning_map(
         )
         structured_llm = llm.with_structured_output(ProseMeaningMap)
         result = await structured_llm.ainvoke(prompt)
+        if isinstance(result, dict):
+            return result
         return result.model_dump()
     except Exception as e:
         raise GenerationError(f"LLM generation failed: {e}") from e

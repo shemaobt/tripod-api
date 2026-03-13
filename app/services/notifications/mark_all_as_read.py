@@ -5,7 +5,7 @@ from app.db.models.notification import Notification
 
 
 async def mark_all_as_read(db: AsyncSession, user_id: str) -> int:
-    """Mark all unread notifications as read for a user. Returns count updated."""
+
     stmt = (
         update(Notification)
         .where(Notification.user_id == user_id, Notification.is_read.is_(False))

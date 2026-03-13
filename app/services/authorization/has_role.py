@@ -7,7 +7,7 @@ from app.services.authorization.get_role import get_role
 
 
 async def has_role(db: AsyncSession, user_id: str, app_key: str, role_key: str) -> bool:
-    """Return whether user has an active role for app."""
+
     app = await get_app_by_key(db, app_key)
     if not app:
         return False

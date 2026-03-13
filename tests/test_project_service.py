@@ -79,7 +79,7 @@ async def test_update_project_location_partial(db_session) -> None:
 
 @pytest.mark.asyncio
 async def test_update_project_location_raises_when_not_found(db_session) -> None:
-    with pytest.raises(NotFoundError, match="Project not found"):
+    with pytest.raises(NotFoundError, match=r"Project .* not found"):
         await project_service.update_project_location(
             db_session,
             "00000000-0000-0000-0000-000000000000",
@@ -99,7 +99,7 @@ async def test_get_project_by_id(db_session) -> None:
 
 @pytest.mark.asyncio
 async def test_get_project_or_404_raises_when_missing(db_session) -> None:
-    with pytest.raises(NotFoundError, match="Project not found"):
+    with pytest.raises(NotFoundError, match=r"Project .* not found"):
         await project_service.get_project_or_404(db_session, "00000000-0000-0000-0000-000000000000")
 
 
@@ -221,7 +221,7 @@ async def test_update_project_changes_language(db_session) -> None:
 
 @pytest.mark.asyncio
 async def test_update_project_raises_not_found_for_missing_project(db_session) -> None:
-    with pytest.raises(NotFoundError, match="Project not found"):
+    with pytest.raises(NotFoundError, match=r"Project .* not found"):
         await project_service.update_project(
             db_session, "00000000-0000-0000-0000-000000000000", name="X"
         )

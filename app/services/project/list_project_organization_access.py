@@ -16,4 +16,4 @@ async def list_project_organization_access(
         .order_by(ProjectOrganizationAccess.granted_at)
     )
     result = await db.execute(stmt)
-    return list(result.all())
+    return [row._tuple() for row in result.all()]

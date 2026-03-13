@@ -43,6 +43,7 @@ dev = [
     "pytest-asyncio>=0.24.0",
     "aiosqlite>=0.20.0",
     "ruff>=0.8.0",
+    "mypy>=1.19.1",
 ]
 
 [tool.ruff]
@@ -56,6 +57,15 @@ ignore = ["B008"]
 
 [tool.ruff.format]
 quote-style = "double"
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+strict = false
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+exclude = ["alembic/", "tests/"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

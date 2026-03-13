@@ -1,5 +1,3 @@
-"""Tests for Phase 1: places and objects in established items + generator formatting."""
-
 import pytest
 
 from app.services.book_context.compute_entry_brief import (
@@ -74,9 +72,6 @@ SAMPLE_BCD_DATA = {
 }
 
 
-# ─── _build_established_items includes places and objects ─────────────────────
-
-
 def test_build_established_items_includes_places():
     items = _build_established_items(
         participants=[],
@@ -147,9 +142,6 @@ def test_build_established_items_all_categories():
     assert categories == {"participant", "event", "institution", "place", "object"}
 
 
-# ─── compute_entry_brief includes places and objects in established_items ────
-
-
 @pytest.mark.asyncio
 async def test_entry_brief_places_in_established_items(db_session):
     user = await make_user(db_session, email="eb_places@test.com")
@@ -187,7 +179,7 @@ async def test_entry_brief_places_in_established_items(db_session):
     place_names = [i.name for i in brief.established_items if i.category == "place"]
     assert "Bethlehem" in place_names
     assert "Moab" in place_names
-    # Boaz's field appears at 2:3 which is AFTER 2:1, so should NOT be included
+
     assert "Boaz's field" not in place_names
 
 
@@ -226,11 +218,8 @@ async def test_entry_brief_objects_in_established_items(db_session):
     obj_items = [i for i in brief.established_items if i.category == "object"]
     obj_names = [i.name for i in obj_items]
     assert "grain" in obj_names
-    # sandal appears at 4:7, not before 2:4
+
     assert "sandal" not in obj_names
-
-
-# ─── _format_entry_brief includes places, objects, institutions, english_gloss
 
 
 def test_format_entry_brief_includes_places():
@@ -320,6 +309,6 @@ def test_format_entry_brief_no_gloss():
         "active_threads": [],
     }
     result = _format_entry_brief(brief)
-    # Should not have "()" for empty gloss
+
     assert "Famine:" in result
     assert "()" not in result

@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AuthorizationError, ConflictError
-from app.db.models.meaning_map import MeaningMap, Pericope
+from app.db.models.meaning_map import MeaningMap, MeaningMapStatus, Pericope
 from app.services.notifications.create_notification import create_notification
 from app.services.notifications.get_mm_app_id import get_mm_app_id
 
@@ -38,12 +38,12 @@ async def transition_status(
         raise AuthorizationError("You cannot cross-check your own meaning map")
 
     if transition == ("draft", "cross_check"):
-        mm.status = "cross_check"
+        mm.status = MeaningMapStatus.CROSS_CHECK
         mm.locked_by = None
         mm.locked_at = None
 
     elif transition == ("cross_check", "approved"):
-        mm.status = "approved"
+        mm.status = MeaningMapStatus.APPROVED
         mm.date_approved = datetime.now(UTC)
         mm.approved_by = user_id
         mm.cross_checker_id = user_id
@@ -51,7 +51,7 @@ async def transition_status(
         mm.locked_at = None
 
     elif transition == ("cross_check", "draft"):
-        mm.status = "draft"
+        mm.status = MeaningMapStatus.DRAFT
         mm.locked_by = None
         mm.locked_at = None
 

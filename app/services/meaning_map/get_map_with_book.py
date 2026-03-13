@@ -6,7 +6,7 @@ from app.db.models.meaning_map import BibleBook, MeaningMap, Pericope
 
 
 async def get_map_with_book(db: AsyncSession, map_id: str) -> tuple[MeaningMap, BibleBook]:
-    """Fetch a meaning map and its associated book in a single JOIN query."""
+
     stmt = (
         select(MeaningMap, BibleBook)
         .join(Pericope, MeaningMap.pericope_id == Pericope.id)

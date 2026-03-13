@@ -25,13 +25,11 @@ async def main() -> None:
     args = parser.parse_args()
 
     async with AsyncSessionLocal() as db:
-        # 1. Find user
         user = (await db.execute(select(User).where(User.email == args.email))).scalar_one_or_none()
         if not user:
             print(f"Error: User with email '{args.email}' not found.")
             sys.exit(1)
 
-        # 2. Find app
         app = (
             await db.execute(select(App).where(App.app_key == args.app_key))
         ).scalar_one_or_none()
@@ -39,7 +37,6 @@ async def main() -> None:
             print(f"Error: App with key '{args.app_key}' not found.")
             sys.exit(1)
 
-        # 3. Find role in that app
         role = (
             await db.execute(
                 select(Role).where(Role.app_id == app.id, Role.role_key == args.role_key)
@@ -49,7 +46,6 @@ async def main() -> None:
             print(f"Error: Role '{args.role_key}' not found for app '{args.app_key}'.")
             sys.exit(1)
 
-        # 4. Upsert UserAppRole
         existing = (
             await db.execute(
                 select(UserAppRole).where(

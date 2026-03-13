@@ -1,14 +1,8 @@
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import NotFoundError
 from app.db.models.meaning_map import BibleBook
+from app.services.common import get_or_raise
 
 
 async def get_book_or_404(db: AsyncSession, book_id: str) -> BibleBook:
-    stmt = select(BibleBook).where(BibleBook.id == book_id)
-    result = await db.execute(stmt)
-    book = result.scalar_one_or_none()
-    if book is None:
-        raise NotFoundError(f"Bible book {book_id} not found")
-    return book
+    return await get_or_raise(db, BibleBook, book_id, label="Bible book")

@@ -1,4 +1,5 @@
 import time
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 
@@ -15,7 +16,7 @@ async def track_step(
     step_order: int,
     *,
     input_summary: str | None = None,
-):
+) -> AsyncIterator[BCDGenerationLog]:
     log = BCDGenerationLog(
         bcd_id=bcd_id,
         step_name=step_name,

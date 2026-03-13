@@ -22,7 +22,7 @@ async def test_staleness_check_current_version(db_session):
     await db_session.commit()
 
     result = await check_bcd_staleness(db_session, mm)
-    assert result["is_stale"] is False
+    assert result.is_stale is False
 
 
 @pytest.mark.asyncio
@@ -43,8 +43,8 @@ async def test_staleness_check_outdated_version(db_session):
     await db_session.commit()
 
     result = await check_bcd_staleness(db_session, mm)
-    assert result["is_stale"] is True
-    assert result["current_version"] == 5
+    assert result.is_stale is True
+    assert result.current_version == 5
 
 
 @pytest.mark.asyncio
@@ -61,7 +61,7 @@ async def test_staleness_check_no_bcd_at_all(db_session):
     mm = await make_meaning_map(db_session, pericope.id, user.id)
 
     result = await check_bcd_staleness(db_session, mm)
-    assert result["is_stale"] is False
+    assert result.is_stale is False
 
 
 @pytest.mark.asyncio
@@ -79,7 +79,7 @@ async def test_staleness_check_no_version_on_mm(db_session):
     mm = await make_meaning_map(db_session, pericope.id, user.id)
 
     result = await check_bcd_staleness(db_session, mm)
-    assert result["is_stale"] is False
+    assert result.is_stale is False
 
 
 @pytest.mark.asyncio
@@ -124,7 +124,7 @@ async def test_validate_non_first_pericope_no_established(db_session):
     )
 
     issues = await validate_map_against_brief(db_session, mm)
-    assert any(i["severity"] == "error" and "Already Established" in i["message"] for i in issues)
+    assert any(i.severity == "error" and "Already Established" in i.message for i in issues)
 
 
 @pytest.mark.asyncio
@@ -160,7 +160,7 @@ async def test_validate_first_pericope_no_issues(db_session):
     )
 
     issues = await validate_map_against_brief(db_session, mm)
-    assert not any(i["severity"] == "error" for i in issues)
+    assert not any(i.severity == "error" for i in issues)
 
 
 @pytest.mark.asyncio
@@ -220,4 +220,4 @@ async def test_validate_detects_established_name_in_propositions(db_session):
     )
 
     issues = await validate_map_against_brief(db_session, mm)
-    assert any("Boaz" in i["message"] for i in issues)
+    assert any("Boaz" in i.message for i in issues)

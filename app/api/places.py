@@ -1,3 +1,5 @@
+from typing import Any
+
 import httpx
 from fastapi import APIRouter, Depends, Query
 
@@ -15,7 +17,7 @@ PLACE_DETAILS_URL = "https://places.googleapis.com/v1/places"
 async def places_autocomplete(
     q: str = Query(..., min_length=1),
     _: User = Depends(get_current_user),
-) -> dict:
+) -> dict[str, Any]:
     settings = get_settings()
     async with httpx.AsyncClient() as client:
         resp = await client.post(
@@ -27,14 +29,15 @@ async def places_autocomplete(
             },
             timeout=10.0,
         )
-        return resp.json()
+        data: dict[str, Any] = resp.json()
+        return data
 
 
 @router.get("/details")
 async def place_details(
     place_id: str = Query(...),
     _: User = Depends(get_current_user),
-) -> dict:
+) -> dict[str, Any]:
     settings = get_settings()
     async with httpx.AsyncClient() as client:
         resp = await client.get(
@@ -45,4 +48,5 @@ async def place_details(
             },
             timeout=10.0,
         )
-        return resp.json()
+        data: dict[str, Any] = resp.json()
+        return data

@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,7 +11,7 @@ from app.db.models.auth import User
 from app.services import authorization_service
 
 
-def require_app_access(app_key: str) -> Depends:
+def require_app_access(app_key: str) -> Any:
 
     async def _check(
         user: User = Depends(get_current_user),
@@ -31,7 +33,7 @@ def require_app_access(app_key: str) -> Depends:
     return Depends(_check)
 
 
-def require_role(app_key: str, role_key: str) -> Depends:
+def require_role(app_key: str, role_key: str) -> Any:
 
     async def _check(
         user: User = Depends(get_current_user),

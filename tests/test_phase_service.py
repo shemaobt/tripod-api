@@ -94,7 +94,7 @@ async def test_detach_phase_from_project(db_session) -> None:
 
 @pytest.mark.asyncio
 async def test_get_phase_or_404_raises_when_missing(db_session) -> None:
-    with pytest.raises(NotFoundError, match="Phase not found"):
+    with pytest.raises(NotFoundError, match=r"Phase .* not found"):
         await phase_service.get_phase_or_404(db_session, "00000000-0000-0000-0000-000000000000")
 
 
@@ -175,7 +175,7 @@ async def test_remove_dependency(db_session) -> None:
 @pytest.mark.asyncio
 async def test_attach_phase_to_project_raises_when_project_not_found(db_session) -> None:
     phase = await make_phase(db_session, name="Phase")
-    with pytest.raises(NotFoundError, match="Project not found"):
+    with pytest.raises(NotFoundError, match=r"Project .* not found"):
         await phase_service.attach_phase_to_project(
             db_session, "00000000-0000-0000-0000-000000000000", phase.id
         )
@@ -185,7 +185,7 @@ async def test_attach_phase_to_project_raises_when_project_not_found(db_session)
 async def test_attach_phase_to_project_raises_when_phase_not_found(db_session) -> None:
     lang = await make_language(db_session, code="tst")
     project = await make_project(db_session, language_id=lang.id)
-    with pytest.raises(NotFoundError, match="Phase not found"):
+    with pytest.raises(NotFoundError, match=r"Phase .* not found"):
         await phase_service.attach_phase_to_project(
             db_session, project.id, "00000000-0000-0000-0000-000000000000"
         )

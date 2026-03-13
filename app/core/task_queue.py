@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from app.core.config import get_settings
 
@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_app: Any = None
+_app: procrastinate.App | None = None
 
 
 def get_task_app() -> procrastinate.App:

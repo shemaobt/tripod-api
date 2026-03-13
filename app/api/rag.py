@@ -2,9 +2,11 @@ from fastapi import APIRouter, Depends, UploadFile, status
 
 from app.core.access_control import require_app_access, require_role
 from app.core.auth_middleware import get_current_user
+from app.core.exceptions import ValidationError
 from app.core.qdrant import get_qdrant_client
 from app.db.models.auth import User
 from app.models.rag import (
+    DeleteDocumentResponse,
     DocumentInfo,
     DocumentUploadResponse,
     QueryRequest,
@@ -29,8 +31,6 @@ async def upload_document(
     _: User = _mm_admin,
 ) -> DocumentUploadResponse:
     if not file.filename or not file.filename.lower().endswith(".md"):
-        from app.core.exceptions import ValidationError
-
         raise ValidationError("Only .md files are supported")
 
     content = (await file.read()).decode("utf-8")
@@ -59,13 +59,14 @@ async def list_documents(
 
 @router.delete(
     "/{namespace}/documents/{doc_id}",
+    response_model=DeleteDocumentResponse,
     status_code=status.HTTP_200_OK,
 )
 async def delete_document(
     namespace: RagNamespace,
     doc_id: str,
     _: User = _mm_admin,
-) -> dict:
+) -> DeleteDocumentResponse:
     client = get_qdrant_client()
     deleted = await rag_service.delete_document(client, namespace, doc_id)
-    return {"deleted_chunks": deleted, "doc_id": doc_id}
+    return DeleteDocumentResponse(deleted_chunks=deleted, doc_id=doc_id)

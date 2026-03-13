@@ -5,7 +5,7 @@ from app.core.access_control import require_app_access
 from app.core.auth_middleware import get_current_user
 from app.core.database import get_db
 from app.db.models.auth import User
-from app.models.notification import NotificationResponse, UnreadCountResponse
+from app.models.notification import MarkAllReadResponse, NotificationResponse, UnreadCountResponse
 from app.services import notification_service
 
 router = APIRouter()
@@ -51,10 +51,10 @@ async def mark_as_read(
     return enriched[0]
 
 
-@router.post("/mark-all-read", dependencies=[_mm_access])
+@router.post("/mark-all-read", response_model=MarkAllReadResponse, dependencies=[_mm_access])
 async def mark_all_as_read(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-) -> dict:
+) -> MarkAllReadResponse:
     count = await notification_service.mark_all_as_read(db, user.id)
-    return {"count": count}
+    return MarkAllReadResponse(count=count)

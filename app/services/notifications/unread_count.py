@@ -5,7 +5,7 @@ from app.db.models.notification import Notification
 
 
 async def unread_count(db: AsyncSession, user_id: str, app_id: str) -> int:
-    """Return the number of unread notifications for a user within an app."""
+
     stmt = (
         select(func.count())
         .select_from(Notification)

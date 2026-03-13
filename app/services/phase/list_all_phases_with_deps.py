@@ -2,10 +2,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.phase import Phase, PhaseDependency
+from app.models.phase import PhaseResponse, PhasesWithDepsResponse
 
 
-async def list_all_phases_with_deps(db: AsyncSession) -> dict:
-    """Return all phases with all dependencies in a single response."""
+async def list_all_phases_with_deps(db: AsyncSession) -> PhasesWithDepsResponse:
+
     phases_result = await db.execute(select(Phase).order_by(Phase.name))
     phases = list(phases_result.scalars().all())
 
@@ -17,4 +18,7 @@ async def list_all_phases_with_deps(db: AsyncSession) -> dict:
         if dep.phase_id in deps_map:
             deps_map[dep.phase_id].append(dep.depends_on_id)
 
-    return {"phases": phases, "dependencies": deps_map}
+    return PhasesWithDepsResponse(
+        phases=[PhaseResponse.model_validate(p) for p in phases],
+        dependencies=deps_map,
+    )

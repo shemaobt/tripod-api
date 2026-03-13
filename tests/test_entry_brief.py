@@ -170,7 +170,7 @@ async def test_slices_participants_before_target_verse(db_session):
 
     brief = await compute_entry_brief(db_session, pericope2.id)
 
-    participant_names = [p["name"] for p in brief.participants]
+    participant_names = [p.name for p in brief.participants]
     assert "Elimelech" in participant_names
     assert "Naomi" in participant_names
     assert "Boaz" not in participant_names
@@ -208,8 +208,8 @@ async def test_slices_participant_arcs_at_target_verse(db_session):
 
     brief = await compute_entry_brief(db_session, pericope2.id)
 
-    naomi = next(p for p in brief.participants if p["name"] == "Naomi")
-    arc_states = [a["state"] for a in naomi["arc"]]
+    naomi = next(p for p in brief.participants if p.name == "Naomi")
+    arc_states = [a.state for a in naomi.arc]
     assert "wife and mother" in arc_states
     assert "widowed, childless" in arc_states
     assert "bitter, renames herself Mara" not in arc_states
@@ -247,7 +247,7 @@ async def test_includes_active_threads(db_session):
 
     brief = await compute_entry_brief(db_session, pericope2.id)
 
-    thread_labels = [t["label"] for t in brief.active_threads]
+    thread_labels = [t.label for t in brief.active_threads]
     assert "Ruth's security" in thread_labels
 
 
@@ -283,8 +283,8 @@ async def test_marks_resolved_threads(db_session):
 
     brief = await compute_entry_brief(db_session, pericope2.id)
 
-    bitterness = next(t for t in brief.active_threads if t["label"] == "Naomi's bitterness")
-    assert bitterness["is_resolved_at_entry"] is True
+    bitterness = next(t for t in brief.active_threads if t.label == "Naomi's bitterness")
+    assert bitterness.is_resolved_at_entry is True
 
 
 @pytest.mark.asyncio
@@ -319,7 +319,7 @@ async def test_filters_places_before_target(db_session):
 
     brief = await compute_entry_brief(db_session, pericope2.id)
 
-    place_names = [p["name"] for p in brief.places]
+    place_names = [p.name for p in brief.places]
     assert "Bethlehem" in place_names
     assert "Boaz's field" not in place_names
 
@@ -356,7 +356,7 @@ async def test_filters_institutions_before_target(db_session):
 
     brief = await compute_entry_brief(db_session, pericope2.id)
 
-    inst_names = [i["name"] for i in brief.institutions]
+    inst_names = [i.name for i in brief.institutions]
     assert "gleaning rights" not in inst_names
     assert "kinsman-redeemer" not in inst_names
 
@@ -417,11 +417,11 @@ async def test_same_chapter_different_verses(db_session):
 
     brief = await compute_entry_brief(db_session, pericope2.id)
 
-    participant_names = [p["name"] for p in brief.participants]
+    participant_names = [p.name for p in brief.participants]
     assert "Elimelech" in participant_names
     assert "Naomi" in participant_names
 
-    elim = next(p for p in brief.participants if p["name"] == "Elimelech")
-    arc_states = [a["state"] for a in elim["arc"]]
+    elim = next(p for p in brief.participants if p.name == "Elimelech")
+    arc_states = [a.state for a in elim.arc]
     assert "man from Bethlehem" in arc_states
     assert "dead" not in arc_states

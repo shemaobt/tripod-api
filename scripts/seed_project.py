@@ -22,7 +22,6 @@ async def main():
         ).scalar_one_or_none()
 
         if not project:
-            # Need a language ID. Let's just create one or grab the first one.
             from app.db.models.language import Language
 
             lang = (await db.execute(select(Language))).scalars().first()
@@ -39,7 +38,6 @@ async def main():
             db.add(project)
             await db.flush()
 
-        # Give access
         access = (
             await db.execute(
                 select(ProjectUserAccess).where(

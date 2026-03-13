@@ -51,14 +51,14 @@ async def init_qdrant() -> None:
 
 
 def get_qdrant_client() -> AsyncQdrantClient:
-    """Return the singleton Qdrant client."""
+
     if _client is None:
         raise RuntimeError("Qdrant client not initialised — call init_qdrant() first")
     return _client
 
 
 async def close_qdrant() -> None:
-    """Gracefully close the Qdrant client."""
+
     global _client
     if _client is not None:
         await _client.close()

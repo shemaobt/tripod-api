@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from app.services.book_context.generation.llm import call_llm
 from app.services.book_context.generation.schemas import StructuralOutlineSchema
 from app.services.book_context.generation.state import BCDGenerationState
@@ -24,7 +26,7 @@ Produce a structural outline with:
 """
 
 
-async def generate_structural_outline(state: BCDGenerationState) -> dict:
+async def generate_structural_outline(state: BCDGenerationState) -> dict[str, Any]:
     prompt = STRUCTURAL_OUTLINE_PROMPT.format(
         book_name=state["book_name"],
         genre=state["genre"],

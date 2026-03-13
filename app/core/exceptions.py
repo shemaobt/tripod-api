@@ -38,7 +38,11 @@ class NotFoundError(Exception):
     pass
 
 
-def _error_body(detail: str, code: str) -> dict:
+class ValidationError(Exception):
+    pass
+
+
+def _error_body(detail: str, code: str) -> dict[str, str]:
     return {"detail": detail, "code": code}
 
 
@@ -74,6 +78,13 @@ async def handle_invalid_token(_request: Request, exc: InvalidTokenError) -> JSO
     return JSONResponse(
         status_code=status.HTTP_401_UNAUTHORIZED,
         content=_error_body(str(exc) or "Invalid or expired token", ERROR_CODE_UNAUTHORIZED),
+    )
+
+
+async def handle_validation_error(_request: Request, exc: ValidationError) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content=_error_body(str(exc), ERROR_CODE_BAD_REQUEST),
     )
 
 
@@ -120,11 +131,12 @@ async def handle_http_exception(_request: Request, exc: StarletteHTTPException) 
 
 
 def register_exception_handlers(app: FastAPI) -> None:
-    app.add_exception_handler(StarletteHTTPException, handle_http_exception)
-    app.add_exception_handler(AuthenticationError, handle_authentication_error)
-    app.add_exception_handler(AuthorizationError, handle_authorization_error)
-    app.add_exception_handler(ConflictError, handle_conflict_error)
-    app.add_exception_handler(RoleError, handle_role_error)
-    app.add_exception_handler(InvalidTokenError, handle_invalid_token)
-    app.add_exception_handler(NotFoundError, handle_not_found_error)
+    app.add_exception_handler(StarletteHTTPException, handle_http_exception)  # type: ignore[arg-type]
+    app.add_exception_handler(AuthenticationError, handle_authentication_error)  # type: ignore[arg-type]
+    app.add_exception_handler(AuthorizationError, handle_authorization_error)  # type: ignore[arg-type]
+    app.add_exception_handler(ConflictError, handle_conflict_error)  # type: ignore[arg-type]
+    app.add_exception_handler(RoleError, handle_role_error)  # type: ignore[arg-type]
+    app.add_exception_handler(InvalidTokenError, handle_invalid_token)  # type: ignore[arg-type]
+    app.add_exception_handler(NotFoundError, handle_not_found_error)  # type: ignore[arg-type]
+    app.add_exception_handler(ValidationError, handle_validation_error)  # type: ignore[arg-type]
     app.add_exception_handler(Exception, handle_unexpected)

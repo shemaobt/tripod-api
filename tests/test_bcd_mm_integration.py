@@ -22,7 +22,7 @@ async def test_check_stale_returns_false_when_current(db_session):
 
     result = await check_bcd_staleness(db_session, mm)
 
-    assert result["is_stale"] is False
+    assert result.is_stale is False
 
 
 @pytest.mark.asyncio
@@ -44,8 +44,8 @@ async def test_check_stale_returns_true_when_bcd_updated(db_session):
 
     result = await check_bcd_staleness(db_session, mm)
 
-    assert result["is_stale"] is True
-    assert result["current_version"] == 2
+    assert result.is_stale is True
+    assert result.current_version == 2
 
 
 @pytest.mark.asyncio
@@ -63,4 +63,4 @@ async def test_check_stale_returns_false_when_no_bcd(db_session):
 
     result = await check_bcd_staleness(db_session, mm)
 
-    assert result["is_stale"] is False
+    assert result.is_stale is False

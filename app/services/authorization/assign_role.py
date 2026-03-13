@@ -16,7 +16,7 @@ async def assign_role(
     app_key: str,
     role_key: str,
 ) -> UserAppRole:
-    """Assign role to a target user in app context."""
+
     await assert_can_manage_roles(db, actor_user, app_key)
 
     app = await get_app_by_key(db, app_key)

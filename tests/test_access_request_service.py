@@ -14,16 +14,11 @@ APP_KEY = "meaning-map-generator"
 
 
 async def _setup_app(db):
-    """Fetch the pre-seeded MM app and ensure the analyst role exists."""
+
     result = await db.execute(select(App).where(App.app_key == APP_KEY))
     app = result.scalar_one()
     role = await make_role(db, app.id, role_key="analyst", label="Analyst")
     return app, role
-
-
-# ---------------------------------------------------------------------------
-# create_access_request
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
@@ -71,11 +66,6 @@ async def test_create_access_request_after_rejection(db_session) -> None:
     assert new_req.status == "pending"
 
 
-# ---------------------------------------------------------------------------
-# get_user_access_request
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.asyncio
 async def test_get_user_access_request_found(db_session) -> None:
     await _setup_app(db_session)
@@ -99,11 +89,6 @@ async def test_get_user_access_request_invalid_app(db_session) -> None:
     user = await make_user(db_session, email="get3@test.com")
     with pytest.raises(NotFoundError, match="App not found"):
         await get_user_access_request(db_session, user.id, "nonexistent-app")
-
-
-# ---------------------------------------------------------------------------
-# list_access_requests
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
@@ -144,11 +129,6 @@ async def test_list_access_requests_filter_by_app_key(db_session) -> None:
 async def test_list_access_requests_empty(db_session) -> None:
     rows = await list_access_requests(db_session)
     assert rows == []
-
-
-# ---------------------------------------------------------------------------
-# review_access_request
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio

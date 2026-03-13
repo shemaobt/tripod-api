@@ -19,9 +19,8 @@ async def get_genre_stats(
     _: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> GenreStatsResponse:
-    """Get recording stats per genre/subcategory for a project (any authenticated user)."""
-    stats = await stats_service.get_genre_stats(db, project_id)
-    return GenreStatsResponse(**stats)
+
+    return await stats_service.get_genre_stats(db, project_id)
 
 
 @stats_router.get(
@@ -32,6 +31,5 @@ async def get_admin_stats(
     _: User = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> AdminStatsResponse:
-    """Get system-wide stats (admin only)."""
-    stats = await stats_service.get_admin_stats(db)
-    return AdminStatsResponse(**stats)
+
+    return await stats_service.get_admin_stats(db)
