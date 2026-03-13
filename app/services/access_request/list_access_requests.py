@@ -20,4 +20,4 @@ async def list_access_requests(
 
     stmt = stmt.order_by(AccessRequest.requested_at.desc())
     result = await db.execute(stmt)
-    return list(result.all())
+    return [row._tuple() for row in result.all()]

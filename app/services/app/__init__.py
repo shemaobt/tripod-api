@@ -6,6 +6,7 @@ from app.services.app.get_app_or_404 import get_app_or_404
 from app.services.app.list_app_roles import list_app_roles
 from app.services.app.list_apps import list_apps
 from app.services.app.list_user_apps import list_user_apps
+from app.services.app.list_user_apps_display import list_user_apps_display
 from app.services.app.update_app import update_app
 
 __all__ = [
@@ -17,5 +18,6 @@ __all__ = [
     "list_app_roles",
     "list_apps",
     "list_user_apps",
+    "list_user_apps_display",
     "update_app",
 ]

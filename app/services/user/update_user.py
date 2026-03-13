@@ -10,8 +10,11 @@ async def update_user(
     is_active: bool | None = None,
     is_platform_admin: bool | None = None,
     avatar_url: str | None = None,
+    display_name: str | None = None,
 ) -> User:
     user = await get_user_by_id(db, user_id)
+    if display_name is not None:
+        user.display_name = display_name
     if is_active is not None:
         user.is_active = is_active
     if is_platform_admin is not None:
