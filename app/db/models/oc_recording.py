@@ -6,6 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
 from app.core.database import Base
+from app.core.enums import CleaningStatus, SplittingStatus, UploadStatus
 
 
 class OC_Recording(Base):
@@ -27,8 +28,12 @@ class OC_Recording(Base):
     file_size_bytes: Mapped[int] = mapped_column(Integer)
     format: Mapped[str] = mapped_column(String(20))
     gcs_url: Mapped[str | None] = mapped_column(Text, nullable=True)
-    upload_status: Mapped[str] = mapped_column(String(20), default="local")
-    cleaning_status: Mapped[str] = mapped_column(String(20), default="none")
+    upload_status: Mapped[str] = mapped_column(String(20), default=UploadStatus.LOCAL)
+    upload_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    cleaning_status: Mapped[str] = mapped_column(String(20), default=CleaningStatus.NONE)
+    cleaning_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    splitting_status: Mapped[str] = mapped_column(String(20), default=SplittingStatus.NONE)
+    split_from_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     uploaded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
