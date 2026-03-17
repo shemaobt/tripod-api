@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from app.core.enums import SplittingStatus
+
 
 class RecordingCreate(BaseModel):
     project_id: str
@@ -32,7 +34,11 @@ class RecordingResponse(BaseModel):
     format: str
     gcs_url: str | None
     upload_status: str
+    upload_error: str | None = None
     cleaning_status: str
+    cleaning_error: str | None = None
+    splitting_status: str = SplittingStatus.NONE
+    split_from_id: str | None = None
     recorded_at: datetime
     uploaded_at: datetime | None
     created_at: datetime
@@ -44,8 +50,15 @@ class RecordingResponse(BaseModel):
 class CleaningStatusResponse(BaseModel):
     recording_id: str
     cleaning_status: str
+    cleaning_error: str | None = None
 
     model_config = {"from_attributes": True}
+
+
+class SplitStatusResponse(BaseModel):
+    recording_id: str
+    splitting_status: str
+    segment_ids: list[str] = []
 
 
 class UploadUrlRequest(BaseModel):
@@ -67,7 +80,3 @@ class SplitSegment(BaseModel):
 
 class SplitRequest(BaseModel):
     segments: list[SplitSegment] = Field(min_length=1)
-
-
-class SplitResponse(BaseModel):
-    recording_ids: list[str]
