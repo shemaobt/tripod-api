@@ -16,18 +16,12 @@ async def get_managed_org_ids(db: AsyncSession, user_id: str) -> list[str]:
     * The ``Organization.manager_id`` column equals *user_id*.
     """
 
-    from_members = (
-        select(OrganizationMember.organization_id.label("org_id"))
-        .where(
-            OrganizationMember.user_id == user_id,
-            OrganizationMember.role == "manager",
-        )
+    from_members = select(OrganizationMember.organization_id.label("org_id")).where(
+        OrganizationMember.user_id == user_id,
+        OrganizationMember.role == "manager",
     )
 
-    from_orgs = (
-        select(Organization.id.label("org_id"))
-        .where(Organization.manager_id == user_id)
-    )
+    from_orgs = select(Organization.id.label("org_id")).where(Organization.manager_id == user_id)
 
     combined = union(from_members, from_orgs).subquery()
     result = await db.execute(select(combined.c.org_id))
