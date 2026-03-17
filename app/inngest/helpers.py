@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 import inngest
 
@@ -20,13 +20,14 @@ class FailureContext:
 def extract_failure_context(
     ctx: inngest.Context, default_error: str = "Unknown error"
 ) -> FailureContext:
-    original_event = ctx.event.data.get("event", {})
-    event_data = original_event.get("data", {})
-    error_info = ctx.event.data.get("error", {})
+    data = cast(dict[str, Any], ctx.event.data or {})
+    original_event = cast(dict[str, Any], data.get("event", {}))
+    event_data = cast(dict[str, Any], original_event.get("data", {}))
+    error_info = cast(dict[str, Any], data.get("error", {}))
     return FailureContext(
-        recording_id=event_data.get("recording_id", ""),
-        user_id=event_data.get("user_id", ""),
-        error_message=error_info.get("message", default_error),
+        recording_id=str(event_data.get("recording_id", "")),
+        user_id=str(event_data.get("user_id", "")),
+        error_message=str(error_info.get("message", default_error)),
     )
 
 

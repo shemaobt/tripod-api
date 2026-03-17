@@ -46,7 +46,7 @@ async def _on_upload_failure(ctx: inngest.Context, _step: inngest.Step) -> None:
     fn_id="process-upload",
     trigger=inngest.TriggerEvent(event=OCRecordingEvent.UPLOAD_CONFIRMED),
     retries=3,
-    on_failure=_on_upload_failure,
+    on_failure=_on_upload_failure,  # type: ignore[arg-type]
 )
 async def process_upload_fn(ctx: inngest.Context, step: inngest.Step) -> str:
     """Process a recording upload: verify integrity, finalize status, notify."""

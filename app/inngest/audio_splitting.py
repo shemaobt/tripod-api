@@ -55,7 +55,7 @@ async def _on_split_failure(ctx: inngest.Context, _step: inngest.Step) -> None:
     fn_id="split-recording",
     trigger=inngest.TriggerEvent(event=OCRecordingEvent.SPLIT_REQUESTED),
     retries=1,
-    on_failure=_on_split_failure,
+    on_failure=_on_split_failure,  # type: ignore[arg-type]
 )
 async def split_recording_fn(ctx: inngest.Context, step: inngest.Step) -> str:
     payload = SplitRequestedPayload.model_validate(ctx.event.data)

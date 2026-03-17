@@ -49,7 +49,7 @@ async def _on_clean_failure(ctx: inngest.Context, _step: inngest.Step) -> None:
     fn_id="clean-recording",
     trigger=inngest.TriggerEvent(event=OCRecordingEvent.CLEAN_REQUESTED),
     retries=3,
-    on_failure=_on_clean_failure,
+    on_failure=_on_clean_failure,  # type: ignore[arg-type]
 )
 async def clean_recording_fn(ctx: inngest.Context, step: inngest.Step) -> str:
     payload = CleanRequestedPayload.model_validate(ctx.event.data)
@@ -73,7 +73,7 @@ async def clean_recording_fn(ctx: inngest.Context, step: inngest.Step) -> str:
             )
             resp.raise_for_status()
             result = resp.json()
-        return result.get("output_url", "")
+        return str(result.get("output_url", ""))
 
     cleaned_url = await step.run("call-cleaning-api", _call_cleaning_api)
 
