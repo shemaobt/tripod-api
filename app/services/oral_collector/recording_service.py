@@ -1,14 +1,19 @@
 import logging
 from datetime import UTC, datetime, timedelta
 
+import inngest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.enums import ACTIVE_UPLOAD_STATUSES, OCRecordingEvent, UploadStatus
 from app.core.exceptions import AuthorizationError, NotFoundError
+from app.core.inngest_client import inngest_client
 from app.db.models.oc_recording import OC_Recording
 from app.db.models.project import ProjectUserAccess
+from app.inngest.schemas import UploadConfirmedPayload
 from app.models.oc_recording import RecordingCreate, RecordingUpdate, UploadUrlResponse
 from app.services.oral_collector.constants import GCS_OC_BUCKET, GCS_OC_PROJECT
+from app.services.oral_collector.gcs_utils import GCS_PUBLIC_BASE
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +54,7 @@ async def list_recordings(
     if upload_status:
         stmt = stmt.where(OC_Recording.upload_status == upload_status)
     else:
-        stmt = stmt.where(OC_Recording.upload_status == "uploaded")
+        stmt = stmt.where(OC_Recording.upload_status.in_(ACTIVE_UPLOAD_STATUSES))
     if cleaning_status:
         stmt = stmt.where(OC_Recording.cleaning_status == cleaning_status)
     if user_id:
@@ -120,7 +125,7 @@ async def update_recording(
 async def delete_recording(db: AsyncSession, recording_id: str) -> None:
 
     recording = await get_recording(db, recording_id)
-    if recording.upload_status == "uploaded" and recording.gcs_url:
+    if recording.upload_status in ACTIVE_UPLOAD_STATUSES and recording.gcs_url:
         _delete_gcs_blob(recording.gcs_url)
     await db.delete(recording)
     await db.commit()
@@ -160,6 +165,9 @@ async def generate_upload_url(
 
     expires_at = datetime.now(UTC) + expiry
 
+    recording.upload_status = UploadStatus.UPLOADING
+    await db.commit()
+
     return UploadUrlResponse(
         recording_id=recording_id,
         server_id=recording_id,
@@ -169,7 +177,6 @@ async def generate_upload_url(
 
 
 async def confirm_upload(db: AsyncSession, recording_id: str) -> OC_Recording:
-
     recording = await get_recording(db, recording_id)
 
     blob_path = _gcs_blob_path(
@@ -178,13 +185,17 @@ async def confirm_upload(db: AsyncSession, recording_id: str) -> OC_Recording:
         recording_id,
         recording.format,
     )
-    gcs_url = f"https://storage.googleapis.com/{GCS_OC_BUCKET}/{blob_path}"
 
-    recording.upload_status = "uploaded"
-    recording.gcs_url = gcs_url
-    recording.uploaded_at = datetime.now(UTC)
-    await db.commit()
-    await db.refresh(recording)
+    payload = UploadConfirmedPayload(
+        recording_id=recording_id,
+        user_id=recording.user_id,
+        expected_blob_path=blob_path,
+        expected_size_bytes=recording.file_size_bytes,
+    )
+    await inngest_client.send(
+        inngest.Event(name=OCRecordingEvent.UPLOAD_CONFIRMED, data=payload.model_dump())
+    )
+
     return recording
 
 
@@ -193,11 +204,10 @@ def _delete_gcs_blob(gcs_url: str) -> None:
     try:
         from google.cloud import storage
 
-        prefix = f"https://storage.googleapis.com/{GCS_OC_BUCKET}/"
-        if not gcs_url.startswith(prefix):
+        if not gcs_url.startswith(GCS_PUBLIC_BASE):
             logger.warning("Unexpected GCS URL format: %s", gcs_url)
             return
-        blob_name = gcs_url[len(prefix) :]
+        blob_name = gcs_url[len(GCS_PUBLIC_BASE) :]
         client = storage.Client(project=GCS_OC_PROJECT)
         bucket = client.bucket(GCS_OC_BUCKET)
         blob = bucket.blob(blob_name)

@@ -878,6 +878,21 @@ wheels = [
 ]
 
 [[package]]
+name = "inngest"
+version = "0.4.22"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx" },
+    { name = "jcs" },
+    { name = "pydantic" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/bd/fc/3c9ebe30e7913d9bcc8c8b145481b293f0899394da1bf33b8fd39a699565/inngest-0.4.22.tar.gz", hash = "sha256:be7eaba6c11bbaa41c1f2fcd30e5df3df98f2f5e9367abfedb6414c44e36db6c", size = 78656, upload-time = "2025-05-08T00:34:38.481Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/af/a0/55e698d86a1799cc54bdf82d78417c82aa6fb4c177aa340c97ac60bf3dba/inngest-0.4.22-py3-none-any.whl", hash = "sha256:572130d4b12fd4e20a000aa71e73e7354e91f790f46dc920b94f3ff28cbef5ea", size = 111840, upload-time = "2025-05-08T00:34:36.43Z" },
+]
+
+[[package]]
 name = "ipython"
 version = "9.10.0"
 source = { registry = "https://pypi.org/simple" }
@@ -918,6 +933,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/9c/cb/8ac0172223afbccb63986cc25049b154ecfb5e85932587206f42317be31d/itsdangerous-2.2.0.tar.gz", hash = "sha256:e0050c0b7da1eea53ffaf149c0cfbb5c6e2e2b69c4bef22c81fa6eb73e5f6173", size = 54410, upload-time = "2024-04-16T21:28:15.614Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/04/96/92447566d16df59b2a776c0fb82dbc4d9e07cd95062562af01e408583fc4/itsdangerous-2.2.0-py3-none-any.whl", hash = "sha256:c6242fc49e35958c8b15141343aa660db5fc54d4f13a1db01a3f5891b98700ef", size = 16234, upload-time = "2024-04-16T21:28:14.499Z" },
+]
+
+[[package]]
+name = "jcs"
+version = "0.2.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/47/e5/9d547f0d42ba00f68eec773aa7b2145e0c0335eb632cbaf519f480a429af/jcs-0.2.1.tar.gz", hash = "sha256:9f20360b2f3b0a410d65493b448f96306d80e37fb46283f3f4aa5db2c7c1472b", size = 6886, upload-time = "2022-04-10T14:41:24.904Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c0/d4/9a99bc15266a842bd14a1913afdb05182888ebab035666c1ce8a64537ca2/jcs-0.2.1-py3-none-any.whl", hash = "sha256:e23a3e1de60f832d33cd811bb9c3b3be79219cdf95f63b88f0972732c3fa8476", size = 7603, upload-time = "2022-04-10T14:41:23.207Z" },
 ]
 
 [[package]]
@@ -2209,6 +2233,7 @@ dependencies = [
     { name = "google-cloud-storage" },
     { name = "gunicorn" },
     { name = "httpx" },
+    { name = "inngest" },
     { name = "langchain-core" },
     { name = "langchain-google-genai" },
     { name = "langchain-text-splitters" },
@@ -2245,6 +2270,7 @@ requires-dist = [
     { name = "google-cloud-storage", specifier = ">=2.18.0" },
     { name = "gunicorn", specifier = "==22.0.0" },
     { name = "httpx", specifier = ">=0.28.1" },
+    { name = "inngest", specifier = ">=0.4.22" },
     { name = "langchain-core", specifier = ">=0.3.83" },
     { name = "langchain-google-genai", specifier = ">=4.0.0" },
     { name = "langchain-text-splitters", specifier = ">=0.3.11" },

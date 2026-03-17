@@ -1,6 +1,7 @@
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.enums import ACTIVE_UPLOAD_STATUSES
 from app.db.models.oc_genre import OC_Genre, OC_Subcategory
 from app.db.models.oc_recording import OC_Recording
 from app.db.models.project import Project, ProjectUserAccess
@@ -23,7 +24,7 @@ async def get_genre_stats(db: AsyncSession, project_id: str) -> GenreStatsRespon
         )
         .join(OC_Genre, OC_Genre.id == OC_Recording.genre_id)
         .where(OC_Recording.project_id == project_id)
-        .where(OC_Recording.upload_status == "uploaded")
+        .where(OC_Recording.upload_status.in_(ACTIVE_UPLOAD_STATUSES))
         .group_by(OC_Recording.genre_id, OC_Genre.name)
         .order_by(OC_Genre.name)
     )
@@ -48,7 +49,7 @@ async def get_genre_stats(db: AsyncSession, project_id: str) -> GenreStatsRespon
         )
         .join(OC_Subcategory, OC_Subcategory.id == OC_Recording.subcategory_id)
         .where(OC_Recording.project_id == project_id)
-        .where(OC_Recording.upload_status == "uploaded")
+        .where(OC_Recording.upload_status.in_(ACTIVE_UPLOAD_STATUSES))
         .group_by(
             OC_Recording.subcategory_id,
             OC_Subcategory.name,

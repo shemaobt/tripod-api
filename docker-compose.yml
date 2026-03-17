@@ -38,6 +38,7 @@ services:
       - ./gcs-signing-key.json:/etc/gcs/signing-key.json:ro
     environment:
       GOOGLE_APPLICATION_CREDENTIALS: /etc/gcs/signing-key.json
+      INNGEST_DEV: "http://inngest:8288/"
     dns:
       - 8.8.8.8
       - 8.8.4.4
@@ -101,6 +102,18 @@ services:
       sh -c "set -a && . /run/secrets/.env && set +a && uv run procrastinate --app=app.core.task_queue.get_task_app worker --queues=bcd_generation"
     profiles:
       - worker
+
+  inngest:
+    image: inngest/inngest:latest
+    container_name: tripod_inngest_dev
+    ports:
+      - "8288:8288"
+    command: inngest dev -u http://backend:8000/api/inngest --no-discovery
+    depends_on:
+      backend:
+        condition: service_healthy
+    profiles:
+      - inngest
 
   lint:
     build:

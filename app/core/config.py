@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     cleaning_api_url: str = ""
     cleaning_api_key: str = ""
 
+    inngest_event_key: str = ""
+    inngest_signing_key: str = ""
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [item.strip() for item in self.cors_origins.split(",") if item.strip()]

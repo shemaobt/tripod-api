@@ -10,7 +10,7 @@ from app.models.oc_recording import (
     RecordingResponse,
     RecordingUpdate,
     SplitRequest,
-    SplitResponse,
+    SplitStatusResponse,
     UploadUrlRequest,
     UploadUrlResponse,
 )
@@ -122,19 +122,42 @@ async def confirm_upload(
     return RecordingResponse.model_validate(recording)
 
 
-@recordings_router.post("/{recording_id}/split", response_model=SplitResponse)
-async def split_recording(
+@recordings_router.post(
+    "/{recording_id}/split",
+    response_model=RecordingResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def request_split(
     recording_id: str,
     payload: SplitRequest,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-) -> SplitResponse:
+) -> RecordingResponse:
 
-    new_ids = await split_service.split_recording(db, recording_id, payload.segments, user.id)
-    return SplitResponse(recording_ids=new_ids)
+    recording = await split_service.request_split(db, recording_id, payload.segments, user.id)
+    return RecordingResponse.model_validate(recording)
 
 
-@recordings_router.post("/{recording_id}/clean", response_model=RecordingResponse)
+@recordings_router.get("/{recording_id}/split-status", response_model=SplitStatusResponse)
+async def get_split_status(
+    recording_id: str,
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> SplitStatusResponse:
+
+    recording, segment_ids = await split_service.get_split_status(db, recording_id)
+    return SplitStatusResponse(
+        recording_id=recording.id,
+        splitting_status=recording.splitting_status,
+        segment_ids=segment_ids,
+    )
+
+
+@recordings_router.post(
+    "/{recording_id}/clean",
+    response_model=RecordingResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
 async def trigger_cleaning(
     recording_id: str,
     user: User = Depends(get_current_user),
@@ -156,4 +179,5 @@ async def get_cleaning_status(
     return CleaningStatusResponse(
         recording_id=recording.id,
         cleaning_status=recording.cleaning_status,
+        cleaning_error=recording.cleaning_error,
     )

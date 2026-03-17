@@ -135,6 +135,13 @@ def create_app() -> FastAPI:
 
     register_exception_handlers(app)
 
+    from inngest.fast_api import serve
+
+    from app.core.inngest_client import inngest_client
+    from app.inngest import ALL_FUNCTIONS
+
+    serve(app, inngest_client, ALL_FUNCTIONS)
+
     return app
 
 

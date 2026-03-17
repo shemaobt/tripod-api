@@ -1,14 +1,15 @@
 import logging
 
-import httpx
+import inngest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import get_settings
-from app.core.exceptions import NotFoundError
+from app.core.enums import CleaningStatus, OCRecordingEvent, UploadStatus
+from app.core.exceptions import NotFoundError, ValidationError
+from app.core.inngest_client import inngest_client
 from app.db.models.oc_recording import OC_Recording
+from app.inngest.schemas import CleanRequestedPayload
 from app.services.oral_collector.constants import GCS_OC_BUCKET, GCS_OC_PROJECT
-from app.services.oral_collector.gcs_utils import upload_gcs_blob
 from app.services.oral_collector.require_manager import require_project_manager
 
 logger = logging.getLogger(__name__)
@@ -51,7 +52,6 @@ def _original_blob_name(blob_name: str) -> str:
 
 
 async def trigger_cleaning(db: AsyncSession, recording_id: str, user_id: str) -> OC_Recording:
-
     recording = await _get_recording(db, recording_id)
     await require_project_manager(
         db, recording.project_id, user_id, action="trigger audio cleaning"
@@ -60,49 +60,24 @@ async def trigger_cleaning(db: AsyncSession, recording_id: str, user_id: str) ->
     if not recording.gcs_url:
         raise NotFoundError("Recording has no uploaded audio file")
 
-    recording.cleaning_status = "cleaning"
+    if recording.upload_status != UploadStatus.VERIFIED:
+        raise ValidationError(
+            f"Recording must be verified before cleaning. Current status: {recording.upload_status}"
+        )
+
+    recording.cleaning_status = CleaningStatus.CLEANING
+    recording.cleaning_error = None
     await db.commit()
     await db.refresh(recording)
 
-    settings = get_settings()
-
-    try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                settings.cleaning_api_url,
-                json={"input_url": recording.gcs_url},
-                headers={
-                    "Authorization": f"Bearer {settings.cleaning_api_key}",
-                    "Content-Type": "application/json",
-                },
-                timeout=120.0,
-            )
-            resp.raise_for_status()
-            result = resp.json()
-
-        cleaned_url = result.get("output_url", "")
-
-        async with httpx.AsyncClient() as client:
-            cleaned_resp = await client.get(cleaned_url, timeout=120.0)
-            cleaned_resp.raise_for_status()
-            cleaned_data = cleaned_resp.content
-
-        blob_name = _blob_name_from_url(recording.gcs_url)
-        if blob_name:
-            original_name = _original_blob_name(blob_name)
-            await _copy_gcs_blob(blob_name, original_name)
-
-            await upload_gcs_blob(blob_name, cleaned_data, "application/octet-stream")
-
-        recording.cleaning_status = "cleaned"
-        await db.commit()
-        await db.refresh(recording)
-
-    except Exception:
-        logger.exception("Audio cleaning failed for recording %s", recording_id)
-        recording.cleaning_status = "failed"
-        await db.commit()
-        await db.refresh(recording)
+    payload = CleanRequestedPayload(
+        recording_id=recording_id,
+        user_id=user_id,
+        gcs_url=recording.gcs_url,
+    )
+    await inngest_client.send(
+        inngest.Event(name=OCRecordingEvent.CLEAN_REQUESTED, data=payload.model_dump())
+    )
 
     return recording
 

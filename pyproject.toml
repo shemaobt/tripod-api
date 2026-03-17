@@ -28,6 +28,7 @@ dependencies = [
     "structlog-gcp>=0.5.0",
     "langgraph>=1.0.10",
     "google-cloud-storage>=2.18.0",
+    "inngest>=0.4.22",
 ]
 
 [build-system]

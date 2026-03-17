@@ -5,11 +5,15 @@ import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
-import httpx
+import inngest
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import NotFoundError
+from app.core.enums import CleaningStatus, OCRecordingEvent, SplittingStatus, UploadStatus
+from app.core.exceptions import NotFoundError, ValidationError
+from app.core.inngest_client import inngest_client
 from app.db.models.oc_recording import OC_Recording
+from app.inngest.schemas import SplitRequestedPayload, SplitSegmentData
 from app.models.oc_recording import SplitSegment
 from app.services.oral_collector.gcs_utils import upload_gcs_blob
 from app.services.oral_collector.recording_service import (
@@ -23,6 +27,8 @@ logger = logging.getLogger(__name__)
 
 
 async def _download_audio(gcs_url: str) -> bytes:
+
+    import httpx
 
     async with httpx.AsyncClient() as client:
         resp = await client.get(gcs_url, timeout=120.0)
@@ -71,13 +77,71 @@ def _content_type_for_format(fmt: str) -> str:
     return mapping.get(fmt.lower(), "application/octet-stream")
 
 
+async def request_split(
+    db: AsyncSession,
+    recording_id: str,
+    segments: list[SplitSegment],
+    user_id: str,
+) -> OC_Recording:
+    recording = await get_recording(db, recording_id)
+    await check_recording_access(db, recording, user_id)
+
+    if not recording.gcs_url:
+        raise NotFoundError("Recording has no uploaded audio file")
+
+    if recording.upload_status != UploadStatus.VERIFIED:
+        raise ValidationError(
+            "Recording must be verified before splitting. "
+            f"Current status: {recording.upload_status}"
+        )
+
+    recording.splitting_status = SplittingStatus.SPLITTING
+    await db.commit()
+    await db.refresh(recording)
+
+    payload = SplitRequestedPayload(
+        recording_id=recording_id,
+        user_id=user_id,
+        segments=[
+            SplitSegmentData(start_seconds=s.start_seconds, end_seconds=s.end_seconds)
+            for s in segments
+        ],
+        project_id=recording.project_id,
+        genre_id=recording.genre_id,
+        subcategory_id=recording.subcategory_id,
+        format=recording.format,
+        title=recording.title or "Recording",
+        recorded_at=recording.recorded_at.isoformat(),
+    )
+    await inngest_client.send(
+        inngest.Event(name=OCRecordingEvent.SPLIT_REQUESTED, data=payload.model_dump())
+    )
+
+    return recording
+
+
+async def get_split_status(db: AsyncSession, recording_id: str) -> tuple[OC_Recording, list[str]]:
+    recording = await get_recording(db, recording_id)
+
+    segment_ids: list[str] = []
+    if recording.splitting_status == SplittingStatus.COMPLETED:
+        stmt = (
+            select(OC_Recording.id)
+            .where(OC_Recording.split_from_id == recording_id)
+            .order_by(OC_Recording.created_at)
+        )
+        result = await db.execute(stmt)
+        segment_ids = list(result.scalars().all())
+
+    return recording, segment_ids
+
+
 async def split_recording(
     db: AsyncSession,
     recording_id: str,
     segments: list[SplitSegment],
     user_id: str,
 ) -> list[str]:
-
     recording = await get_recording(db, recording_id)
     await check_recording_access(db, recording, user_id)
 
@@ -118,8 +182,10 @@ async def split_recording(
                 file_size_bytes=len(segment_bytes),
                 format=recording.format,
                 gcs_url=gcs_url,
-                upload_status="uploaded",
-                cleaning_status="none",
+                upload_status=UploadStatus.VERIFIED,
+                cleaning_status=CleaningStatus.NONE,
+                splitting_status=SplittingStatus.NONE,
+                split_from_id=recording_id,
                 recorded_at=recording.recorded_at,
                 uploaded_at=datetime.now(UTC),
             )
