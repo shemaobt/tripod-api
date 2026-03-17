@@ -180,8 +180,9 @@ async def make_organization(
     *,
     name: str = "Test Org",
     slug: str = "test-org",
+    manager_id: str | None = None,
 ) -> Organization:
-    org = Organization(name=name, slug=slug.lower())
+    org = Organization(name=name, slug=slug.lower(), manager_id=manager_id)
     db.add(org)
     await db.commit()
     await db.refresh(org)
