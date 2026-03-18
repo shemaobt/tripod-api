@@ -31,9 +31,7 @@ async def translate_bcd(
     language: str,
 ) -> dict:
     """Translate a BCD's content sections to the target language, with caching."""
-    result = await db.execute(
-        select(BookContextDocument).where(BookContextDocument.id == bcd_id)
-    )
+    result = await db.execute(select(BookContextDocument).where(BookContextDocument.id == bcd_id))
     bcd = result.scalar_one_or_none()
     if not bcd:
         raise NotFoundError(f"Book context document {bcd_id} not found")
