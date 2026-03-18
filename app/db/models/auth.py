@@ -18,6 +18,7 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_platform_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    locale: Mapped[str | None] = mapped_column(String(10), nullable=True, default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

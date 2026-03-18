@@ -11,6 +11,7 @@ async def update_user(
     is_platform_admin: bool | None = None,
     avatar_url: str | None = None,
     display_name: str | None = None,
+    locale: str | None = None,
 ) -> User:
     user = await get_user_by_id(db, user_id)
     if display_name is not None:
@@ -21,6 +22,8 @@ async def update_user(
         user.is_platform_admin = is_platform_admin
     if avatar_url is not None:
         user.avatar_url = avatar_url if avatar_url else None
+    if locale is not None:
+        user.locale = locale
     await db.commit()
     await db.refresh(user)
     return user

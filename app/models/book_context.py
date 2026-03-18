@@ -204,6 +204,7 @@ class BCDResponse(BCDListResponse):
     genre_context: GenreContext | None
     maintenance_notes: MaintenanceNotes | None
     generation_metadata: dict[str, Any] | None
+    translations: dict[str, Any] | None = None
 
 
 class EstablishedItem(BaseModel):

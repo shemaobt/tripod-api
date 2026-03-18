@@ -30,6 +30,7 @@ def _user_response(user: User) -> UserResponse:
         avatar_url=user.avatar_url,
         is_active=user.is_active,
         is_platform_admin=user.is_platform_admin,
+        locale=user.locale,
     )
 
 
@@ -82,6 +83,7 @@ async def update_me(
         current_user.id,
         display_name=payload.display_name,
         avatar_url=payload.avatar_url,
+        locale=payload.locale,
     )
     invalidate_user(user.id)
     return _user_response(user)

@@ -29,11 +29,13 @@ class UserResponse(BaseModel):
     avatar_url: str | None = None
     is_active: bool
     is_platform_admin: bool
+    locale: str | None = None
 
 
 class ProfileUpdate(BaseModel):
     display_name: str | None = Field(default=None, max_length=120)
     avatar_url: str | None = None
+    locale: str | None = Field(default=None, max_length=10)
 
 
 class AuthResponse(BaseModel):

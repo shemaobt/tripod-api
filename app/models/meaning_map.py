@@ -157,6 +157,7 @@ class MeaningMapListResponse(BaseModel):
 
 class MeaningMapResponse(MeaningMapListResponse):
     data: dict[str, Any]
+    translations: dict[str, Any] | None = None
 
 
 class AnalystSummary(BaseModel):
