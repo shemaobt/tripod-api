@@ -96,6 +96,7 @@ async def create_recording(db: AsyncSession, data: RecordingCreate, user_id: str
         project_id=data.project_id,
         genre_id=data.genre_id,
         subcategory_id=data.subcategory_id,
+        register_id=data.register_id,
         user_id=user_id,
         title=data.title,
         duration_seconds=data.duration_seconds,

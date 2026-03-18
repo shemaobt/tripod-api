@@ -65,12 +65,8 @@ async def split_recording_fn(ctx: inngest.Context, step: inngest.Step) -> str:
         lambda: check_recording_verified(payload.recording_id),
     )
 
-    async def _download() -> bytes:
-        return await _download_audio(gcs_url)
-
-    audio_data = await step.run("download-original", _download)
-
     async def _split_and_upload() -> list[dict[str, object]]:
+        audio_data = await _download_audio(gcs_url)
         fmt = payload.format.lower()
         ext = FORMAT_EXTENSIONS.get(fmt, f".{fmt}")
         content_type = _content_type_for_format(fmt)
@@ -141,6 +137,8 @@ async def split_recording_fn(ctx: inngest.Context, step: inngest.Step) -> str:
             parent = await db.get(OC_Recording, payload.recording_id)
             if parent:
                 parent.splitting_status = SplittingStatus.COMPLETED
+                await db.commit()
+                await db.delete(parent)
                 await db.commit()
 
             return new_ids

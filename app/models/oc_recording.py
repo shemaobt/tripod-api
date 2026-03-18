@@ -9,6 +9,7 @@ class RecordingCreate(BaseModel):
     project_id: str
     genre_id: str
     subcategory_id: str
+    register_id: str | None = None
     title: str | None = Field(default=None, max_length=500)
     duration_seconds: float = Field(ge=0)
     file_size_bytes: int = Field(ge=0)
@@ -20,6 +21,7 @@ class RecordingUpdate(BaseModel):
     title: str | None = Field(default=None, max_length=500)
     genre_id: str | None = None
     subcategory_id: str | None = None
+    register_id: str | None = None
 
 
 class RecordingResponse(BaseModel):
@@ -27,6 +29,7 @@ class RecordingResponse(BaseModel):
     project_id: str
     genre_id: str
     subcategory_id: str
+    register_id: str | None = None
     user_id: str
     title: str | None
     duration_seconds: float
