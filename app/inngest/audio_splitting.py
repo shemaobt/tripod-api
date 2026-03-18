@@ -23,10 +23,9 @@ from app.inngest.helpers import (
     update_recording_fields,
 )
 from app.inngest.schemas import SegmentResult, SplitRequestedPayload
-from app.services.oral_collector.gcs_utils import upload_gcs_blob
+from app.services.oral_collector.gcs_utils import content_type_for_format, upload_gcs_blob
 from app.services.oral_collector.recording_service import FORMAT_EXTENSIONS, _gcs_blob_path
 from app.services.oral_collector.split_service import (
-    _content_type_for_format,
     _download_audio,
     _ffmpeg_split_segment,
 )
@@ -69,7 +68,7 @@ async def split_recording_fn(ctx: inngest.Context, step: inngest.Step) -> str:
         audio_data = await _download_audio(gcs_url)
         fmt = payload.format.lower()
         ext = FORMAT_EXTENSIONS.get(fmt, f".{fmt}")
-        content_type = _content_type_for_format(fmt)
+        content_type = content_type_for_format(fmt)
         results: list[SegmentResult] = []
 
         with tempfile.TemporaryDirectory() as tmp_dir:

@@ -15,7 +15,7 @@ from app.core.inngest_client import inngest_client
 from app.db.models.oc_recording import OC_Recording
 from app.inngest.schemas import SplitRequestedPayload, SplitSegmentData
 from app.models.oc_recording import SplitSegment
-from app.services.oral_collector.gcs_utils import upload_gcs_blob
+from app.services.oral_collector.gcs_utils import content_type_for_format, upload_gcs_blob
 from app.services.oral_collector.recording_service import (
     FORMAT_EXTENSIONS,
     _gcs_blob_path,
@@ -62,19 +62,6 @@ async def _ffmpeg_split_segment(
     _, stderr = await proc.communicate()
     if proc.returncode != 0:
         raise RuntimeError(f"FFmpeg failed: {stderr.decode()}")
-
-
-def _content_type_for_format(fmt: str) -> str:
-
-    mapping = {
-        "m4a": "audio/mp4",
-        "aac": "audio/aac",
-        "mp3": "audio/mpeg",
-        "wav": "audio/wav",
-        "ogg": "audio/ogg",
-        "webm": "audio/webm",
-    }
-    return mapping.get(fmt.lower(), "application/octet-stream")
 
 
 async def request_split(
@@ -167,7 +154,7 @@ async def split_recording(
 
             segment_bytes = output_file.read_bytes()
             blob_path = _gcs_blob_path(recording.project_id, recording.genre_id, new_id, fmt)
-            content_type = _content_type_for_format(fmt)
+            content_type = content_type_for_format(fmt)
             gcs_url = await upload_gcs_blob(blob_path, segment_bytes, content_type)
 
             duration = seg.end_seconds - seg.start_seconds
