@@ -74,6 +74,7 @@ class UploadUrlResponse(BaseModel):
     server_id: str
     upload_url: str
     expires_at: datetime
+    content_type: str
 
 
 class SplitSegment(BaseModel):

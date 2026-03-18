@@ -13,7 +13,7 @@ from app.db.models.project import ProjectUserAccess
 from app.inngest.schemas import UploadConfirmedPayload
 from app.models.oc_recording import RecordingCreate, RecordingUpdate, UploadUrlResponse
 from app.services.oral_collector.constants import GCS_OC_BUCKET, GCS_OC_PROJECT
-from app.services.oral_collector.gcs_utils import GCS_PUBLIC_BASE
+from app.services.oral_collector.gcs_utils import GCS_PUBLIC_BASE, content_type_for_format
 
 logger = logging.getLogger(__name__)
 
@@ -156,12 +156,17 @@ async def generate_upload_url(
     bucket = client.bucket(GCS_OC_BUCKET)
     blob = bucket.blob(blob_path)
 
-    expiry = timedelta(minutes=SIGNED_URL_EXPIRY_MINUTES)
+    ct = content_type_for_format(fmt)
+
+    extra_minutes = (recording.file_size_bytes or 0) // (10 * 1024 * 1024)
+    expiry_minutes = min(SIGNED_URL_EXPIRY_MINUTES + extra_minutes, 60)
+    expiry = timedelta(minutes=expiry_minutes)
+
     upload_url = blob.generate_signed_url(
         version="v4",
         expiration=expiry,
         method="PUT",
-        content_type="audio/mp4",
+        content_type=ct,
     )
 
     expires_at = datetime.now(UTC) + expiry
@@ -174,6 +179,7 @@ async def generate_upload_url(
         server_id=recording_id,
         upload_url=upload_url,
         expires_at=expires_at,
+        content_type=ct,
     )
 
 

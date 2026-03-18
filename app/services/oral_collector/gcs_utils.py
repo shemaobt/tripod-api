@@ -37,3 +37,15 @@ def original_blob_name(blob_name: str) -> str:
     if dot_idx == -1:
         return f"{blob_name}_original"
     return f"{blob_name[:dot_idx]}_original{blob_name[dot_idx:]}"
+
+
+def content_type_for_format(fmt: str) -> str:
+    mapping = {
+        "m4a": "audio/mp4",
+        "aac": "audio/aac",
+        "mp3": "audio/mpeg",
+        "wav": "audio/wav",
+        "ogg": "audio/ogg",
+        "webm": "audio/webm",
+    }
+    return mapping.get(fmt.lower(), "application/octet-stream")
