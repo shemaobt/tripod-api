@@ -1,7 +1,7 @@
 """update genre taxonomy to Tripod Method and add register_id to recordings
 
 Revision ID: 20260318_0001
-Revises: 20260316_0001
+Revises: 20260317_0001
 Create Date: 2026-03-18
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "20260318_0001"
-down_revision: str | None = "20260316_0001"
+down_revision: str | None = "20260317_0001"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
