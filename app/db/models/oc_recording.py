@@ -22,6 +22,7 @@ class OC_Recording(Base):
     subcategory_id: Mapped[str] = mapped_column(
         ForeignKey("oc_subcategories.id", ondelete="CASCADE"), index=True
     )
+    register_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     title: Mapped[str | None] = mapped_column(Text, nullable=True)
     duration_seconds: Mapped[float] = mapped_column(Float)
