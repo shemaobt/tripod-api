@@ -1,7 +1,7 @@
 [
   {
     "origin": ["http://localhost:8888", "http://localhost:5173", "http://localhost:3000", "https://tripod-backend.shemaywam.com"],
-    "method": ["GET", "HEAD"],
+    "method": ["GET", "HEAD", "PUT", "OPTIONS"],
     "maxAgeSeconds": 3600,
     "responseHeader": ["Content-Type"]
   }
