@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.projects._deps import assert_project_access
 from app.core.auth_middleware import get_current_user
 from app.core.database import get_db
+from app.core.org_scope import get_managed_org_ids
 from app.db.models.auth import User
 from app.models.project import (
     ProjectCreate,
@@ -19,13 +20,39 @@ router = APIRouter()
 @router.get("", response_model=list[ProjectResponse])
 async def list_projects(
     language_id: str | None = Query(default=None),
+    organization_id: str | None = Query(default=None),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[ProjectResponse]:
     if user.is_platform_admin:
-        projects = await project_service.list_all_projects(db)
+        if organization_id:
+            projects = await project_service.list_projects_by_organization(
+                db, organization_id
+            )
+        else:
+            projects = await project_service.list_all_projects(db)
     else:
-        projects = await project_service.list_projects_accessible_to_user(db, user.id)
+        managed_org_ids = await get_managed_org_ids(db, user.id)
+        if organization_id:
+            if organization_id in managed_org_ids:
+                projects = await project_service.list_projects_by_organization(
+                    db, organization_id
+                )
+            else:
+                projects = []
+        elif managed_org_ids:
+            seen: set[str] = set()
+            projects = []
+            for oid in managed_org_ids:
+                for p in await project_service.list_projects_by_organization(db, oid):
+                    if p.id not in seen:
+                        seen.add(p.id)
+                        projects.append(p)
+            projects.sort(key=lambda p: p.name)
+        else:
+            projects = await project_service.list_projects_accessible_to_user(
+                db, user.id
+            )
     if language_id is not None:
         projects = [p for p in projects if p.language_id == language_id]
     return [ProjectResponse.model_validate(p) for p in projects]
