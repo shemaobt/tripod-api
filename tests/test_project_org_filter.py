@@ -49,6 +49,7 @@ async def test_list_projects_by_org_does_not_return_other_org_projects(db_sessio
     result_b = await project_service.list_projects_by_organization(db_session, org_b.id)
     assert [p.name for p in result_b] == ["For B"]
 
+
 @pytest.mark.asyncio
 async def test_manager_autoscope_sees_only_managed_org_projects(db_session) -> None:
     lang = await make_language(db_session, code="mas")

@@ -26,18 +26,14 @@ async def list_projects(
 ) -> list[ProjectResponse]:
     if user.is_platform_admin:
         if organization_id:
-            projects = await project_service.list_projects_by_organization(
-                db, organization_id
-            )
+            projects = await project_service.list_projects_by_organization(db, organization_id)
         else:
             projects = await project_service.list_all_projects(db)
     else:
         managed_org_ids = await get_managed_org_ids(db, user.id)
         if organization_id:
             if organization_id in managed_org_ids:
-                projects = await project_service.list_projects_by_organization(
-                    db, organization_id
-                )
+                projects = await project_service.list_projects_by_organization(db, organization_id)
             else:
                 projects = []
         elif managed_org_ids:
@@ -50,9 +46,7 @@ async def list_projects(
                         projects.append(p)
             projects.sort(key=lambda p: p.name)
         else:
-            projects = await project_service.list_projects_accessible_to_user(
-                db, user.id
-            )
+            projects = await project_service.list_projects_accessible_to_user(db, user.id)
     if language_id is not None:
         projects = [p for p in projects if p.language_id == language_id]
     return [ProjectResponse.model_validate(p) for p in projects]
