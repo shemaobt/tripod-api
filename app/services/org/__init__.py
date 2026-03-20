@@ -7,6 +7,7 @@ from app.services.org.is_member import is_member
 from app.services.org.list_members import list_members
 from app.services.org.list_organizations import list_organizations
 from app.services.org.remove_member import remove_member
+from app.services.org.update_member_role import update_member_role
 from app.services.org.update_organization import update_organization
 
 __all__ = [
@@ -19,5 +20,6 @@ __all__ = [
     "list_members",
     "list_organizations",
     "remove_member",
+    "update_member_role",
     "update_organization",
 ]

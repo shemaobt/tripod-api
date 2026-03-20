@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth_middleware import get_current_user
+from app.core.auth_middleware import get_current_user, require_platform_admin
 from app.core.database import get_db
 from app.core.exceptions import NotFoundError
 from app.db.models.auth import User
@@ -10,6 +10,7 @@ from app.models.org import (
     OrganizationMemberAdd,
     OrganizationMemberDetailResponse,
     OrganizationMemberResponse,
+    OrganizationMemberRoleUpdate,
     OrganizationResponse,
     OrganizationUpdate,
 )
@@ -140,3 +141,21 @@ async def remove_organization_member(
 ) -> None:
     await organization_service.get_organization_or_404(db, organization_id)
     await organization_service.remove_member(db, organization_id, user_id)
+
+
+@router.patch(
+    "/{organization_id}/members/{user_id}",
+    response_model=OrganizationMemberResponse,
+)
+async def update_member_role(
+    organization_id: str,
+    user_id: str,
+    payload: OrganizationMemberRoleUpdate,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_platform_admin),
+) -> OrganizationMemberResponse:
+    await organization_service.get_organization_or_404(db, organization_id)
+    member = await organization_service.update_member_role(
+        db, organization_id, user_id, payload.role
+    )
+    return OrganizationMemberResponse.model_validate(member)

@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -55,3 +56,7 @@ class OrganizationMemberDetailResponse(BaseModel):
     joined_at: datetime
     email: str
     display_name: str | None
+
+
+class OrganizationMemberRoleUpdate(BaseModel):
+    role: Literal["member", "manager"]
