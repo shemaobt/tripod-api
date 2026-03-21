@@ -1,16 +1,19 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth_middleware import get_current_user
+from app.core.auth_middleware import get_current_user, require_platform_admin
 from app.core.database import get_db
-from app.core.exceptions import NotFoundError
+from app.core.exceptions import AuthorizationError, NotFoundError
+from app.core.org_scope import get_managed_org_ids
 from app.db.models.auth import User
 from app.models.org import (
     OrganizationCreate,
     OrganizationMemberAdd,
     OrganizationMemberDetailResponse,
     OrganizationMemberResponse,
+    OrganizationMemberRoleUpdate,
     OrganizationResponse,
+    OrganizationStatsResponse,
     OrganizationUpdate,
 )
 from app.services import organization_service
@@ -54,6 +57,21 @@ async def get_organization_by_slug(
     if not org:
         raise NotFoundError("Organization not found")
     return OrganizationResponse.model_validate(org)
+
+
+@router.get("/{org_id}/stats", response_model=OrganizationStatsResponse)
+async def get_organization_stats(
+    org_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> OrganizationStatsResponse:
+    await organization_service.get_organization_or_404(db, org_id)
+    if not user.is_platform_admin:
+        managed = await get_managed_org_ids(db, user.id)
+        if org_id not in managed:
+            raise AuthorizationError("You do not have access to this organization's stats")
+    stats = await organization_service.get_organization_stats(db, org_id)
+    return OrganizationStatsResponse(**stats)
 
 
 @router.get("/{organization_id}", response_model=OrganizationResponse)
@@ -140,3 +158,21 @@ async def remove_organization_member(
 ) -> None:
     await organization_service.get_organization_or_404(db, organization_id)
     await organization_service.remove_member(db, organization_id, user_id)
+
+
+@router.patch(
+    "/{organization_id}/members/{user_id}",
+    response_model=OrganizationMemberResponse,
+)
+async def update_member_role(
+    organization_id: str,
+    user_id: str,
+    payload: OrganizationMemberRoleUpdate,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_platform_admin),
+) -> OrganizationMemberResponse:
+    await organization_service.get_organization_or_404(db, organization_id)
+    member = await organization_service.update_member_role(
+        db, organization_id, user_id, payload.role
+    )
+    return OrganizationMemberResponse.model_validate(member)
