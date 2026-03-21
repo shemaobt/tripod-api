@@ -60,3 +60,9 @@ class OrganizationMemberDetailResponse(BaseModel):
 
 class OrganizationMemberRoleUpdate(BaseModel):
     role: Literal["member", "manager"]
+
+
+class OrganizationStatsResponse(BaseModel):
+    project_count: int
+    member_count: int
+    language_count: int
