@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth_cache import invalidate_user
 from app.core.auth_middleware import get_current_user
 from app.core.database import get_db
+from app.core.org_scope import get_managed_org_ids
 from app.db.models.auth import User
 from app.models.auth import (
     AuthResponse,
@@ -17,7 +18,6 @@ from app.models.auth import (
     UserSignupRequest,
 )
 from app.models.role import MyRoleResponse
-from app.core.org_scope import get_managed_org_ids
 from app.services import auth_service, authorization_service, user_service
 from app.services.project import list_user_project_roles
 
