@@ -46,3 +46,7 @@ class AuthResponse(BaseModel):
 class MyProjectRolesResponse(BaseModel):
     is_platform_admin: bool
     project_roles: dict[str, str]
+
+
+class MyManagedOrgsResponse(BaseModel):
+    managed_org_ids: list[str]
