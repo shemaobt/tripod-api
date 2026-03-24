@@ -1,5 +1,6 @@
 import pytest
 
+from app.models.org import OrganizationStatsResponse
 from app.services import organization_service
 from tests.baker import (
     make_language,
@@ -15,7 +16,7 @@ from tests.baker import (
 async def test_stats_empty_org(db_session) -> None:
     org = await make_organization(db_session, slug="empty-stats")
     stats = await organization_service.get_organization_stats(db_session, org.id)
-    assert stats == {"project_count": 0, "member_count": 0, "language_count": 0}
+    assert stats == OrganizationStatsResponse(project_count=0, member_count=0, language_count=0)
 
 
 @pytest.mark.asyncio
@@ -33,9 +34,9 @@ async def test_stats_with_data(db_session) -> None:
     await make_organization_member(db_session, u2.id, org.id)
     await make_organization_member(db_session, u3.id, org.id)
     stats = await organization_service.get_organization_stats(db_session, org.id)
-    assert stats["project_count"] == 2
-    assert stats["member_count"] == 3
-    assert stats["language_count"] == 1
+    assert stats.project_count == 2
+    assert stats.member_count == 3
+    assert stats.language_count == 1
 
 
 @pytest.mark.asyncio
@@ -48,4 +49,4 @@ async def test_stats_distinct_languages(db_session) -> None:
     await make_project_organization_access(db_session, p1.id, org.id)
     await make_project_organization_access(db_session, p2.id, org.id)
     stats = await organization_service.get_organization_stats(db_session, org.id)
-    assert stats["language_count"] == 2
+    assert stats.language_count == 2
