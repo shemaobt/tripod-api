@@ -11,11 +11,30 @@ from app.core.inngest_client import inngest_client
 from app.db.models.oc_recording import OC_Recording
 from app.db.models.project import ProjectUserAccess
 from app.inngest.schemas import UploadConfirmedPayload
-from app.models.oc_recording import RecordingCreate, RecordingUpdate, UploadUrlResponse
+from app.models.oc_recording import (
+    RecordingCreate,
+    RecordingUpdate,
+    ResumableUploadUrlResponse,
+    UploadUrlResponse,
+)
 from app.services.oral_collector.constants import GCS_OC_BUCKET, GCS_OC_PROJECT
 from app.services.oral_collector.gcs_utils import GCS_PUBLIC_BASE, content_type_for_format
 
 logger = logging.getLogger(__name__)
+
+_gcs_client = None
+
+RESUMABLE_CHUNK_SIZE = 8 * 1024 * 1024
+
+
+def _get_gcs_client():  # type: ignore[no-untyped-def]
+    from google.cloud import storage
+
+    global _gcs_client
+    if _gcs_client is None:
+        _gcs_client = storage.Client(project=GCS_OC_PROJECT)
+    return _gcs_client
+
 
 FORMAT_EXTENSIONS: dict[str, str] = {
     "m4a": ".m4a",
@@ -145,14 +164,12 @@ async def generate_upload_url(
     user_id: str,
 ) -> UploadUrlResponse:
 
-    from google.cloud import storage
-
     recording = await get_recording(db, recording_id)
     await check_recording_access(db, recording, user_id)
 
     blob_path = _gcs_blob_path(recording.project_id, recording.genre_id, recording_id, fmt)
 
-    client = storage.Client(project=GCS_OC_PROJECT)
+    client = _get_gcs_client()
     bucket = client.bucket(GCS_OC_BUCKET)
     blob = bucket.blob(blob_path)
 
@@ -183,7 +200,12 @@ async def generate_upload_url(
     )
 
 
-async def confirm_upload(db: AsyncSession, recording_id: str) -> OC_Recording:
+async def confirm_upload(
+    db: AsyncSession,
+    recording_id: str,
+    *,
+    md5_hash: str | None = None,
+) -> OC_Recording:
     recording = await get_recording(db, recording_id)
 
     blob_path = _gcs_blob_path(
@@ -198,6 +220,7 @@ async def confirm_upload(db: AsyncSession, recording_id: str) -> OC_Recording:
         user_id=recording.user_id,
         expected_blob_path=blob_path,
         expected_size_bytes=recording.file_size_bytes,
+        expected_md5_hash=md5_hash,
     )
     await inngest_client.send(
         inngest.Event(name=OCRecordingEvent.UPLOAD_CONFIRMED, data=payload.model_dump())
@@ -206,16 +229,48 @@ async def confirm_upload(db: AsyncSession, recording_id: str) -> OC_Recording:
     return recording
 
 
+async def generate_resumable_upload_url(
+    db: AsyncSession,
+    recording_id: str,
+    fmt: str,
+    user_id: str,
+) -> ResumableUploadUrlResponse:
+    recording = await get_recording(db, recording_id)
+    await check_recording_access(db, recording, user_id)
+
+    blob_path = _gcs_blob_path(recording.project_id, recording.genre_id, recording_id, fmt)
+
+    client = _get_gcs_client()
+    bucket = client.bucket(GCS_OC_BUCKET)
+    blob = bucket.blob(blob_path)
+
+    ct = content_type_for_format(fmt)
+    file_size = recording.file_size_bytes or 0
+
+    session_uri = blob.create_resumable_upload_session(
+        content_type=ct,
+        size=file_size if file_size > 0 else None,
+    )
+
+    recording.upload_status = UploadStatus.UPLOADING
+    await db.commit()
+
+    return ResumableUploadUrlResponse(
+        recording_id=recording_id,
+        session_uri=session_uri,
+        chunk_size_bytes=RESUMABLE_CHUNK_SIZE,
+        content_type=ct,
+    )
+
+
 def _delete_gcs_blob(gcs_url: str) -> None:
 
     try:
-        from google.cloud import storage
-
         if not gcs_url.startswith(GCS_PUBLIC_BASE):
             logger.warning("Unexpected GCS URL format: %s", gcs_url)
             return
         blob_name = gcs_url[len(GCS_PUBLIC_BASE) :]
-        client = storage.Client(project=GCS_OC_PROJECT)
+        client = _get_gcs_client()
         bucket = client.bucket(GCS_OC_BUCKET)
         blob = bucket.blob(blob_name)
         blob.delete()

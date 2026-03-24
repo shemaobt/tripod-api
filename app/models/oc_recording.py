@@ -77,6 +77,22 @@ class UploadUrlResponse(BaseModel):
     content_type: str
 
 
+class ResumableUploadUrlRequest(BaseModel):
+    recording_id: str
+    format: str = Field(min_length=1, max_length=20)
+
+
+class ResumableUploadUrlResponse(BaseModel):
+    recording_id: str
+    session_uri: str
+    chunk_size_bytes: int
+    content_type: str
+
+
+class ConfirmUploadRequest(BaseModel):
+    md5_hash: str | None = None
+
+
 class SplitSegment(BaseModel):
     start_seconds: float = Field(ge=0)
     end_seconds: float = Field(gt=0)

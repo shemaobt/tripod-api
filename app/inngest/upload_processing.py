@@ -68,6 +68,8 @@ async def process_upload_fn(ctx: inngest.Context, step: inngest.Step) -> str:
     await step.run("set-upload-metadata", _set_upload_metadata)
 
     async def _verify_gcs_blob() -> dict[str, int]:
+        import base64
+
         from google.cloud import storage
 
         client = storage.Client(project=GCS_OC_PROJECT)
@@ -83,6 +85,15 @@ async def process_upload_fn(ctx: inngest.Context, step: inngest.Step) -> str:
             raise inngest.NonRetriableError(
                 f"Size mismatch: expected {payload.expected_size_bytes}, got {actual_size}"
             )
+
+        if payload.expected_md5_hash and blob.md5_hash:
+            gcs_md5_bytes = base64.b64decode(blob.md5_hash)
+            gcs_md5_hex = gcs_md5_bytes.hex()
+            if gcs_md5_hex != payload.expected_md5_hash.lower():
+                raise inngest.NonRetriableError(
+                    f"MD5 mismatch: client={payload.expected_md5_hash}, gcs={gcs_md5_hex}"
+                )
+
         return BlobVerificationResult(size=actual_size).model_dump()
 
     blob_info = BlobVerificationResult.model_validate(

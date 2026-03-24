@@ -6,9 +6,12 @@ from app.core.database import get_db
 from app.db.models.auth import User
 from app.models.oc_recording import (
     CleaningStatusResponse,
+    ConfirmUploadRequest,
     RecordingCreate,
     RecordingResponse,
     RecordingUpdate,
+    ResumableUploadUrlRequest,
+    ResumableUploadUrlResponse,
     SplitRequest,
     SplitStatusResponse,
     UploadUrlRequest,
@@ -109,16 +112,30 @@ async def request_upload_url(
     )
 
 
+@recordings_router.post("/resumable-upload-url", response_model=ResumableUploadUrlResponse)
+async def request_resumable_upload_url(
+    payload: ResumableUploadUrlRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ResumableUploadUrlResponse:
+
+    return await recording_service.generate_resumable_upload_url(
+        db, payload.recording_id, payload.format, user.id
+    )
+
+
 @recordings_router.post("/{recording_id}/confirm-upload", response_model=RecordingResponse)
 async def confirm_upload(
     recording_id: str,
+    payload: ConfirmUploadRequest | None = None,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> RecordingResponse:
 
     existing = await recording_service.get_recording(db, recording_id)
     await recording_service.check_recording_access(db, existing, user.id)
-    recording = await recording_service.confirm_upload(db, recording_id)
+    md5_hash = payload.md5_hash if payload else None
+    recording = await recording_service.confirm_upload(db, recording_id, md5_hash=md5_hash)
     return RecordingResponse.model_validate(recording)
 
 
