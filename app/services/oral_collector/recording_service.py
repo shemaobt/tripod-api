@@ -234,6 +234,8 @@ async def generate_resumable_upload_url(
     recording_id: str,
     fmt: str,
     user_id: str,
+    *,
+    origin: str | None = None,
 ) -> ResumableUploadUrlResponse:
     recording = await get_recording(db, recording_id)
     await check_recording_access(db, recording, user_id)
@@ -250,6 +252,7 @@ async def generate_resumable_upload_url(
     session_uri = blob.create_resumable_upload_session(
         content_type=ct,
         size=file_size if file_size > 0 else None,
+        origin=origin,
     )
 
     recording.upload_status = UploadStatus.UPLOADING

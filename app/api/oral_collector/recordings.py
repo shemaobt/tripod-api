@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth_middleware import get_current_user
@@ -115,12 +115,14 @@ async def request_upload_url(
 @recordings_router.post("/resumable-upload-url", response_model=ResumableUploadUrlResponse)
 async def request_resumable_upload_url(
     payload: ResumableUploadUrlRequest,
+    request: Request,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ResumableUploadUrlResponse:
 
+    origin = request.headers.get("origin")
     return await recording_service.generate_resumable_upload_url(
-        db, payload.recording_id, payload.format, user.id
+        db, payload.recording_id, payload.format, user.id, origin=origin
     )
 
 
