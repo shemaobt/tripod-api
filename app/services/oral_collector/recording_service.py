@@ -1,6 +1,8 @@
 import logging
 from datetime import UTC, datetime, timedelta
 
+import google.auth
+import google.auth.transport.requests
 import inngest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,6 +25,7 @@ from app.services.oral_collector.gcs_utils import GCS_PUBLIC_BASE, content_type_
 logger = logging.getLogger(__name__)
 
 _gcs_client = None
+_signing_credentials = None
 
 RESUMABLE_CHUNK_SIZE = 8 * 1024 * 1024
 
@@ -34,6 +37,15 @@ def _get_gcs_client():  # type: ignore[no-untyped-def]
     if _gcs_client is None:
         _gcs_client = storage.Client(project=GCS_OC_PROJECT)
     return _gcs_client
+
+
+def _get_signing_info() -> tuple[str, str]:
+    global _signing_credentials
+    if _signing_credentials is None:
+        _signing_credentials, _ = google.auth.default()
+    if not _signing_credentials.valid:
+        _signing_credentials.refresh(google.auth.transport.requests.Request())
+    return _signing_credentials.service_account_email, _signing_credentials.token
 
 
 FORMAT_EXTENSIONS: dict[str, str] = {
@@ -179,11 +191,14 @@ async def generate_upload_url(
     expiry_minutes = min(SIGNED_URL_EXPIRY_MINUTES + extra_minutes, 60)
     expiry = timedelta(minutes=expiry_minutes)
 
+    sa_email, access_token = _get_signing_info()
     upload_url = blob.generate_signed_url(
         version="v4",
         expiration=expiry,
         method="PUT",
         content_type=ct,
+        service_account_email=sa_email,
+        access_token=access_token,
     )
 
     expires_at = datetime.now(UTC) + expiry
