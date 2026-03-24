@@ -1,7 +1,9 @@
 import pytest
 
+from app.core.exceptions import AuthorizationError
 from app.core.org_scope import get_managed_org_ids
 from app.services import project_service
+from app.services.project.list_projects_for_user import list_projects_for_user
 from tests.baker import (
     make_language,
     make_organization,
@@ -59,23 +61,14 @@ async def test_manager_autoscope_sees_only_managed_org_projects(db_session) -> N
     await make_project_organization_access(db_session, p1.id, org.id)
     await make_project(db_session, language_id=lang.id, name="Other Project")
 
-    managed_ids = await get_managed_org_ids(db_session, manager.id)
-    assert org.id in managed_ids
+    projects = await list_projects_for_user(db_session, manager)
 
-    all_managed_projects = []
-    seen: set[str] = set()
-    for oid in managed_ids:
-        for p in await project_service.list_projects_by_organization(db_session, oid):
-            if p.id not in seen:
-                seen.add(p.id)
-                all_managed_projects.append(p)
-
-    assert len(all_managed_projects) == 1
-    assert all_managed_projects[0].name == "Managed Project"
+    assert len(projects) == 1
+    assert projects[0].name == "Managed Project"
 
 
 @pytest.mark.asyncio
-async def test_manager_filter_by_unmanaged_org_returns_empty(db_session) -> None:
+async def test_manager_filter_by_unmanaged_org_raises_authorization_error(db_session) -> None:
     lang = await make_language(db_session, code="mun")
     manager = await make_user(db_session, email="mgr-no@scope.com")
     await make_organization(db_session, slug="own-org", manager_id=manager.id)
@@ -83,11 +76,8 @@ async def test_manager_filter_by_unmanaged_org_returns_empty(db_session) -> None
     p1 = await make_project(db_session, language_id=lang.id, name="Other Org Project")
     await make_project_organization_access(db_session, p1.id, other_org.id)
 
-    managed_ids = await get_managed_org_ids(db_session, manager.id)
-    assert other_org.id not in managed_ids
-
-    projects: list = []
-    assert projects == []
+    with pytest.raises(AuthorizationError):
+        await list_projects_for_user(db_session, manager, organization_id=str(other_org.id))
 
 
 @pytest.mark.asyncio
