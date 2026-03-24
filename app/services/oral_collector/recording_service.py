@@ -123,6 +123,16 @@ async def check_recording_access(db: AsyncSession, recording: OC_Recording, user
 
 async def create_recording(db: AsyncSession, data: RecordingCreate, user_id: str) -> OC_Recording:
 
+    if data.title:
+        stmt = select(OC_Recording).where(
+            OC_Recording.project_id == data.project_id,
+            OC_Recording.title == data.title,
+        )
+        result = await db.execute(stmt)
+        existing = result.scalar_one_or_none()
+        if existing is not None:
+            return existing
+
     recording = OC_Recording(
         project_id=data.project_id,
         genre_id=data.genre_id,
