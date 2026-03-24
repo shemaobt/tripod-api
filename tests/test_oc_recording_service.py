@@ -69,6 +69,7 @@ async def _seed_recording(
 
 def _import_service():
     from app.services.oral_collector import recording_service
+
     return recording_service
 
 
@@ -130,9 +131,7 @@ async def test_update_recording(db_session: AsyncSession) -> None:
     genre, sub = await _seed_genre(db_session)
 
     rec = await _seed_recording(db_session, user.id, project_id, genre.id, sub.id)
-    updated = await rs.update_recording(
-        db_session, rec.id, RecordingUpdate(title="Updated Title")
-    )
+    updated = await rs.update_recording(db_session, rec.id, RecordingUpdate(title="Updated Title"))
 
     assert updated.title == "Updated Title"
 
@@ -159,11 +158,19 @@ async def test_list_recordings(db_session: AsyncSession) -> None:
     genre, sub = await _seed_genre(db_session)
 
     await _seed_recording(
-        db_session, user.id, project_id, genre.id, sub.id,
+        db_session,
+        user.id,
+        project_id,
+        genre.id,
+        sub.id,
         upload_status=UploadStatus.UPLOADED,
     )
     await _seed_recording(
-        db_session, user.id, project_id, genre.id, sub.id,
+        db_session,
+        user.id,
+        project_id,
+        genre.id,
+        sub.id,
         upload_status=UploadStatus.VERIFIED,
     )
 
@@ -179,17 +186,23 @@ async def test_list_recordings_filter_by_status(db_session: AsyncSession) -> Non
     genre, sub = await _seed_genre(db_session)
 
     await _seed_recording(
-        db_session, user.id, project_id, genre.id, sub.id,
+        db_session,
+        user.id,
+        project_id,
+        genre.id,
+        sub.id,
         upload_status=UploadStatus.UPLOADED,
     )
     await _seed_recording(
-        db_session, user.id, project_id, genre.id, sub.id,
+        db_session,
+        user.id,
+        project_id,
+        genre.id,
+        sub.id,
         upload_status=UploadStatus.LOCAL,
     )
 
-    uploaded = await rs.list_recordings(
-        db_session, project_id, upload_status=UploadStatus.UPLOADED
-    )
+    uploaded = await rs.list_recordings(db_session, project_id, upload_status=UploadStatus.UPLOADED)
     assert len(uploaded) == 1
     assert uploaded[0].upload_status == UploadStatus.UPLOADED
 

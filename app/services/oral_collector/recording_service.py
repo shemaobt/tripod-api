@@ -35,6 +35,7 @@ def _get_gcs_client():  # type: ignore[no-untyped-def]
         _gcs_client = storage.Client(project=GCS_OC_PROJECT)
     return _gcs_client
 
+
 FORMAT_EXTENSIONS: dict[str, str] = {
     "m4a": ".m4a",
     "aac": ".aac",
