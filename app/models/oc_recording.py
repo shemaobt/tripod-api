@@ -89,6 +89,10 @@ class ResumableUploadUrlResponse(BaseModel):
     content_type: str
 
 
+class ConfirmUploadRequest(BaseModel):
+    md5_hash: str | None = None
+
+
 class SplitSegment(BaseModel):
     start_seconds: float = Field(ge=0)
     end_seconds: float = Field(gt=0)

@@ -199,7 +199,12 @@ async def generate_upload_url(
     )
 
 
-async def confirm_upload(db: AsyncSession, recording_id: str) -> OC_Recording:
+async def confirm_upload(
+    db: AsyncSession,
+    recording_id: str,
+    *,
+    md5_hash: str | None = None,
+) -> OC_Recording:
     recording = await get_recording(db, recording_id)
 
     blob_path = _gcs_blob_path(
@@ -214,6 +219,7 @@ async def confirm_upload(db: AsyncSession, recording_id: str) -> OC_Recording:
         user_id=recording.user_id,
         expected_blob_path=blob_path,
         expected_size_bytes=recording.file_size_bytes,
+        expected_md5_hash=md5_hash,
     )
     await inngest_client.send(
         inngest.Event(name=OCRecordingEvent.UPLOAD_CONFIRMED, data=payload.model_dump())
