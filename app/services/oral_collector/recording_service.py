@@ -173,6 +173,37 @@ async def delete_recording(db: AsyncSession, recording_id: str) -> None:
     await db.commit()
 
 
+async def clear_stale_recordings(
+    db: AsyncSession,
+    project_id: str,
+    user_id: str,
+) -> int:
+    stmt = select(ProjectUserAccess).where(
+        ProjectUserAccess.project_id == project_id,
+        ProjectUserAccess.user_id == user_id,
+        ProjectUserAccess.role == "manager",
+    )
+    result = await db.execute(stmt)
+    if result.scalar_one_or_none() is None:
+        raise AuthorizationError("Only a project manager can clear stale recordings")
+
+    stale_statuses = [UploadStatus.UPLOADING, UploadStatus.UPLOAD_FAILED]
+    stmt = select(OC_Recording).where(
+        OC_Recording.project_id == project_id,
+        OC_Recording.upload_status.in_(stale_statuses),
+    )
+    result = await db.execute(stmt)
+    recordings = list(result.scalars().all())
+
+    for recording in recordings:
+        if recording.gcs_url:
+            _delete_gcs_blob(recording.gcs_url)
+        await db.delete(recording)
+
+    await db.commit()
+    return len(recordings)
+
+
 def _gcs_blob_path(project_id: str, genre_id: str, recording_id: str, fmt: str) -> str:
 
     ext = FORMAT_EXTENSIONS.get(fmt.lower(), f".{fmt.lower()}")

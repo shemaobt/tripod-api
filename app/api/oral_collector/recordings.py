@@ -100,6 +100,17 @@ async def delete_recording(
     await recording_service.delete_recording(db, recording_id)
 
 
+@recordings_router.post("/clear-stale")
+async def clear_stale_recordings(
+    project_id: str = Query(...),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, int]:
+
+    deleted = await recording_service.clear_stale_recordings(db, project_id, user.id)
+    return {"deleted": deleted}
+
+
 @recordings_router.post("/upload-url", response_model=UploadUrlResponse)
 async def request_upload_url(
     payload: UploadUrlRequest,
