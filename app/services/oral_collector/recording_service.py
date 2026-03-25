@@ -177,15 +177,18 @@ async def clear_stale_recordings(
     db: AsyncSession,
     project_id: str,
     user_id: str,
+    *,
+    is_platform_admin: bool = False,
 ) -> int:
-    stmt = select(ProjectUserAccess).where(
-        ProjectUserAccess.project_id == project_id,
-        ProjectUserAccess.user_id == user_id,
-        ProjectUserAccess.role == "manager",
-    )
-    result = await db.execute(stmt)
-    if result.scalar_one_or_none() is None:
-        raise AuthorizationError("Only a project manager can clear stale recordings")
+    if not is_platform_admin:
+        stmt = select(ProjectUserAccess).where(
+            ProjectUserAccess.project_id == project_id,
+            ProjectUserAccess.user_id == user_id,
+            ProjectUserAccess.role == "manager",
+        )
+        result = await db.execute(stmt)
+        if result.scalar_one_or_none() is None:
+            raise AuthorizationError("Only a project manager can clear stale recordings")
 
     stale_statuses = [UploadStatus.UPLOADING, UploadStatus.UPLOAD_FAILED]
     stmt = select(OC_Recording).where(

@@ -107,7 +107,9 @@ async def clear_stale_recordings(
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, int]:
 
-    deleted = await recording_service.clear_stale_recordings(db, project_id, user.id)
+    deleted = await recording_service.clear_stale_recordings(
+        db, project_id, user.id, is_platform_admin=user.is_platform_admin
+    )
     return {"deleted": deleted}
 
 
