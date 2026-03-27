@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 import google.auth
 import google.auth.transport.requests
 import inngest
+from google.oauth2 import service_account
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -45,7 +46,9 @@ def _get_signing_info() -> tuple[str, str]:
         _signing_credentials, _ = google.auth.default()
     if not _signing_credentials.valid:
         _signing_credentials.refresh(google.auth.transport.requests.Request())
-    return _signing_credentials.service_account_email, _signing_credentials.token
+    creds = _signing_credentials
+    assert isinstance(creds, service_account.Credentials)
+    return creds.service_account_email, creds.token
 
 
 FORMAT_EXTENSIONS: dict[str, str] = {
@@ -181,13 +184,13 @@ async def clear_stale_recordings(
     is_platform_admin: bool = False,
 ) -> int:
     if not is_platform_admin:
-        stmt = select(ProjectUserAccess).where(
+        access_stmt = select(ProjectUserAccess).where(
             ProjectUserAccess.project_id == project_id,
             ProjectUserAccess.user_id == user_id,
             ProjectUserAccess.role == "manager",
         )
-        result = await db.execute(stmt)
-        if result.scalar_one_or_none() is None:
+        access_result = await db.execute(access_stmt)
+        if access_result.scalar_one_or_none() is None:
             raise AuthorizationError("Only a project manager can clear stale recordings")
 
     stale_statuses = [UploadStatus.UPLOADING, UploadStatus.UPLOAD_FAILED]
