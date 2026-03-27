@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -27,7 +27,7 @@ class BCDParticipantEntry(BaseModel):
     name: str
     english_gloss: str = ""
     entity_type: str = "person"
-    type: Literal["named", "group", "divine"]
+    type: str = "named"
     entry_verse: VerseRef
     exit_verse: VerseRef | None = None
     appears_in: list[VerseRef] = Field(default_factory=list)
