@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -27,7 +27,7 @@ class BCDParticipantEntry(BaseModel):
     name: str
     english_gloss: str = ""
     entity_type: str = "person"
-    type: Literal["named", "group", "divine", "location"]
+    type: str = "named"
     entry_verse: VerseRef
     exit_verse: VerseRef | None = None
     appears_in: list[VerseRef] = Field(default_factory=list)
@@ -67,6 +67,7 @@ class BCDObject(BaseModel):
     model_config = {"extra": "allow"}
 
     name: str
+    english_gloss: str = ""
     first_appears: VerseRef
     what_it_is: str = ""
     meaning_across_scenes: str = ""
@@ -77,6 +78,7 @@ class BCDInstitution(BaseModel):
     model_config = {"extra": "allow"}
 
     name: str
+    english_gloss: str = ""
     first_invoked: VerseRef
     what_it_is: str = ""
     role_in_book: str = ""
@@ -153,6 +155,9 @@ class BCDListResponse(BaseModel):
     is_active: bool
     status: BCDStatus
     prepared_by: str
+    locked_by: str | None = None
+    locked_by_name: str | None = None
+    locked_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 

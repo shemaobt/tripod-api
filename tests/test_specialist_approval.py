@@ -55,7 +55,7 @@ async def test_translation_specialist_can_approve(db_session):
 
 
 @pytest.mark.asyncio
-async def test_two_specialists_covering_two_specialties_approve(db_session):
+async def test_two_specialists_covering_two_specialties_stay_review(db_session):
     user1 = await make_user(db_session, email="spec1@test.com")
     user2 = await make_user(db_session, email="spec2@test.com")
     book = await make_bible_book(
@@ -70,7 +70,7 @@ async def test_two_specialists_covering_two_specialties_approve(db_session):
     await approve_bcd(db_session, bcd.id, user1.id, ["exegete"])
     result = await approve_bcd(db_session, bcd.id, user2.id, ["biblical_language_specialist"])
 
-    assert result.status.value == "approved"
+    assert result.status.value == "review"
 
 
 @pytest.mark.asyncio
@@ -280,7 +280,7 @@ async def test_approval_status_partial(db_session):
 
 
 @pytest.mark.asyncio
-async def test_approval_status_complete(db_session):
+async def test_approval_status_partial_two_specialties(db_session):
     user1 = await make_user(db_session, email="status3a@test.com")
     user2 = await make_user(db_session, email="status3b@test.com")
     book = await make_bible_book(
@@ -300,5 +300,28 @@ async def test_approval_status_complete(db_session):
     assert len(status.approvals) == 2
     assert "exegete" in status.covered_specialties
     assert "biblical_language_specialist" in status.covered_specialties
+    assert status.distinct_reviewers == 2
+    assert status.is_complete is False
+
+
+@pytest.mark.asyncio
+async def test_approval_status_complete_all_three_specialties(db_session):
+    user1 = await make_user(db_session, email="status4a@test.com")
+    user2 = await make_user(db_session, email="status4b@test.com")
+    book = await make_bible_book(
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
+    )
+    bcd = await make_bcd(db_session, book.id, user1.id)
+
+    await approve_bcd(db_session, bcd.id, user1.id, ["exegete", "biblical_language_specialist"])
+    await approve_bcd(db_session, bcd.id, user2.id, ["translation_specialist"])
+
+    status = await get_approval_status(db_session, bcd.id)
+
+    assert len(status.approvals) == 2
     assert status.distinct_reviewers == 2
     assert status.is_complete is True

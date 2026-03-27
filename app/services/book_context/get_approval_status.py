@@ -51,5 +51,5 @@ async def get_approval_status(db: AsyncSession, bcd_id: str) -> BCDApprovalStatu
         covered_specialties=sorted(covered),
         missing_specialties=missing,
         distinct_reviewers=distinct_users,
-        is_complete=distinct_users >= 2 and len(covered) >= 2,
+        is_complete=distinct_users >= 2 and covered >= SPECIALIST_ROLES,
     )

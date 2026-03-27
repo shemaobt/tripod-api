@@ -4,6 +4,7 @@ from app.core.exceptions import AuthorizationError, ConflictError
 from app.services.book_context.create_bcd import create_bcd
 from app.services.book_context.create_new_version import create_new_version
 from app.services.book_context.get_latest_approved import get_latest_approved
+from app.services.book_context.lock_bcd import lock_bcd
 from app.services.book_context.update_section import update_section
 from tests.baker import make_bcd, make_bible_book, make_user
 
@@ -124,8 +125,11 @@ async def test_update_section_in_draft(db_session):
         chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id)
+    await lock_bcd(db_session, bcd, user.id)
 
-    result = await update_section(db_session, bcd.id, "participant_register", SAMPLE_PARTICIPANTS)
+    result = await update_section(
+        db_session, bcd.id, "participant_register", SAMPLE_PARTICIPANTS, user.id
+    )
 
     assert result.participant_register == SAMPLE_PARTICIPANTS
 
@@ -143,7 +147,9 @@ async def test_update_section_rejects_if_approved(db_session):
     bcd = await make_bcd(db_session, book.id, user.id, status="approved")
 
     with pytest.raises(ConflictError, match="Cannot edit an approved"):
-        await update_section(db_session, bcd.id, "participant_register", SAMPLE_PARTICIPANTS)
+        await update_section(
+            db_session, bcd.id, "participant_register", SAMPLE_PARTICIPANTS, user.id
+        )
 
 
 @pytest.mark.asyncio
