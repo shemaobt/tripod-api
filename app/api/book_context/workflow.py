@@ -14,8 +14,8 @@ from app.models.book_context import (
 )
 from app.services import authorization_service
 from app.services.book_context.approve_bcd import approve_bcd
-from app.services.book_context.enrich_bcd_response import enrich_bcd_response
 from app.services.book_context.cancel_generation import cancel_generation
+from app.services.book_context.enrich_bcd_response import enrich_bcd_response
 from app.services.book_context.create_new_version import create_new_version
 from app.services.book_context.generation.run import run_bcd_generation
 from app.services.book_context.list_generation_logs import list_generation_logs
