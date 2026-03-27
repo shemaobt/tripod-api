@@ -40,7 +40,8 @@ contribution to the canon?
 All entities have already been classified as places — do not skip any.
 For each place:
 - name: Copy EXACTLY from the entity data
-- english_gloss: Copy EXACTLY from the entity data
+- english_gloss: Copy from the entity data. If empty, provide the English \
+translation of the Hebrew name.
 - entity_type: Copy EXACTLY from the entity data
 - first_appears: Copy EXACTLY from the entity data (use entry_verse)
 - type: city, region, field, country, etc.
@@ -54,11 +55,15 @@ Do NOT invent places not in the list.
 
 3. **Objects**: Significant physical objects, animals, or temporal markers from the text. \
 These are typically NOT proper nouns, so they won't be in the entity list. \
-For each: name, first_appears, what_it_is, meaning_across_scenes, appears_in.
+For each: name (in Hebrew if the original text uses a Hebrew term), english_gloss \
+(English translation of the name — if the name is already English, repeat it), \
+first_appears, what_it_is, meaning_across_scenes, appears_in.
 
 4. **Institutions**: Cultural/legal institutions referenced in the text. \
 These are typically NOT proper nouns, so they won't be in the entity list. \
-For each: name, first_invoked (chapter/verse), what_it_is, role_in_book, appears_in.
+For each: name (in Hebrew if the original text uses a Hebrew term), english_gloss \
+(English translation of the name — if the name is already English, repeat it), \
+first_invoked (chapter/verse), what_it_is, role_in_book, appears_in.
 
 5. **Genre Context**:
 - primary_genre: The primary literary genre
