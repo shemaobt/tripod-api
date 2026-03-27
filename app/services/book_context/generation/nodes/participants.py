@@ -31,7 +31,8 @@ All entities have already been classified as persons — do not skip any.
 
 For each participant:
 - name: Copy EXACTLY from the entity data
-- english_gloss: Copy EXACTLY from the entity data
+- english_gloss: Copy from the entity data. If empty, provide the English \
+translation of the Hebrew name.
 - entity_type: Copy EXACTLY from the entity data
 - type: "named" for individuals, "group" for groups, "divine" for God/YHWH
 - entry_verse: Copy EXACTLY from the entity data (do NOT change)
