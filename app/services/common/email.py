@@ -48,7 +48,8 @@ async def _send_via_resend(
         f'background:#BE4A01;color:#fff;border-radius:6px;text-decoration:none">'
         f"Reset Password</a></p>"
         f"<p>Or copy this link: {reset_url}</p>"
-        f"<p>This link expires in 1 hour. If you did not request this, you can ignore this email.</p>"
+        f"<p>This link expires in 1 hour. If you did not request this, "
+        f"you can ignore this email.</p>"
     )
 
     async with httpx.AsyncClient() as client:
