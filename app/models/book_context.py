@@ -153,6 +153,9 @@ class BCDListResponse(BaseModel):
     is_active: bool
     status: BCDStatus
     prepared_by: str
+    locked_by: str | None = None
+    locked_by_name: str | None = None
+    locked_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 
