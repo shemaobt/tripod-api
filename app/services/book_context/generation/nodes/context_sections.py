@@ -4,6 +4,9 @@ import json
 import logging
 from typing import Any
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.db.models.book_context import BCDGenerationLog
 from app.services.book_context.generation.llm import call_llm
 from app.services.book_context.generation.nodes.utils import summarize_participants
 from app.services.book_context.generation.schemas import (
@@ -182,6 +185,9 @@ async def _generate_place_batch(
 
 async def generate_context_sections(
     state: BCDGenerationState,
+    *,
+    db: AsyncSession | None = None,
+    log: BCDGenerationLog | None = None,
 ) -> dict[str, Any]:
     bhsa_entities = state.get("bhsa_entities", [])
     place_entities = [e for e in bhsa_entities if e.get("entity_type") == "place"]
@@ -216,6 +222,10 @@ async def generate_context_sections(
         no_places_prompt += (
             "\n\n## User Feedback (address these concerns)\n" + state["user_feedback"]
         )
+    if db and log:
+        log.output_summary = "Generating theology, objects, institutions..."
+        await db.commit()
+
     sections = await call_llm(no_places_prompt, output_schema=ContextSectionsNoPlacesSchema)
 
     batches = [
@@ -231,6 +241,10 @@ async def generate_context_sections(
             len(batches),
             len(batch),
         )
+        if db and log:
+            log.output_summary = f"Places batch {idx}/{len(batches)} ({len(batch)} entities)"
+            await db.commit()
+
         batch_result = await _generate_place_batch(batch, state["book_name"])
         for p in batch_result:
             name = p.get("name", "")

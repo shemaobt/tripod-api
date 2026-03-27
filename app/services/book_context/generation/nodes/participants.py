@@ -4,6 +4,9 @@ import json
 import logging
 from typing import Any
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.db.models.book_context import BCDGenerationLog
 from app.services.book_context.generation.llm import call_llm
 from app.services.book_context.generation.schemas import ParticipantRegisterSchema
 from app.services.book_context.generation.state import BCDGenerationState
@@ -82,6 +85,9 @@ async def _generate_batch(
 
 async def generate_participants(
     state: BCDGenerationState,
+    *,
+    db: AsyncSession | None = None,
+    log: BCDGenerationLog | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     bhsa_entities = state.get("bhsa_entities", [])
     person_entities = [e for e in bhsa_entities if e.get("entity_type") in ("person", "ambiguous")]
@@ -114,6 +120,10 @@ async def generate_participants(
             len(batches),
             len(batch),
         )
+        if db and log:
+            log.output_summary = f"Batch {idx}/{len(batches)} ({len(batch)} entities)"
+            await db.commit()
+
         batch_result = await _generate_batch(batch, state, outline_json)
         for p in batch_result:
             name = p.get("name", "")
