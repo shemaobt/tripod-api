@@ -26,6 +26,7 @@ async def call_llm(
         model=settings.google_llm_model,
         google_api_key=settings.google_api_key,
         temperature=0,
+        max_output_tokens=65536,
     )
 
     last_exc: Exception | None = None
