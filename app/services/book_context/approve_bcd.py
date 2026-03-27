@@ -57,12 +57,14 @@ async def approve_bcd(
             roles = a.roles_at_approval or [a.role_at_approval]
             covered_specialties.update(r for r in roles if r in SPECIALIST_ROLES)
 
-        if distinct_users >= 2 and len(covered_specialties) >= 2:
+        if distinct_users >= 2 and covered_specialties >= SPECIALIST_ROLES:
             bcd.status = BCDStatus.APPROVED
         else:
             bcd.status = BCDStatus.REVIEW
 
     if bcd.status == BCDStatus.APPROVED:
+        bcd.locked_by = None
+        bcd.locked_at = None
         has_active = await db.execute(
             select(BookContextDocument.id)
             .where(
