@@ -106,11 +106,21 @@ async def generate_participants(
 
     outline_json = json.dumps(state.get("structural_outline", {}), indent=2)
     all_participants: list[dict[str, Any]] = []
+    seen_names: set[str] = set()
     for idx, batch in enumerate(batches, 1):
         logger.info(
-            "Processing participant batch %d/%d (%d entities)", idx, len(batches), len(batch)
+            "Processing participant batch %d/%d (%d entities)",
+            idx,
+            len(batches),
+            len(batch),
         )
         batch_result = await _generate_batch(batch, state, outline_json)
-        all_participants.extend(batch_result)
+        for p in batch_result:
+            name = p.get("name", "")
+            if name not in seen_names:
+                seen_names.add(name)
+                all_participants.append(p)
+            else:
+                logger.warning("Skipping duplicate participant: %s", name)
 
     return {"participant_register": all_participants}

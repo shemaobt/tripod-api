@@ -4,6 +4,7 @@ import json
 from typing import Any
 
 from app.services.book_context.generation.llm import call_llm
+from app.services.book_context.generation.nodes.utils import summarize_participants
 from app.services.book_context.generation.schemas import ContextSectionsSchema
 from app.services.book_context.generation.state import BCDGenerationState
 
@@ -87,7 +88,7 @@ async def generate_context_sections(state: BCDGenerationState) -> dict[str, Any]
         book_name=state["book_name"],
         genre=state["genre"],
         outline=json.dumps(state.get("structural_outline", {}), indent=2),
-        participants=json.dumps(state.get("participant_register", []), indent=2),
+        participants=summarize_participants(state.get("participant_register", [])),
         threads=json.dumps(state.get("discourse_threads", []), indent=2),
         bhsa_summary=state.get("bhsa_summary", ""),
         place_entities=json.dumps(place_entities, indent=2),

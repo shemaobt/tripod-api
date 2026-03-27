@@ -4,6 +4,7 @@ import json
 from typing import Any
 
 from app.services.book_context.generation.llm import call_llm
+from app.services.book_context.generation.nodes.utils import summarize_participants
 from app.services.book_context.generation.schemas import DiscourseThreadsSchema
 from app.services.book_context.generation.state import BCDGenerationState
 
@@ -42,7 +43,7 @@ async def generate_discourse_threads(state: BCDGenerationState) -> dict[str, lis
     prompt = DISCOURSE_PROMPT.format(
         book_name=state["book_name"],
         outline=json.dumps(state.get("structural_outline", {}), indent=2),
-        participants=json.dumps(state.get("participant_register", []), indent=2),
+        participants=summarize_participants(state.get("participant_register", [])),
         bhsa_summary=state.get("bhsa_summary", ""),
     )
     if state.get("user_feedback"):
