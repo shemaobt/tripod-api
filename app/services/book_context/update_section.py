@@ -2,7 +2,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import ConflictError, NotFoundError
+from app.core.exceptions import AuthorizationError, ConflictError, NotFoundError
 from app.db.models.book_context import BCDStatus, BookContextDocument
 from app.services.book_context.get_bcd import get_bcd_or_404
 
@@ -26,6 +26,7 @@ async def update_section(
     bcd_id: str,
     section_key: str,
     data: Any,
+    user_id: str,
 ) -> BookContextDocument:
     bcd = await get_bcd_or_404(db, bcd_id)
 
@@ -39,6 +40,12 @@ async def update_section(
 
     if section_key not in EDITABLE_SECTIONS:
         raise NotFoundError(f"Unknown section: {section_key}")
+
+    if not bcd.locked_by:
+        raise ConflictError("You must lock the document before editing.")
+
+    if bcd.locked_by != user_id:
+        raise AuthorizationError("This document is locked by another user.")
 
     setattr(bcd, section_key, data)
     await db.commit()
