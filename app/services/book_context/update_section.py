@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import AuthorizationError, ConflictError, NotFoundError
 from app.db.models.book_context import BCDStatus, BookContextDocument
 from app.services.book_context.get_bcd import get_bcd_or_404
+from app.services.i18n.back_translate_content import back_translate_content
 
 EDITABLE_SECTIONS = frozenset(
     {
@@ -27,7 +28,9 @@ async def update_section(
     section_key: str,
     data: Any,
     user_id: str,
+    locale: str = "en",
 ) -> BookContextDocument:
+    """Update a BCD section. Back-translates to English if locale is not 'en'."""
     bcd = await get_bcd_or_404(db, bcd_id)
 
     if bcd.status == BCDStatus.APPROVED:
@@ -47,7 +50,11 @@ async def update_section(
     if bcd.locked_by != user_id:
         raise AuthorizationError("This document is locked by another user.")
 
+    if locale and locale != "en" and isinstance(data, dict):
+        data = await back_translate_content(data, locale)
+
     setattr(bcd, section_key, data)
+    bcd.translations = None
     await db.commit()
     await db.refresh(bcd)
     return bcd

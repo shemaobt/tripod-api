@@ -27,7 +27,9 @@ async def update_bcd_section(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> BCDResponse:
-    bcd = await update_section(db, bcd_id, section_key, payload.data, user.id)
+    bcd = await update_section(
+        db, bcd_id, section_key, payload.data, user.id, locale=payload.locale
+    )
     return await enrich_bcd_response(db, bcd)
 
 

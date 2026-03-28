@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.book_context._deps import MM_APP_KEY, mm_access
@@ -32,11 +32,12 @@ router = APIRouter()
 @router.post("/{bcd_id}/approve", response_model=BCDResponse, dependencies=[mm_access])
 async def approve_book_context_document(
     bcd_id: str,
+    locale: str = Query(default="en"),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> BCDResponse:
     user_roles = await authorization_service.resolve_user_app_roles(db, user, MM_APP_KEY)
-    bcd = await approve_bcd(db, bcd_id, user.id, user_roles)
+    bcd = await approve_bcd(db, bcd_id, user.id, user_roles, locale=locale)
     return await enrich_bcd_response(db, bcd)
 
 

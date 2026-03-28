@@ -87,6 +87,7 @@ class BCDApproval(Base):
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
     role_at_approval: Mapped[str] = mapped_column(String(50))
     roles_at_approval: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    reviewer_locale: Mapped[str | None] = mapped_column(String(10), nullable=True)
     approved_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
