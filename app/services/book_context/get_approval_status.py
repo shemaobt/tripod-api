@@ -39,12 +39,14 @@ async def get_approval_status(db: AsyncSession, bcd_id: str) -> BCDApprovalStatu
                 avatar_url=user_avatars.get(a.user_id),
                 role_at_approval=a.role_at_approval,
                 roles_at_approval=roles,
+                reviewer_locale=a.reviewer_locale,
                 approved_at=a.approved_at.isoformat() if a.approved_at else None,
             )
         )
 
     missing = sorted(SPECIALIST_ROLES - covered)
     distinct_users = len({a.user_id for a in approvals})
+    has_english_review = any(a.reviewer_locale == "en" for a in approvals)
 
     return BCDApprovalStatusResponse(
         approvals=approval_entries,
@@ -52,4 +54,5 @@ async def get_approval_status(db: AsyncSession, bcd_id: str) -> BCDApprovalStatu
         missing_specialties=missing,
         distinct_reviewers=distinct_users,
         is_complete=distinct_users >= 2 and covered >= SPECIALIST_ROLES,
+        has_english_review=has_english_review,
     )

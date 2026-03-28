@@ -14,6 +14,7 @@ async def approve_bcd(
     bcd_id: str,
     user_id: str,
     user_roles: list[str],
+    locale: str = "en",
 ) -> BookContextDocument:
 
     capable_roles = [r for r in user_roles if r in APPROVE_CAPABLE]
@@ -38,6 +39,7 @@ async def approve_bcd(
         user_id=user_id,
         role_at_approval=capable_roles[0],
         roles_at_approval=capable_roles,
+        reviewer_locale=locale,
     )
     db.add(approval)
 
