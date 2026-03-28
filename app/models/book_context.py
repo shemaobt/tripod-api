@@ -98,6 +98,7 @@ class BCDGenerateRequest(BaseModel):
 
 class BCDSectionUpdateRequest(BaseModel):
     data: dict[str, Any] | str | list[dict[str, Any]]
+    locale: str = "en"
 
 
 class BCDApprovalResponse(BaseModel):
@@ -106,6 +107,7 @@ class BCDApprovalResponse(BaseModel):
     user_id: str
     role_at_approval: str
     roles_at_approval: list[str] = []
+    reviewer_locale: str | None = None
     approved_at: datetime
 
     model_config = {"from_attributes": True}
@@ -118,6 +120,7 @@ class BCDApprovalDetail(BaseModel):
     avatar_url: str | None
     role_at_approval: str
     roles_at_approval: list[str]
+    reviewer_locale: str | None = None
     approved_at: str | None
 
 
@@ -127,6 +130,7 @@ class BCDApprovalStatusResponse(BaseModel):
     missing_specialties: list[str]
     distinct_reviewers: int
     is_complete: bool
+    has_english_review: bool = False
 
 
 class BCDFeedbackCreate(BaseModel):
