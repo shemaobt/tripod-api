@@ -65,6 +65,10 @@ class BookContextDocument(Base):
     generation_metadata: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     regeneration_feedback: Mapped[str | None] = mapped_column(Text, nullable=True)
     translations: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    locked_by: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    locked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     prepared_by: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
@@ -83,6 +87,7 @@ class BCDApproval(Base):
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
     role_at_approval: Mapped[str] = mapped_column(String(50))
     roles_at_approval: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    reviewer_locale: Mapped[str | None] = mapped_column(String(10), nullable=True)
     approved_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

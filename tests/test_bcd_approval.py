@@ -57,7 +57,7 @@ async def test_facilitator_cannot_approve(db_session):
 
 
 @pytest.mark.asyncio
-async def test_two_specialists_different_roles_approve(db_session):
+async def test_two_specialists_two_roles_stay_review(db_session):
     spec1 = await make_user(db_session, email="spec2a@test.com")
     spec2 = await make_user(db_session, email="spec2b@test.com")
     book = await make_bible_book(
@@ -70,6 +70,25 @@ async def test_two_specialists_different_roles_approve(db_session):
     bcd = await make_bcd(db_session, book.id, spec1.id)
 
     await approve_bcd(db_session, bcd.id, spec1.id, ["exegete"])
+    result = await approve_bcd(db_session, bcd.id, spec2.id, ["translation_specialist"])
+
+    assert result.status.value == "review"
+
+
+@pytest.mark.asyncio
+async def test_three_specialties_covered_by_two_users_approve(db_session):
+    spec1 = await make_user(db_session, email="spec3x@test.com")
+    spec2 = await make_user(db_session, email="spec3y@test.com")
+    book = await make_bible_book(
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
+    )
+    bcd = await make_bcd(db_session, book.id, spec1.id)
+
+    await approve_bcd(db_session, bcd.id, spec1.id, ["exegete", "biblical_language_specialist"])
     result = await approve_bcd(db_session, bcd.id, spec2.id, ["translation_specialist"])
 
     assert result.status.value == "approved"

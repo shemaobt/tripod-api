@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     inngest_event_key: str = ""
     inngest_signing_key: str = ""
 
+    password_reset_token_expire_minutes: int = 60
+    email_provider: str = "log"
+    resend_api_key: str = ""
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [item.strip() for item in self.cors_origins.split(",") if item.strip()]

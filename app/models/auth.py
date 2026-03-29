@@ -46,3 +46,17 @@ class AuthResponse(BaseModel):
 class MyProjectRolesResponse(BaseModel):
     is_platform_admin: bool
     project_roles: dict[str, str]
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+    app_key: str = Field(max_length=100)
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    password: str = Field(min_length=8, max_length=128)
+
+
+class PasswordResetResponse(BaseModel):
+    message: str

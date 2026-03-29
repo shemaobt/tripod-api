@@ -54,7 +54,9 @@ async def update_meaning_map(
 ) -> MeaningMapResponse:
     mm, book = await meaning_map_service.get_map_with_book(db, map_id)
     meaning_map_service.ensure_ot(book)
-    mm = await meaning_map_service.update_meaning_map_data(db, mm, payload.data, user.id)
+    mm = await meaning_map_service.update_meaning_map_data(
+        db, mm, payload.data, user.id, locale=payload.locale
+    )
     return await _enrich(db, mm)
 
 

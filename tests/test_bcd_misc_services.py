@@ -56,7 +56,7 @@ async def test_update_section_unknown_key_raises_not_found(db_session):
     bcd = await make_bcd(db_session, book.id, user.id)
 
     with pytest.raises(NotFoundError, match="Unknown section"):
-        await update_section(db_session, bcd.id, "nonexistent_section", {})
+        await update_section(db_session, bcd.id, "nonexistent_section", {}, user.id)
 
 
 @pytest.mark.asyncio
@@ -72,7 +72,7 @@ async def test_update_section_rejects_generating(db_session):
     bcd = await make_bcd(db_session, book.id, user.id, status="generating")
 
     with pytest.raises(ConflictError, match="currently being generated"):
-        await update_section(db_session, bcd.id, "places", [])
+        await update_section(db_session, bcd.id, "places", [], user.id)
 
 
 @pytest.mark.asyncio

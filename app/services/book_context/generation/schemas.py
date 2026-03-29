@@ -43,9 +43,21 @@ class DiscourseThreadsSchema(BaseModel):
     threads: list[DiscourseThreadSchema] = Field(default_factory=list)
 
 
+class PlacesRegisterSchema(BaseModel):
+    places: list[PlaceSchema] = Field(default_factory=list)
+
+
 class ContextSectionsSchema(BaseModel):
     theological_spine: str = ""
     places: list[PlaceSchema] = Field(default_factory=list)
+    objects: list[ObjectSchema] = Field(default_factory=list)
+    institutions: list[InstitutionSchema] = Field(default_factory=list)
+    genre_context: GenreContextSchema = Field(default_factory=GenreContextSchema)
+    maintenance_notes: MaintenanceNotesSchema = Field(default_factory=MaintenanceNotesSchema)
+
+
+class ContextSectionsNoPlacesSchema(BaseModel):
+    theological_spine: str = ""
     objects: list[ObjectSchema] = Field(default_factory=list)
     institutions: list[InstitutionSchema] = Field(default_factory=list)
     genre_context: GenreContextSchema = Field(default_factory=GenreContextSchema)

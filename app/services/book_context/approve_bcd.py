@@ -14,6 +14,7 @@ async def approve_bcd(
     bcd_id: str,
     user_id: str,
     user_roles: list[str],
+    locale: str = "en",
 ) -> BookContextDocument:
 
     capable_roles = [r for r in user_roles if r in APPROVE_CAPABLE]
@@ -38,6 +39,7 @@ async def approve_bcd(
         user_id=user_id,
         role_at_approval=capable_roles[0],
         roles_at_approval=capable_roles,
+        reviewer_locale=locale,
     )
     db.add(approval)
 
@@ -57,12 +59,14 @@ async def approve_bcd(
             roles = a.roles_at_approval or [a.role_at_approval]
             covered_specialties.update(r for r in roles if r in SPECIALIST_ROLES)
 
-        if distinct_users >= 2 and len(covered_specialties) >= 2:
+        if distinct_users >= 2 and covered_specialties >= SPECIALIST_ROLES:
             bcd.status = BCDStatus.APPROVED
         else:
             bcd.status = BCDStatus.REVIEW
 
     if bcd.status == BCDStatus.APPROVED:
+        bcd.locked_by = None
+        bcd.locked_at = None
         has_active = await db.execute(
             select(BookContextDocument.id)
             .where(
