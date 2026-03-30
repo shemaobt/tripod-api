@@ -9,7 +9,6 @@ from app.models.org import OrganizationStatsResponse
 async def get_organization_stats(
     db: AsyncSession, organization_id: str
 ) -> OrganizationStatsResponse:
-    """Return aggregate stats for a single organization."""
     project_count_q = select(func.count()).where(
         ProjectOrganizationAccess.organization_id == organization_id
     )
