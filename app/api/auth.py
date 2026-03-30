@@ -123,6 +123,8 @@ async def my_managed_orgs(
 ) -> MyManagedOrgsResponse:
     org_ids = await get_managed_org_ids(db, user.id)
     return MyManagedOrgsResponse(managed_org_ids=org_ids)
+
+
 @router.post("/forgot-password", response_model=PasswordResetResponse)
 async def forgot_password(
     payload: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)
