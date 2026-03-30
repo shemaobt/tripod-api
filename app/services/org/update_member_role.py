@@ -1,4 +1,4 @@
-from sqlalchemy import Select, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError
@@ -11,7 +11,7 @@ async def update_member_role(
     user_id: str,
     role: str,
 ) -> OrganizationMember:
-    stmt: Select[tuple[OrganizationMember]] = select(OrganizationMember).where(
+    stmt = select(OrganizationMember).where(
         OrganizationMember.organization_id == organization_id,
         OrganizationMember.user_id == user_id,
     )

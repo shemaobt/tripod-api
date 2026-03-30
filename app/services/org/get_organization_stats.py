@@ -3,9 +3,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.org import OrganizationMember
 from app.db.models.project import Project, ProjectOrganizationAccess
+from app.models.org import OrganizationStatsResponse
 
 
-async def get_organization_stats(db: AsyncSession, organization_id: str) -> dict[str, int]:
+async def get_organization_stats(
+    db: AsyncSession, organization_id: str
+) -> OrganizationStatsResponse:
     project_count_q = select(func.count()).where(
         ProjectOrganizationAccess.organization_id == organization_id
     )
@@ -23,8 +26,8 @@ async def get_organization_stats(db: AsyncSession, organization_id: str) -> dict
     member_count = (await db.execute(member_count_q)).scalar() or 0
     language_count = (await db.execute(language_count_q)).scalar() or 0
 
-    return {
-        "project_count": project_count,
-        "member_count": member_count,
-        "language_count": language_count,
-    }
+    return OrganizationStatsResponse(
+        project_count=project_count,
+        member_count=member_count,
+        language_count=language_count,
+    )

@@ -65,13 +65,18 @@ async def run_bcd_generation(
         (5, "context_sections", generate_context_sections, True),
     ]
 
+    batch_aware = {"participants", "context_sections"}
+
     try:
         for order, step_name, node_fn, is_async in steps:
             async with track_step(db, bcd_id, step_name, order, input_summary=step_name) as log:
                 if is_async:
-                    result = await node_fn(state)  # type: ignore[misc]
+                    if step_name in batch_aware:
+                        result = await node_fn(state, db=db, log=log)  # type: ignore[operator,misc]
+                    else:
+                        result = await node_fn(state)  # type: ignore[operator,misc]
                 else:
-                    result = node_fn(state)
+                    result = node_fn(state)  # type: ignore[operator]
                 state.update(result)  # type: ignore[typeddict-item]
                 log.output_summary = f"Completed {step_name}"
     except Exception as exc:

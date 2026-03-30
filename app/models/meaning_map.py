@@ -129,6 +129,7 @@ class MeaningMapGenerateRequest(BaseModel):
 
 class MeaningMapUpdateData(BaseModel):
     data: dict[str, Any]
+    locale: str = "en"
 
 
 class MeaningMapStatusUpdate(BaseModel):

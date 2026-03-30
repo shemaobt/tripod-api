@@ -70,8 +70,7 @@ async def get_organization_stats(
         managed = await get_managed_org_ids(db, user.id)
         if org_id not in managed:
             raise AuthorizationError("You do not have access to this organization's stats")
-    stats = await organization_service.get_organization_stats(db, org_id)
-    return OrganizationStatsResponse(**stats)
+    return await organization_service.get_organization_stats(db, org_id)
 
 
 @router.get("/{organization_id}", response_model=OrganizationResponse)

@@ -9,8 +9,11 @@ from app.db.models.auth import User
 from app.models.auth import (
     AuthResponse,
     MyManagedOrgsResponse,
+    ForgotPasswordRequest,
     MyProjectRolesResponse,
+    PasswordResetResponse,
     ProfileUpdate,
+    ResetPasswordRequest,
     TokenRefreshRequest,
     TokenResponse,
     UserLoginRequest,
@@ -120,3 +123,17 @@ async def my_managed_orgs(
 ) -> MyManagedOrgsResponse:
     org_ids = await get_managed_org_ids(db, user.id)
     return MyManagedOrgsResponse(managed_org_ids=org_ids)
+@router.post("/forgot-password", response_model=PasswordResetResponse)
+async def forgot_password(
+    payload: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)
+) -> PasswordResetResponse:
+    await auth_service.request_password_reset(db, payload.email, payload.app_key)
+    return PasswordResetResponse(message="If an account exists, a reset link has been sent.")
+
+
+@router.post("/reset-password", response_model=PasswordResetResponse)
+async def reset_password(
+    payload: ResetPasswordRequest, db: AsyncSession = Depends(get_db)
+) -> PasswordResetResponse:
+    await auth_service.reset_password_with_token(db, payload.token, payload.password)
+    return PasswordResetResponse(message="Password has been reset successfully.")

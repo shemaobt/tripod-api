@@ -25,6 +25,8 @@ async def request_revision(
     await db.execute(delete(BCDApproval).where(BCDApproval.bcd_id == bcd_id))
 
     bcd.status = BCDStatus.DRAFT
+    bcd.locked_by = None
+    bcd.locked_at = None
     await db.commit()
     await db.refresh(bcd)
     return bcd

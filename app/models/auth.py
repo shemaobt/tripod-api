@@ -50,3 +50,15 @@ class MyProjectRolesResponse(BaseModel):
 
 class MyManagedOrgsResponse(BaseModel):
     managed_org_ids: list[str]
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+    app_key: str = Field(max_length=100)
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    password: str = Field(min_length=8, max_length=128)
+
+
+class PasswordResetResponse(BaseModel):
+    message: str

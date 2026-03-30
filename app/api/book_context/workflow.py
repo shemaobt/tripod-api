@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.book_context._deps import MM_APP_KEY, mm_access
@@ -16,6 +16,7 @@ from app.services import authorization_service
 from app.services.book_context.approve_bcd import approve_bcd
 from app.services.book_context.cancel_generation import cancel_generation
 from app.services.book_context.create_new_version import create_new_version
+from app.services.book_context.enrich_bcd_response import enrich_bcd_response
 from app.services.book_context.generation.run import run_bcd_generation
 from app.services.book_context.list_generation_logs import list_generation_logs
 from app.services.book_context.request_revision import request_revision
@@ -31,12 +32,13 @@ router = APIRouter()
 @router.post("/{bcd_id}/approve", response_model=BCDResponse, dependencies=[mm_access])
 async def approve_book_context_document(
     bcd_id: str,
+    locale: str = Query(default="en"),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> BCDResponse:
     user_roles = await authorization_service.resolve_user_app_roles(db, user, MM_APP_KEY)
-    bcd = await approve_bcd(db, bcd_id, user.id, user_roles)
-    return BCDResponse.model_validate(bcd)
+    bcd = await approve_bcd(db, bcd_id, user.id, user_roles, locale=locale)
+    return await enrich_bcd_response(db, bcd)
 
 
 @router.post("/{bcd_id}/set-active", response_model=BCDResponse, dependencies=[mm_access])
@@ -49,7 +51,7 @@ async def set_active_version(
     if role != "admin":
         raise AuthorizationError("Only admins can set the active version.")
     bcd = await set_active_bcd(db, bcd_id)
-    return BCDResponse.model_validate(bcd)
+    return await enrich_bcd_response(db, bcd)
 
 
 @router.post(
@@ -77,7 +79,7 @@ async def request_bcd_revision(
 ) -> BCDResponse:
     role = await authorization_service.resolve_user_app_role(db, user, MM_APP_KEY)
     bcd = await request_revision(db, bcd_id, user.id, role)
-    return BCDResponse.model_validate(bcd)
+    return await enrich_bcd_response(db, bcd)
 
 
 @router.post(
@@ -92,7 +94,7 @@ async def create_new_bcd_version(
     db: AsyncSession = Depends(get_db),
 ) -> BCDResponse:
     bcd = await create_new_version(db, bcd_id, user.id)
-    return BCDResponse.model_validate(bcd)
+    return await enrich_bcd_response(db, bcd)
 
 
 @router.get(

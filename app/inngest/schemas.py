@@ -6,6 +6,7 @@ class UploadConfirmedPayload(BaseModel):
     user_id: str
     expected_blob_path: str
     expected_size_bytes: int
+    expected_md5_hash: str | None = None
 
 
 class CleanRequestedPayload(BaseModel):

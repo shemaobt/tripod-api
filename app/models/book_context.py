@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -27,7 +27,7 @@ class BCDParticipantEntry(BaseModel):
     name: str
     english_gloss: str = ""
     entity_type: str = "person"
-    type: Literal["named", "group", "divine"]
+    type: str = "named"
     entry_verse: VerseRef
     exit_verse: VerseRef | None = None
     appears_in: list[VerseRef] = Field(default_factory=list)
@@ -67,6 +67,7 @@ class BCDObject(BaseModel):
     model_config = {"extra": "allow"}
 
     name: str
+    english_gloss: str = ""
     first_appears: VerseRef
     what_it_is: str = ""
     meaning_across_scenes: str = ""
@@ -77,6 +78,7 @@ class BCDInstitution(BaseModel):
     model_config = {"extra": "allow"}
 
     name: str
+    english_gloss: str = ""
     first_invoked: VerseRef
     what_it_is: str = ""
     role_in_book: str = ""
@@ -96,6 +98,7 @@ class BCDGenerateRequest(BaseModel):
 
 class BCDSectionUpdateRequest(BaseModel):
     data: dict[str, Any] | str | list[dict[str, Any]]
+    locale: str = "en"
 
 
 class BCDApprovalResponse(BaseModel):
@@ -104,6 +107,7 @@ class BCDApprovalResponse(BaseModel):
     user_id: str
     role_at_approval: str
     roles_at_approval: list[str] = []
+    reviewer_locale: str | None = None
     approved_at: datetime
 
     model_config = {"from_attributes": True}
@@ -116,6 +120,7 @@ class BCDApprovalDetail(BaseModel):
     avatar_url: str | None
     role_at_approval: str
     roles_at_approval: list[str]
+    reviewer_locale: str | None = None
     approved_at: str | None
 
 
@@ -125,6 +130,7 @@ class BCDApprovalStatusResponse(BaseModel):
     missing_specialties: list[str]
     distinct_reviewers: int
     is_complete: bool
+    has_english_review: bool = False
 
 
 class BCDFeedbackCreate(BaseModel):
@@ -153,6 +159,9 @@ class BCDListResponse(BaseModel):
     is_active: bool
     status: BCDStatus
     prepared_by: str
+    locked_by: str | None = None
+    locked_by_name: str | None = None
+    locked_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 

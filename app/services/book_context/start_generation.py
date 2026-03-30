@@ -50,6 +50,8 @@ async def start_generation(
 
     if not source_has_content:
         source.status = BCDStatus.GENERATING
+        source.locked_by = None
+        source.locked_at = None
         await db.commit()
         await db.refresh(source)
         target_bcd = source

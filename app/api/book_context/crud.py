@@ -12,6 +12,10 @@ from app.models.book_context import (
     BCDResponse,
 )
 from app.services.book_context.create_bcd import create_bcd
+from app.services.book_context.enrich_bcd_response import (
+    enrich_bcd_list_response,
+    enrich_bcd_response,
+)
 from app.services.book_context.get_approval_status import get_approval_status
 from app.services.book_context.get_bcd import get_bcd_or_404
 from app.services.book_context.list_bcds import list_bcds
@@ -25,7 +29,7 @@ async def list_book_context_documents(
     db: AsyncSession = Depends(get_db),
 ) -> list[BCDListResponse]:
     items = await list_bcds(db, book_id=book_id)
-    return [BCDListResponse.model_validate(bcd) for bcd in items]
+    return [await enrich_bcd_list_response(db, bcd) for bcd in items]
 
 
 @router.post(
@@ -49,7 +53,7 @@ async def create_book_context_document(
         section_range_start=payload.section_range_start,
         section_range_end=payload.section_range_end,
     )
-    return BCDResponse.model_validate(bcd)
+    return await enrich_bcd_response(db, bcd)
 
 
 @router.get("/{bcd_id}", response_model=BCDResponse, dependencies=[mm_access])
@@ -58,7 +62,7 @@ async def get_book_context_document(
     db: AsyncSession = Depends(get_db),
 ) -> BCDResponse:
     bcd = await get_bcd_or_404(db, bcd_id)
-    return BCDResponse.model_validate(bcd)
+    return await enrich_bcd_response(db, bcd)
 
 
 @router.get(
