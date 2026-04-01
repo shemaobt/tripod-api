@@ -46,7 +46,7 @@ def _get_signing_info() -> tuple[str, str]:
     if not _signing_credentials.valid:
         _signing_credentials.refresh(google.auth.transport.requests.Request())
     creds = _signing_credentials
-    return creds.service_account_email, creds.token
+    return creds.service_account_email, creds.token  # type: ignore[attr-defined]
 
 
 FORMAT_EXTENSIONS: dict[str, str] = {
