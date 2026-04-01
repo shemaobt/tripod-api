@@ -106,6 +106,8 @@ async def process_upload_fn(ctx: inngest.Context, step: inngest.Step) -> str:
     )
 
     async def _notify() -> None:
+        if payload.user_id is None:
+            return
         await notify_user(
             payload.user_id,
             OCNotificationEvent.UPLOAD_VERIFIED,
