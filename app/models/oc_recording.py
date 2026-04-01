@@ -30,7 +30,7 @@ class RecordingResponse(BaseModel):
     genre_id: str
     subcategory_id: str
     register_id: str | None = None
-    user_id: str
+    user_id: str | None = None
     title: str | None
     duration_seconds: float
     file_size_bytes: int

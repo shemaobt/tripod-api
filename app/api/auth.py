@@ -94,6 +94,16 @@ async def update_me(
     return _user_response(user)
 
 
+@router.delete("/me", status_code=status.HTTP_200_OK)
+async def delete_me(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, str]:
+    await user_service.delete_user(db, current_user.id)
+    invalidate_user(current_user.id)
+    return {"detail": "Account deleted successfully"}
+
+
 @router.get("/my-project-roles", response_model=MyProjectRolesResponse)
 async def my_project_roles(
     user: User = Depends(get_current_user),
