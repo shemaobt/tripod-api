@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 class UploadConfirmedPayload(BaseModel):
     recording_id: str
-    user_id: str
+    user_id: str | None = None
     expected_blob_path: str
     expected_size_bytes: int
     expected_md5_hash: str | None = None

@@ -23,7 +23,9 @@ class OC_Recording(Base):
         ForeignKey("oc_subcategories.id", ondelete="CASCADE"), index=True
     )
     register_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), index=True, nullable=True)
+    user_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), index=True, nullable=True
+    )
     title: Mapped[str | None] = mapped_column(Text, nullable=True)
     duration_seconds: Mapped[float] = mapped_column(Float)
     file_size_bytes: Mapped[int] = mapped_column(Integer)
