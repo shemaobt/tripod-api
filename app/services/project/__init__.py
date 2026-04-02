@@ -21,6 +21,7 @@ from app.services.project.revoke_organization_access import revoke_organization_
 from app.services.project.revoke_user_access import revoke_user_access
 from app.services.project.update_project import update_project
 from app.services.project.update_project_location import update_project_location
+from app.services.project.update_user_access_role import update_user_access_role
 
 __all__ = [
     "can_access_project",
@@ -40,4 +41,5 @@ __all__ = [
     "revoke_user_access",
     "update_project",
     "update_project_location",
+    "update_user_access_role",
 ]

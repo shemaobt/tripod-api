@@ -41,7 +41,7 @@ async def send_password_reset_email(
 
 def _build_html(greeting: str, reset_url: str, app_name: str) -> str:
     return (
-        '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', '
+        "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', "
         'Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">'
         '<div style="text-align: center; margin-bottom: 24px;">'
         f'<h2 style="color: #1a1a1a; margin: 0;">{app_name}</h2>'
@@ -100,7 +100,8 @@ async def _get_graph_token() -> str:
         "value": data["access_token"],
         "expires_at": time.time() + data["expires_in"],
     }
-    return data["access_token"]
+    token: str = data["access_token"]
+    return token
 
 
 async def _send_via_graph(

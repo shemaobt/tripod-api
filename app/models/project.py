@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -40,6 +41,11 @@ class ProjectLocationUpdate(BaseModel):
 
 class ProjectGrantUserAccess(BaseModel):
     user_id: str
+    role: str = Field(default="member", max_length=30)
+
+
+class ProjectUserAccessRoleUpdate(BaseModel):
+    role: Literal["member", "manager"]
 
 
 class ProjectGrantOrganizationAccess(BaseModel):
