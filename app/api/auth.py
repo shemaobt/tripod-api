@@ -48,7 +48,7 @@ async def signup(payload: UserSignupRequest, db: AsyncSession = Depends(get_db))
     if payload.app_key:
         app = await get_app_by_key(db, payload.app_key)
         if app:
-            role = await get_role(db, app.id, "viewer")
+            role = await get_role(db, app.id, "member")
             if role:
                 assignment = UserAppRole(
                     user_id=user.id,
