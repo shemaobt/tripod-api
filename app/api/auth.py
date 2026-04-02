@@ -5,7 +5,7 @@ from app.core.auth_cache import invalidate_user
 from app.core.auth_middleware import get_current_user
 from app.core.database import get_db
 from app.core.org_scope import get_managed_org_ids
-from app.db.models.auth import User
+from app.db.models.auth import User, UserAppRole
 from app.models.auth import (
     AuthResponse,
     ForgotPasswordRequest,
@@ -22,6 +22,8 @@ from app.models.auth import (
 )
 from app.models.role import MyRoleResponse
 from app.services import auth_service, authorization_service, user_service
+from app.services.authorization.get_app_by_key import get_app_by_key
+from app.services.authorization.get_role import get_role
 from app.services.project import list_user_project_roles
 
 router = APIRouter()
@@ -42,6 +44,20 @@ def _user_response(user: User) -> UserResponse:
 @router.post("/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 async def signup(payload: UserSignupRequest, db: AsyncSession = Depends(get_db)) -> AuthResponse:
     user = await auth_service.signup_user(db, payload)
+
+    if payload.app_key:
+        app = await get_app_by_key(db, payload.app_key)
+        if app:
+            role = await get_role(db, app.id, "viewer")
+            if role:
+                assignment = UserAppRole(
+                    user_id=user.id,
+                    app_id=app.id,
+                    role_id=role.id,
+                )
+                db.add(assignment)
+                await db.commit()
+
     access_token, refresh_token = await auth_service.issue_tokens(db, user)
     return AuthResponse(
         user=_user_response(user),
