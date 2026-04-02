@@ -13,7 +13,7 @@ SEED_APPS = [
     ("avita", "AViTA", "https://avita.shemaywam.com"),
 ]
 
-SEED_ROLES = [
+DEFAULT_ROLES = [
     "admin",
     "analyst",
     "reviewer",
@@ -23,6 +23,10 @@ SEED_ROLES = [
     "biblical_language_specialist",
     "translation_specialist",
 ]
+
+APP_ROLES_OVERRIDE: dict[str, list[str]] = {
+    "oral-collector": ["member", "manager"],
+}
 
 
 async def seed() -> None:
@@ -38,7 +42,8 @@ async def seed() -> None:
                 app.app_url = app_url
                 await db.flush()
 
-            for role_key in SEED_ROLES:
+            roles = APP_ROLES_OVERRIDE.get(app_key, DEFAULT_ROLES)
+            for role_key in roles:
                 role_result = await db.execute(
                     select(Role).where(Role.app_id == app.id, Role.role_key == role_key)
                 )
@@ -48,7 +53,7 @@ async def seed() -> None:
                         Role(
                             app_id=app.id,
                             role_key=role_key,
-                            label=role_key.replace("-", " ").title(),
+                            label=role_key.replace("-", " ").replace("_", " ").title(),
                             is_system=True,
                         )
                     )
