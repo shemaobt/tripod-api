@@ -27,8 +27,14 @@ async def create_invite(
         ProjectInvite.status == "pending",
     )
     result = await db.execute(stmt)
-    if result.scalar_one_or_none():
-        raise ConflictError("A pending invite already exists for this email")
+    existing = result.scalar_one_or_none()
+    if existing:
+        existing.role = role
+        existing.invited_by = invited_by
+        existing.created_at = datetime.now(UTC)
+        await db.commit()
+        await db.refresh(existing)
+        return existing
 
     invite = ProjectInvite(
         project_id=project_id,
