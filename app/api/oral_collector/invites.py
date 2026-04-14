@@ -46,8 +46,22 @@ async def list_my_invites(
     db: AsyncSession = Depends(get_db),
 ) -> list[OCProjectInviteResponse]:
 
-    invites = await invite_service.list_user_invites(db, user.email)
-    return [OCProjectInviteResponse.model_validate(i) for i in invites]
+    rows = await invite_service.list_user_invites(db, user.email)
+    return [
+        OCProjectInviteResponse(
+            id=invite.id,
+            project_id=invite.project_id,
+            project_name=project_name,
+            email=invite.email,
+            invited_by=invite.invited_by,
+            status=invite.status,
+            role=invite.role,
+            app_key=invite.app_key,
+            created_at=invite.created_at,
+            accepted_at=invite.accepted_at,
+        )
+        for invite, project_name in rows
+    ]
 
 
 @invites_router.post(

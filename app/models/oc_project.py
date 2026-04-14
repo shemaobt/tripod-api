@@ -24,6 +24,7 @@ class OCProjectInviteCreate(BaseModel):
 class OCProjectInviteResponse(BaseModel):
     id: str
     project_id: str
+    project_name: str | None = None
     email: str
     invited_by: str
     status: str

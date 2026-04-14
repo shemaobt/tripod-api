@@ -5,7 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AuthorizationError, ConflictError, NotFoundError
 from app.db.models.auth import User
-from app.db.models.project import ProjectInvite, ProjectUserAccess
+from app.db.models.project import Project, ProjectInvite
+from app.services.project.grant_user_access import grant_user_access
 
 
 async def create_invite(
@@ -49,10 +50,13 @@ async def create_invite(
     return invite
 
 
-async def list_user_invites(db: AsyncSession, user_email: str) -> list[ProjectInvite]:
+async def list_user_invites(
+    db: AsyncSession, user_email: str
+) -> list[tuple[ProjectInvite, str]]:
 
     stmt = (
-        select(ProjectInvite)
+        select(ProjectInvite, Project.name)
+        .join(Project, Project.id == ProjectInvite.project_id)
         .where(
             ProjectInvite.email == user_email,
             ProjectInvite.status == "pending",
@@ -60,7 +64,7 @@ async def list_user_invites(db: AsyncSession, user_email: str) -> list[ProjectIn
         .order_by(ProjectInvite.created_at.desc())
     )
     result = await db.execute(stmt)
-    return list(result.scalars().all())
+    return [(row[0], row[1]) for row in result.all()]
 
 
 async def accept_invite(
@@ -69,13 +73,7 @@ async def accept_invite(
 
     invite = await _get_invite_for_user(db, invite_id, user_email)
 
-    member = ProjectUserAccess(
-        project_id=invite.project_id,
-        user_id=user_id,
-        role=invite.role,
-        invited_by=invite.invited_by,
-    )
-    db.add(member)
+    await grant_user_access(db, invite.project_id, user_id, role=invite.role)
 
     invite.status = "accepted"
     invite.accepted_at = datetime.now(UTC)
