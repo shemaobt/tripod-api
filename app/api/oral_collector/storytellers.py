@@ -41,7 +41,11 @@ async def create_storyteller(
     db: AsyncSession = Depends(get_db),
 ) -> StorytellerResponse:
     storyteller = await storyteller_service.create_storyteller(
-        db, project_id, payload, user.id
+        db,
+        project_id,
+        payload,
+        user.id,
+        is_platform_admin=user.is_platform_admin,
     )
     return StorytellerResponse.model_validate(storyteller)
 
@@ -67,7 +71,11 @@ async def update_storyteller(
     db: AsyncSession = Depends(get_db),
 ) -> StorytellerResponse:
     storyteller = await storyteller_service.update_storyteller(
-        db, storyteller_id, payload, user.id
+        db,
+        storyteller_id,
+        payload,
+        user.id,
+        is_platform_admin=user.is_platform_admin,
     )
     return StorytellerResponse.model_validate(storyteller)
 
@@ -80,4 +88,9 @@ async def delete_storyteller(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> None:
-    await storyteller_service.delete_storyteller(db, storyteller_id, user.id)
+    await storyteller_service.delete_storyteller(
+        db,
+        storyteller_id,
+        user.id,
+        is_platform_admin=user.is_platform_admin,
+    )

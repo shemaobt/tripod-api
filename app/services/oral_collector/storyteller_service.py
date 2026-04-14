@@ -37,10 +37,16 @@ async def create_storyteller(
     project_id: str,
     data: StorytellerCreate,
     user_id: str,
+    *,
+    is_platform_admin: bool = False,
 ) -> OC_Storyteller:
-    """Create a storyteller for a project. Requires project manager role."""
+    """Create a storyteller for a project. Requires project manager role or platform admin."""
     await require_project_manager(
-        db, project_id, user_id, action="create storytellers"
+        db,
+        project_id,
+        user_id,
+        action="create storytellers",
+        is_platform_admin=is_platform_admin,
     )
     if not data.external_acceptance_confirmed:
         raise ValidationError(
@@ -69,11 +75,17 @@ async def update_storyteller(
     storyteller_id: str,
     data: StorytellerUpdate,
     user_id: str,
+    *,
+    is_platform_admin: bool = False,
 ) -> OC_Storyteller:
-    """Update a storyteller's editable fields. Requires project manager role."""
+    """Update a storyteller's editable fields. Requires project manager role or platform admin."""
     storyteller = await get_storyteller(db, storyteller_id)
     await require_project_manager(
-        db, storyteller.project_id, user_id, action="update storytellers"
+        db,
+        storyteller.project_id,
+        user_id,
+        action="update storytellers",
+        is_platform_admin=is_platform_admin,
     )
 
     update_fields = data.model_dump(exclude_unset=True)
@@ -85,12 +97,20 @@ async def update_storyteller(
 
 
 async def delete_storyteller(
-    db: AsyncSession, storyteller_id: str, user_id: str
+    db: AsyncSession,
+    storyteller_id: str,
+    user_id: str,
+    *,
+    is_platform_admin: bool = False,
 ) -> None:
     """Delete a storyteller. Linked recordings keep their data; storyteller_id is set to NULL."""
     storyteller = await get_storyteller(db, storyteller_id)
     await require_project_manager(
-        db, storyteller.project_id, user_id, action="delete storytellers"
+        db,
+        storyteller.project_id,
+        user_id,
+        action="delete storytellers",
+        is_platform_admin=is_platform_admin,
     )
     await db.delete(storyteller)
     await db.commit()
