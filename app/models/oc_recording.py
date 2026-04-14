@@ -10,6 +10,7 @@ class RecordingCreate(BaseModel):
     genre_id: str
     subcategory_id: str
     register_id: str | None = None
+    storyteller_id: str | None = None
     title: str | None = Field(default=None, max_length=500)
     description: str | None = Field(default=None, max_length=5000)
     duration_seconds: float = Field(ge=0)
@@ -24,6 +25,7 @@ class RecordingUpdate(BaseModel):
     genre_id: str | None = None
     subcategory_id: str | None = None
     register_id: str | None = None
+    storyteller_id: str | None = None
 
 
 class RecordingResponse(BaseModel):
@@ -32,6 +34,7 @@ class RecordingResponse(BaseModel):
     genre_id: str
     subcategory_id: str
     register_id: str | None = None
+    storyteller_id: str | None = None
     user_id: str | None = None
     title: str | None
     description: str | None = None
