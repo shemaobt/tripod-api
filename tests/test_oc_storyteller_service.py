@@ -198,10 +198,8 @@ async def test_delete_storyteller_nulls_recording_link(
 
     await ss.delete_storyteller(db_session, st.id, manager_id)
 
-    stmt = select(OC_Recording).where(OC_Recording.id == rec.id)
-    result = await db_session.execute(stmt)
-    refreshed = result.scalar_one()
-    assert refreshed.storyteller_id is None
+    await db_session.refresh(rec)
+    assert rec.storyteller_id is None
 
     stmt2 = select(OC_Storyteller).where(OC_Storyteller.id == st.id)
     result2 = await db_session.execute(stmt2)

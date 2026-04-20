@@ -3,6 +3,7 @@ import os
 from collections.abc import AsyncGenerator
 
 import pytest
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 os.environ.setdefault("JWT_SECRET_KEY", "test-secret-for-pytest-only")
@@ -23,6 +24,13 @@ def event_loop() -> AsyncGenerator[asyncio.AbstractEventLoop, None]:
 @pytest.fixture(scope="session")
 async def test_engine():
     engine = create_async_engine(TEST_DATABASE_URL)
+
+    @event.listens_for(engine.sync_engine, "connect")
+    def _enable_sqlite_fk(dbapi_conn, _):
+        cursor = dbapi_conn.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
     yield engine
     await engine.dispose()
 
