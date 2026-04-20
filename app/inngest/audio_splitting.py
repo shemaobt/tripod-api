@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import inngest
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
 from app.core.enums import (
@@ -31,6 +32,52 @@ from app.services.oral_collector.split_service import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+async def persist_split_segments(
+    db: AsyncSession,
+    payload: SplitRequestedPayload,
+    segment_results: list[SegmentResult],
+) -> list[str]:
+    new_ids: list[str] = []
+    total_segments = len(segment_results)
+    for seg in segment_results:
+        source_seg = payload.segments[seg.index]
+        new_recording = OC_Recording(
+            id=seg.id,
+            project_id=payload.project_id,
+            genre_id=source_seg.genre_id,
+            subcategory_id=source_seg.subcategory_id,
+            register_id=source_seg.register_id,
+            user_id=payload.user_id,
+            title=f"{payload.title} (segment {seg.index + 1})",
+            duration_seconds=seg.duration_seconds,
+            file_size_bytes=seg.file_size_bytes,
+            format=payload.format,
+            gcs_url=seg.gcs_url,
+            upload_status=UploadStatus.VERIFIED,
+            cleaning_status=CleaningStatus.NONE,
+            splitting_status=SplittingStatus.NONE,
+            split_from_id=payload.recording_id,
+            split_index=seg.index,
+            split_segment_count=total_segments,
+            recorded_at=(
+                datetime.fromisoformat(payload.recorded_at)
+                if isinstance(payload.recorded_at, str)
+                else payload.recorded_at
+            ),
+            uploaded_at=datetime.now(UTC),
+        )
+        db.add(new_recording)
+        new_ids.append(seg.id)
+    await db.commit()
+
+    parent = await db.get(OC_Recording, payload.recording_id)
+    if parent:
+        parent.splitting_status = SplittingStatus.ARCHIVED_AFTER_SPLIT
+        await db.commit()
+
+    return new_ids
 
 
 async def _on_split_failure(ctx: inngest.Context, _step: inngest.Step) -> None:
@@ -105,45 +152,7 @@ async def split_recording_fn(ctx: inngest.Context, step: inngest.Step) -> str:
 
     async def _save_segments() -> list[str]:
         async with AsyncSessionLocal() as db:
-            new_ids = []
-            total_segments = len(segment_results)
-            for seg in segment_results:
-                source_seg = payload.segments[seg.index]
-                new_recording = OC_Recording(
-                    id=seg.id,
-                    project_id=payload.project_id,
-                    genre_id=source_seg.genre_id,
-                    subcategory_id=source_seg.subcategory_id,
-                    register_id=source_seg.register_id,
-                    user_id=payload.user_id,
-                    title=f"{payload.title} (segment {seg.index + 1})",
-                    duration_seconds=seg.duration_seconds,
-                    file_size_bytes=seg.file_size_bytes,
-                    format=payload.format,
-                    gcs_url=seg.gcs_url,
-                    upload_status=UploadStatus.VERIFIED,
-                    cleaning_status=CleaningStatus.NONE,
-                    splitting_status=SplittingStatus.NONE,
-                    split_from_id=payload.recording_id,
-                    split_index=seg.index,
-                    split_segment_count=total_segments,
-                    recorded_at=(
-                        datetime.fromisoformat(payload.recorded_at)
-                        if isinstance(payload.recorded_at, str)
-                        else payload.recorded_at
-                    ),
-                    uploaded_at=datetime.now(UTC),
-                )
-                db.add(new_recording)
-                new_ids.append(seg.id)
-            await db.commit()
-
-            parent = await db.get(OC_Recording, payload.recording_id)
-            if parent:
-                parent.splitting_status = SplittingStatus.ARCHIVED_AFTER_SPLIT
-                await db.commit()
-
-            return new_ids
+            return await persist_split_segments(db, payload, segment_results)
 
     new_ids = await step.run("save-segments", _save_segments)
 

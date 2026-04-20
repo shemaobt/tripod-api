@@ -112,6 +112,46 @@ async def request_split(
     return recording
 
 
+async def backfill_split_indices(db: AsyncSession) -> tuple[int, int]:
+    parent_ids_stmt = (
+        select(OC_Recording.split_from_id).where(OC_Recording.split_from_id.is_not(None)).distinct()
+    )
+    parent_ids_result = await db.execute(parent_ids_stmt)
+    parent_ids = [row for row in parent_ids_result.scalars().all() if row]
+
+    total_updated = 0
+    total_groups = 0
+
+    for parent_id in parent_ids:
+        siblings_stmt = (
+            select(OC_Recording)
+            .where(OC_Recording.split_from_id == parent_id)
+            .order_by(OC_Recording.created_at, OC_Recording.id)
+        )
+        siblings_result = await db.execute(siblings_stmt)
+        siblings = list(siblings_result.scalars().all())
+
+        if not siblings:
+            continue
+
+        needs_backfill = any(
+            s.split_index is None or s.split_segment_count is None for s in siblings
+        )
+        if not needs_backfill:
+            continue
+
+        total_groups += 1
+        segment_count = len(siblings)
+        for i, sibling in enumerate(siblings):
+            sibling.split_index = i
+            sibling.split_segment_count = segment_count
+            total_updated += 1
+
+        await db.commit()
+
+    return total_updated, total_groups
+
+
 async def get_split_status(db: AsyncSession, recording_id: str) -> tuple[OC_Recording, list[str]]:
     recording = await get_recording(db, recording_id)
 
