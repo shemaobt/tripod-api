@@ -90,12 +90,17 @@ async def request_split(
         recording_id=recording_id,
         user_id=user_id,
         segments=[
-            SplitSegmentData(start_seconds=s.start_seconds, end_seconds=s.end_seconds)
+            SplitSegmentData(
+                start_seconds=s.start_seconds,
+                end_seconds=s.end_seconds,
+                genre_id=s.genre_id or recording.genre_id,
+                subcategory_id=s.subcategory_id or recording.subcategory_id,
+                register_id=s.register_id if s.register_id is not None else recording.register_id,
+                gain_db=s.gain_db,
+            )
             for s in segments
         ],
         project_id=recording.project_id,
-        genre_id=recording.genre_id,
-        subcategory_id=recording.subcategory_id,
         format=recording.format,
         title=recording.title or "Recording",
         recorded_at=recording.recorded_at.isoformat(),
@@ -111,11 +116,18 @@ async def get_split_status(db: AsyncSession, recording_id: str) -> tuple[OC_Reco
     recording = await get_recording(db, recording_id)
 
     segment_ids: list[str] = []
-    if recording.splitting_status == SplittingStatus.COMPLETED:
+    if recording.splitting_status in (
+        SplittingStatus.COMPLETED,
+        SplittingStatus.ARCHIVED_AFTER_SPLIT,
+    ):
         stmt = (
             select(OC_Recording.id)
             .where(OC_Recording.split_from_id == recording_id)
-            .order_by(OC_Recording.created_at)
+            .order_by(
+                OC_Recording.split_index.asc().nulls_last(),
+                OC_Recording.created_at,
+                OC_Recording.id,
+            )
         )
         result = await db.execute(stmt)
         segment_ids = list(result.scalars().all())

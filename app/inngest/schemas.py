@@ -18,6 +18,10 @@ class CleanRequestedPayload(BaseModel):
 class SplitSegmentData(BaseModel):
     start_seconds: float
     end_seconds: float
+    genre_id: str
+    subcategory_id: str
+    register_id: str | None = None
+    gain_db: float | None = None
 
 
 class SplitRequestedPayload(BaseModel):
@@ -25,8 +29,6 @@ class SplitRequestedPayload(BaseModel):
     user_id: str
     segments: list[SplitSegmentData]
     project_id: str
-    genre_id: str
-    subcategory_id: str
     format: str
     title: str
     recorded_at: str

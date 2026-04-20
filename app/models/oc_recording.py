@@ -75,6 +75,8 @@ class RecordingResponse(BaseModel):
     cleaning_error: str | None = None
     splitting_status: str = SplittingStatus.NONE
     split_from_id: str | None = None
+    split_index: int | None = None
+    split_segment_count: int | None = None
     recorded_at: datetime
     uploaded_at: datetime | None
     created_at: datetime

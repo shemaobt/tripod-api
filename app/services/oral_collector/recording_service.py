@@ -7,7 +7,7 @@ import inngest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.enums import ACTIVE_UPLOAD_STATUSES, OCRecordingEvent, UploadStatus
+from app.core.enums import ACTIVE_UPLOAD_STATUSES, OCRecordingEvent, SplittingStatus, UploadStatus
 from app.core.exceptions import AuthorizationError, NotFoundError, ValidationError
 from app.core.inngest_client import inngest_client
 from app.db.models.auth import User
@@ -80,6 +80,7 @@ async def list_recordings(
     stmt = (
         select(OC_Recording)
         .where(OC_Recording.project_id == project_id)
+        .where(OC_Recording.splitting_status != SplittingStatus.ARCHIVED_AFTER_SPLIT)
         .order_by(OC_Recording.recorded_at.desc())
     )
     if genre_id:

@@ -85,7 +85,7 @@ async def split_recording_fn(ctx: inngest.Context, step: inngest.Step) -> str:
                 )
 
                 segment_bytes = output_file.read_bytes()
-                blob_path = _gcs_blob_path(payload.project_id, payload.genre_id, new_id, fmt)
+                blob_path = _gcs_blob_path(payload.project_id, seg.genre_id, new_id, fmt)
                 segment_gcs_url = await upload_gcs_blob(blob_path, segment_bytes, content_type)
 
                 results.append(
@@ -106,12 +106,15 @@ async def split_recording_fn(ctx: inngest.Context, step: inngest.Step) -> str:
     async def _save_segments() -> list[str]:
         async with AsyncSessionLocal() as db:
             new_ids = []
+            total_segments = len(segment_results)
             for seg in segment_results:
+                source_seg = payload.segments[seg.index]
                 new_recording = OC_Recording(
                     id=seg.id,
                     project_id=payload.project_id,
-                    genre_id=payload.genre_id,
-                    subcategory_id=payload.subcategory_id,
+                    genre_id=source_seg.genre_id,
+                    subcategory_id=source_seg.subcategory_id,
+                    register_id=source_seg.register_id,
                     user_id=payload.user_id,
                     title=f"{payload.title} (segment {seg.index + 1})",
                     duration_seconds=seg.duration_seconds,
@@ -122,6 +125,8 @@ async def split_recording_fn(ctx: inngest.Context, step: inngest.Step) -> str:
                     cleaning_status=CleaningStatus.NONE,
                     splitting_status=SplittingStatus.NONE,
                     split_from_id=payload.recording_id,
+                    split_index=seg.index,
+                    split_segment_count=total_segments,
                     recorded_at=(
                         datetime.fromisoformat(payload.recorded_at)
                         if isinstance(payload.recorded_at, str)
@@ -135,9 +140,7 @@ async def split_recording_fn(ctx: inngest.Context, step: inngest.Step) -> str:
 
             parent = await db.get(OC_Recording, payload.recording_id)
             if parent:
-                parent.splitting_status = SplittingStatus.COMPLETED
-                await db.commit()
-                await db.delete(parent)
+                parent.splitting_status = SplittingStatus.ARCHIVED_AFTER_SPLIT
                 await db.commit()
 
             return new_ids

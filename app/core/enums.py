@@ -24,6 +24,7 @@ class SplittingStatus(StrEnum):
     SPLITTING = "splitting"
     COMPLETED = "completed"
     FAILED = "failed"
+    ARCHIVED_AFTER_SPLIT = "archived_after_split"
 
 
 class OCRecordingEvent(StrEnum):
