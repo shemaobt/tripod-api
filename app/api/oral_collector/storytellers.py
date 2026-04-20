@@ -61,9 +61,7 @@ async def get_storyteller(
     return StorytellerResponse.model_validate(storyteller)
 
 
-@storytellers_router.patch(
-    "/{storyteller_id}", response_model=StorytellerResponse
-)
+@storytellers_router.patch("/{storyteller_id}", response_model=StorytellerResponse)
 async def update_storyteller(
     storyteller_id: str,
     payload: StorytellerUpdate,
@@ -80,9 +78,7 @@ async def update_storyteller(
     return StorytellerResponse.model_validate(storyteller)
 
 
-@storytellers_router.delete(
-    "/{storyteller_id}", status_code=status.HTTP_204_NO_CONTENT
-)
+@storytellers_router.delete("/{storyteller_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_storyteller(
     storyteller_id: str,
     user: User = Depends(get_current_user),

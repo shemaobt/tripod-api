@@ -66,9 +66,7 @@ async def test_genre_stats_counts_primary_only_ignores_secondary(
     response = await stats_service.get_genre_stats(db_session, project_id)
 
     genre_ids = {g.genre_id for g in response.genres}
-    assert genre_a.id in genre_ids, (
-        "primary genre must appear in stats"
-    )
+    assert genre_a.id in genre_ids, "primary genre must appear in stats"
     assert genre_b.id not in genre_ids, (
         "secondary genre must NOT appear in stats — "
         "the counter would double-count ambiguous recordings otherwise"
@@ -80,9 +78,7 @@ async def test_genre_stats_counts_primary_only_ignores_secondary(
 
     sub_ids = {s.subcategory_id for s in response.subcategories}
     assert sub_a.id in sub_ids
-    assert sub_b.id not in sub_ids, (
-        "secondary subcategory must NOT appear in stats"
-    )
+    assert sub_b.id not in sub_ids, "secondary subcategory must NOT appear in stats"
 
 
 @pytest.mark.asyncio

@@ -140,9 +140,7 @@ async def test_update_recording_sets_description(db_session: AsyncSession) -> No
     )
     assert updated.description == "A new story"
 
-    cleared = await rs.update_recording(
-        db_session, rec.id, RecordingUpdate(description=None)
-    )
+    cleared = await rs.update_recording(db_session, rec.id, RecordingUpdate(description=None))
     assert cleared.description is None
 
 
@@ -328,9 +326,7 @@ def test_resumable_upload_url_response_model() -> None:
     assert resp.chunk_size_bytes == 8388608
 
 
-async def _seed_storyteller(
-    db: AsyncSession, project_id: str, name: str = "Ana"
-) -> OC_Storyteller:
+async def _seed_storyteller(db: AsyncSession, project_id: str, name: str = "Ana") -> OC_Storyteller:
     st = OC_Storyteller(
         project_id=project_id,
         name=name,
@@ -499,11 +495,19 @@ async def test_list_recordings_filter_by_user_and_storyteller(
     st_b = await _seed_storyteller(db_session, project_id, name="Beto")
 
     rec_a = await _seed_recording(
-        db_session, user_a.id, project_id, genre.id, sub.id,
+        db_session,
+        user_a.id,
+        project_id,
+        genre.id,
+        sub.id,
         upload_status=UploadStatus.UPLOADED,
     )
     rec_b = await _seed_recording(
-        db_session, user_b.id, project_id, genre.id, sub.id,
+        db_session,
+        user_b.id,
+        project_id,
+        genre.id,
+        sub.id,
         upload_status=UploadStatus.UPLOADED,
     )
     rec_a.storyteller_id = st_a.id
@@ -513,7 +517,5 @@ async def test_list_recordings_filter_by_user_and_storyteller(
     by_user = await rs.list_recordings(db_session, project_id, user_id=user_a.id)
     assert {r.id for r in by_user} == {rec_a.id}
 
-    by_st = await rs.list_recordings(
-        db_session, project_id, storyteller_id=st_b.id
-    )
+    by_st = await rs.list_recordings(db_session, project_id, storyteller_id=st_b.id)
     assert {r.id for r in by_st} == {rec_b.id}

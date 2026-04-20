@@ -119,9 +119,7 @@ async def get_project_stats(db: AsyncSession, project_id: str) -> OCProjectStats
     )
     rec_row = (await db.execute(rec_stmt)).one()
 
-    st_stmt = select(func.count(OC_Storyteller.id)).where(
-        OC_Storyteller.project_id == project_id
-    )
+    st_stmt = select(func.count(OC_Storyteller.id)).where(OC_Storyteller.project_id == project_id)
     storyteller_count = (await db.execute(st_stmt)).scalar() or 0
 
     return OCProjectStatsResponse(

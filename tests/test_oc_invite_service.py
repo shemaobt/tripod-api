@@ -86,11 +86,7 @@ async def test_accept_invite_is_idempotent_when_access_exists(db_session) -> Non
         db_session, project.id, invitee.email, "member", str(inviter.id)
     )
 
-    db_session.add(
-        ProjectUserAccess(
-            project_id=project.id, user_id=str(invitee.id), role="member"
-        )
-    )
+    db_session.add(ProjectUserAccess(project_id=project.id, user_id=str(invitee.id), role="member"))
     await db_session.commit()
 
     accepted = await invite_service.accept_invite(

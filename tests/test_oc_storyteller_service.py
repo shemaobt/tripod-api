@@ -17,9 +17,7 @@ async def _seed_project_with_manager(db: AsyncSession) -> tuple[str, str]:
     lang = await make_language(db)
     project = await make_project(db, lang.id)
     manager = await make_user(db, email="pm@test.com")
-    access = ProjectUserAccess(
-        project_id=project.id, user_id=manager.id, role="manager"
-    )
+    access = ProjectUserAccess(project_id=project.id, user_id=manager.id, role="manager")
     db.add(access)
     await db.commit()
     return project.id, manager.id
@@ -61,9 +59,7 @@ async def test_create_storyteller_non_manager_blocked(db_session: AsyncSession) 
     project_id, _ = await _seed_project_with_manager(db_session)
     outsider = await make_user(db_session, email="outsider@test.com")
 
-    data = StorytellerCreate(
-        name="Ana", sex="female", external_acceptance_confirmed=True
-    )
+    data = StorytellerCreate(name="Ana", sex="female", external_acceptance_confirmed=True)
     with pytest.raises(AuthorizationError):
         await ss.create_storyteller(db_session, project_id, data, outsider.id)
 
@@ -71,9 +67,7 @@ async def test_create_storyteller_non_manager_blocked(db_session: AsyncSession) 
 @pytest.mark.asyncio
 async def test_create_storyteller_rejects_unconfirmed_at_schema() -> None:
     with pytest.raises(PydanticValidationError):
-        StorytellerCreate(
-            name="Ana", sex="female", external_acceptance_confirmed=False
-        )
+        StorytellerCreate(name="Ana", sex="female", external_acceptance_confirmed=False)
 
 
 @pytest.mark.asyncio
@@ -106,9 +100,7 @@ async def test_list_project_storytellers_ordered_by_name(
         await ss.create_storyteller(
             db_session,
             project_id,
-            StorytellerCreate(
-                name=name, sex="female", external_acceptance_confirmed=True
-            ),
+            StorytellerCreate(name=name, sex="female", external_acceptance_confirmed=True),
             manager_id,
         )
 
@@ -125,9 +117,7 @@ async def test_update_storyteller_only_by_manager(db_session: AsyncSession) -> N
     st = await ss.create_storyteller(
         db_session,
         project_id,
-        StorytellerCreate(
-            name="Ana", sex="female", external_acceptance_confirmed=True
-        ),
+        StorytellerCreate(name="Ana", sex="female", external_acceptance_confirmed=True),
         manager_id,
     )
 
@@ -153,17 +143,13 @@ async def test_update_storyteller_preserves_audit_fields(
     st = await ss.create_storyteller(
         db_session,
         project_id,
-        StorytellerCreate(
-            name="Ana", sex="female", external_acceptance_confirmed=True
-        ),
+        StorytellerCreate(name="Ana", sex="female", external_acceptance_confirmed=True),
         manager_id,
     )
     confirmed_at = st.external_acceptance_confirmed_at
     confirmed_by = st.external_acceptance_confirmed_by
 
-    await ss.update_storyteller(
-        db_session, st.id, StorytellerUpdate(name="Anna"), manager_id
-    )
+    await ss.update_storyteller(db_session, st.id, StorytellerUpdate(name="Anna"), manager_id)
     refreshed = await ss.get_storyteller(db_session, st.id)
     assert refreshed.name == "Anna"
     assert refreshed.external_acceptance_confirmed_at == confirmed_at
@@ -180,9 +166,7 @@ async def test_delete_storyteller_nulls_recording_link(
     st = await ss.create_storyteller(
         db_session,
         project_id,
-        StorytellerCreate(
-            name="Ana", sex="female", external_acceptance_confirmed=True
-        ),
+        StorytellerCreate(name="Ana", sex="female", external_acceptance_confirmed=True),
         manager_id,
     )
 

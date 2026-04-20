@@ -23,13 +23,8 @@ class RecordingCreate(BaseModel):
 
     @model_validator(mode="after")
     def _check_secondary_not_equal_primary(self) -> "RecordingCreate":
-        if (
-            self.secondary_genre_id is not None
-            and self.secondary_genre_id == self.genre_id
-        ):
-            raise ValueError(
-                "secondary_genre_id must differ from primary genre_id"
-            )
+        if self.secondary_genre_id is not None and self.secondary_genre_id == self.genre_id:
+            raise ValueError("secondary_genre_id must differ from primary genre_id")
         return self
 
 
@@ -53,9 +48,7 @@ class RecordingUpdate(BaseModel):
             and self.genre_id is not None
             and self.secondary_genre_id == self.genre_id
         ):
-            raise ValueError(
-                "secondary_genre_id must differ from primary genre_id"
-            )
+            raise ValueError("secondary_genre_id must differ from primary genre_id")
         return self
 
 

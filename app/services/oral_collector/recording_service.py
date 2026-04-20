@@ -144,9 +144,7 @@ async def create_recording(db: AsyncSession, data: RecordingCreate, user_id: str
             return existing
 
     if data.storyteller_id:
-        await _validate_storyteller_in_project(
-            db, data.storyteller_id, data.project_id
-        )
+        await _validate_storyteller_in_project(db, data.storyteller_id, data.project_id)
 
     recording = OC_Recording(
         project_id=data.project_id,
@@ -185,9 +183,7 @@ async def update_recording(
         effective_primary = update_fields.get("genre_id", recording.genre_id)
         new_secondary = update_fields["secondary_genre_id"]
         if new_secondary is not None and new_secondary == effective_primary:
-            raise ValidationError(
-                "secondary_genre_id must differ from primary genre_id"
-            )
+            raise ValidationError("secondary_genre_id must differ from primary genre_id")
     for field, value in update_fields.items():
         setattr(recording, field, value)
     await db.commit()
