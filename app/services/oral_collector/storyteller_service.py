@@ -9,9 +9,7 @@ from app.models.oc_storyteller import StorytellerCreate, StorytellerUpdate
 from app.services.oral_collector.require_manager import require_project_manager
 
 
-async def list_project_storytellers(
-    db: AsyncSession, project_id: str
-) -> list[OC_Storyteller]:
+async def list_project_storytellers(db: AsyncSession, project_id: str) -> list[OC_Storyteller]:
     """Return all storytellers for a project, ordered by name."""
     stmt = (
         select(OC_Storyteller)

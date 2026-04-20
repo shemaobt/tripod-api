@@ -23,6 +23,13 @@ class OC_Recording(Base):
         ForeignKey("oc_subcategories.id", ondelete="CASCADE"), index=True
     )
     register_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    secondary_genre_id: Mapped[str | None] = mapped_column(
+        ForeignKey("oc_genres.id", ondelete="SET NULL"), nullable=True
+    )
+    secondary_subcategory_id: Mapped[str | None] = mapped_column(
+        ForeignKey("oc_subcategories.id", ondelete="SET NULL"), nullable=True
+    )
+    secondary_register_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
     user_id: Mapped[str | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), index=True, nullable=True
     )

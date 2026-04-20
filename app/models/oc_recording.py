@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.core.enums import SplittingStatus
 
@@ -10,6 +10,9 @@ class RecordingCreate(BaseModel):
     genre_id: str
     subcategory_id: str
     register_id: str | None = None
+    secondary_genre_id: str | None = None
+    secondary_subcategory_id: str | None = None
+    secondary_register_id: str | None = None
     storyteller_id: str | None = None
     title: str | None = Field(default=None, max_length=500)
     description: str | None = Field(default=None, max_length=5000)
@@ -18,6 +21,12 @@ class RecordingCreate(BaseModel):
     format: str = Field(min_length=1, max_length=20)
     recorded_at: datetime
 
+    @model_validator(mode="after")
+    def _check_secondary_not_equal_primary(self) -> "RecordingCreate":
+        if self.secondary_genre_id is not None and self.secondary_genre_id == self.genre_id:
+            raise ValueError("secondary_genre_id must differ from primary genre_id")
+        return self
+
 
 class RecordingUpdate(BaseModel):
     title: str | None = Field(default=None, max_length=500)
@@ -25,9 +34,22 @@ class RecordingUpdate(BaseModel):
     genre_id: str | None = None
     subcategory_id: str | None = None
     register_id: str | None = None
+    secondary_genre_id: str | None = None
+    secondary_subcategory_id: str | None = None
+    secondary_register_id: str | None = None
     storyteller_id: str | None = None
     duration_seconds: float | None = Field(default=None, ge=0)
     file_size_bytes: int | None = Field(default=None, ge=0)
+
+    @model_validator(mode="after")
+    def _check_secondary_not_equal_primary(self) -> "RecordingUpdate":
+        if (
+            self.secondary_genre_id is not None
+            and self.genre_id is not None
+            and self.secondary_genre_id == self.genre_id
+        ):
+            raise ValueError("secondary_genre_id must differ from primary genre_id")
+        return self
 
 
 class RecordingResponse(BaseModel):
@@ -36,6 +58,9 @@ class RecordingResponse(BaseModel):
     genre_id: str
     subcategory_id: str
     register_id: str | None = None
+    secondary_genre_id: str | None = None
+    secondary_subcategory_id: str | None = None
+    secondary_register_id: str | None = None
     storyteller_id: str | None = None
     user_id: str | None = None
     title: str | None
@@ -104,6 +129,10 @@ class ConfirmUploadRequest(BaseModel):
 class SplitSegment(BaseModel):
     start_seconds: float = Field(ge=0)
     end_seconds: float = Field(gt=0)
+    genre_id: str | None = None
+    subcategory_id: str | None = None
+    register_id: str | None = None
+    gain_db: float | None = None
 
 
 class SplitRequest(BaseModel):

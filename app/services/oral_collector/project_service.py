@@ -119,9 +119,7 @@ async def get_project_stats(db: AsyncSession, project_id: str) -> OCProjectStats
     )
     rec_row = (await db.execute(rec_stmt)).one()
 
-    st_stmt = select(func.count(OC_Storyteller.id)).where(
-        OC_Storyteller.project_id == project_id
-    )
+    st_stmt = select(func.count(OC_Storyteller.id)).where(OC_Storyteller.project_id == project_id)
     storyteller_count = (await db.execute(st_stmt)).scalar() or 0
 
     return OCProjectStatsResponse(
@@ -167,9 +165,9 @@ async def get_projects_batch_stats(
     result: dict[str, dict[str, int | float]] = {
         pid: {"recordings": 0, "duration": 0.0, "storytellers": 0} for pid in project_ids
     }
-    for row in rec_rows:
-        result[row.project_id]["recordings"] = int(row.recordings)
-        result[row.project_id]["duration"] = float(row.duration)
-    for row in st_rows:
-        result[row.project_id]["storytellers"] = int(row.storytellers)
+    for rec_row in rec_rows:
+        result[rec_row.project_id]["recordings"] = int(rec_row.recordings)
+        result[rec_row.project_id]["duration"] = float(rec_row.duration)
+    for st_row in st_rows:
+        result[st_row.project_id]["storytellers"] = int(st_row.storytellers)
     return result

@@ -8,7 +8,7 @@ from app.services.notifications.list_notifications import list_notifications
 from app.services.notifications.mark_all_as_read import mark_all_as_read
 from app.services.notifications.mark_as_read import mark_as_read
 from app.services.notifications.unread_count import unread_count
-from tests.baker import make_app, make_user
+from tests.baker import make_app, make_bible_book, make_meaning_map, make_pericope, make_user
 
 
 @pytest.mark.asyncio
@@ -56,6 +56,9 @@ async def test_create_notification_with_actor(db_session) -> None:
 async def test_create_notification_with_mm_detail(db_session) -> None:
     user = await make_user(db_session, email="notif-user3@test.com")
     app = await make_app(db_session, app_key="notif-app-3")
+    book = await make_bible_book(db_session)
+    pericope = await make_pericope(db_session, book.id)
+    mm = await make_meaning_map(db_session, pericope.id, user.id)
 
     notif = await create_notification(
         db_session,
@@ -64,7 +67,7 @@ async def test_create_notification_with_mm_detail(db_session) -> None:
         event_type="map_approved",
         title="Approved",
         body="Approved.",
-        related_map_id="fake-map-id",
+        related_map_id=mm.id,
         pericope_reference="Ruth 1:1-5",
     )
 
@@ -74,7 +77,7 @@ async def test_create_notification_with_mm_detail(db_session) -> None:
         )
     )
     detail = result.scalar_one()
-    assert detail.related_map_id == "fake-map-id"
+    assert detail.related_map_id == mm.id
     assert detail.pericope_reference == "Ruth 1:1-5"
 
 

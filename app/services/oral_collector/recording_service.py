@@ -126,7 +126,8 @@ async def check_recording_access(db: AsyncSession, recording: OC_Recording, user
     result = await db.execute(stmt)
     if result.scalar_one_or_none() is None:
         raise AuthorizationError(
-            "Only the recording owner, a project manager, or a platform admin can modify this recording"
+            "Only the recording owner, a project manager, or a platform admin "
+            "can modify this recording"
         )
 
 
@@ -143,15 +144,16 @@ async def create_recording(db: AsyncSession, data: RecordingCreate, user_id: str
             return existing
 
     if data.storyteller_id:
-        await _validate_storyteller_in_project(
-            db, data.storyteller_id, data.project_id
-        )
+        await _validate_storyteller_in_project(db, data.storyteller_id, data.project_id)
 
     recording = OC_Recording(
         project_id=data.project_id,
         genre_id=data.genre_id,
         subcategory_id=data.subcategory_id,
         register_id=data.register_id,
+        secondary_genre_id=data.secondary_genre_id,
+        secondary_subcategory_id=data.secondary_subcategory_id,
+        secondary_register_id=data.secondary_register_id,
         storyteller_id=data.storyteller_id,
         user_id=user_id,
         title=data.title,
@@ -177,6 +179,11 @@ async def update_recording(
         await _validate_storyteller_in_project(
             db, update_fields["storyteller_id"], recording.project_id
         )
+    if "secondary_genre_id" in update_fields:
+        effective_primary = update_fields.get("genre_id", recording.genre_id)
+        new_secondary = update_fields["secondary_genre_id"]
+        if new_secondary is not None and new_secondary == effective_primary:
+            raise ValidationError("secondary_genre_id must differ from primary genre_id")
     for field, value in update_fields.items():
         setattr(recording, field, value)
     await db.commit()

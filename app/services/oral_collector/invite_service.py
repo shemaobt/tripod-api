@@ -50,9 +50,7 @@ async def create_invite(
     return invite
 
 
-async def list_user_invites(
-    db: AsyncSession, user_email: str
-) -> list[tuple[ProjectInvite, str]]:
+async def list_user_invites(db: AsyncSession, user_email: str) -> list[tuple[ProjectInvite, str]]:
 
     stmt = (
         select(ProjectInvite, Project.name)

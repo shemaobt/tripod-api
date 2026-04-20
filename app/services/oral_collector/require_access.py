@@ -7,9 +7,7 @@ from app.db.models.org import OrganizationMember
 from app.db.models.project import ProjectOrganizationAccess, ProjectUserAccess
 
 
-async def require_project_access(
-    db: AsyncSession, project_id: str, user: User
-) -> None:
+async def require_project_access(db: AsyncSession, project_id: str, user: User) -> None:
     """Raise AuthorizationError unless the user can access the project.
 
     Access is granted to platform admins, direct project members, or members

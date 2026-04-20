@@ -73,8 +73,9 @@ async def test_list_user_invites_returns_project_name(db_session) -> None:
 
 @pytest.mark.asyncio
 async def test_accept_invite_is_idempotent_when_access_exists(db_session) -> None:
-    from app.db.models.project import ProjectUserAccess
     from sqlalchemy import select
+
+    from app.db.models.project import ProjectUserAccess
 
     lang = await make_language(db_session, code="kos")
     project = await make_project(db_session, lang.id)
@@ -85,11 +86,7 @@ async def test_accept_invite_is_idempotent_when_access_exists(db_session) -> Non
         db_session, project.id, invitee.email, "member", str(inviter.id)
     )
 
-    db_session.add(
-        ProjectUserAccess(
-            project_id=project.id, user_id=str(invitee.id), role="member"
-        )
-    )
+    db_session.add(ProjectUserAccess(project_id=project.id, user_id=str(invitee.id), role="member"))
     await db_session.commit()
 
     accepted = await invite_service.accept_invite(
@@ -107,8 +104,9 @@ async def test_accept_invite_is_idempotent_when_access_exists(db_session) -> Non
 
 @pytest.mark.asyncio
 async def test_accept_invite_grants_access_and_marks_accepted(db_session) -> None:
-    from app.db.models.project import ProjectUserAccess
     from sqlalchemy import select
+
+    from app.db.models.project import ProjectUserAccess
 
     lang = await make_language(db_session, code="kos")
     project = await make_project(db_session, lang.id)

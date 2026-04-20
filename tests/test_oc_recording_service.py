@@ -140,9 +140,7 @@ async def test_update_recording_sets_description(db_session: AsyncSession) -> No
     )
     assert updated.description == "A new story"
 
-    cleared = await rs.update_recording(
-        db_session, rec.id, RecordingUpdate(description=None)
-    )
+    cleared = await rs.update_recording(db_session, rec.id, RecordingUpdate(description=None))
     assert cleared.description is None
 
 
@@ -328,9 +326,7 @@ def test_resumable_upload_url_response_model() -> None:
     assert resp.chunk_size_bytes == 8388608
 
 
-async def _seed_storyteller(
-    db: AsyncSession, project_id: str, name: str = "Ana"
-) -> OC_Storyteller:
+async def _seed_storyteller(db: AsyncSession, project_id: str, name: str = "Ana") -> OC_Storyteller:
     st = OC_Storyteller(
         project_id=project_id,
         name=name,
@@ -417,6 +413,76 @@ async def test_update_recording_rejects_cross_project_storyteller(
 
 
 @pytest.mark.asyncio
+async def test_create_recording_with_secondary_classification(
+    db_session: AsyncSession,
+) -> None:
+    rs = _import_service()
+    user = await make_user(db_session)
+    project_id = await _seed_project(db_session)
+    genre, sub = await _seed_genre(db_session)
+
+    genre_b = OC_Genre(name="wisdom", sort_order=1)
+    db_session.add(genre_b)
+    await db_session.flush()
+    sub_b = OC_Subcategory(genre_id=genre_b.id, name="proverb", sort_order=0)
+    db_session.add(sub_b)
+    await db_session.commit()
+    await db_session.refresh(genre_b)
+    await db_session.refresh(sub_b)
+
+    data = RecordingCreate(
+        project_id=project_id,
+        genre_id=genre.id,
+        subcategory_id=sub.id,
+        secondary_genre_id=genre_b.id,
+        secondary_subcategory_id=sub_b.id,
+        secondary_register_id="consultative",
+        duration_seconds=12.0,
+        file_size_bytes=4096,
+        format="m4a",
+        recorded_at=datetime.now(UTC),
+    )
+    rec = await rs.create_recording(db_session, data, user.id)
+    assert rec.secondary_genre_id == genre_b.id
+    assert rec.secondary_subcategory_id == sub_b.id
+    assert rec.secondary_register_id == "consultative"
+
+
+def test_recording_create_rejects_secondary_equal_to_primary() -> None:
+    from pydantic import ValidationError as PydanticValidationError
+
+    with pytest.raises(PydanticValidationError):
+        RecordingCreate(
+            project_id="p",
+            genre_id="g1",
+            subcategory_id="s1",
+            secondary_genre_id="g1",
+            duration_seconds=1.0,
+            file_size_bytes=1,
+            format="m4a",
+            recorded_at=datetime.now(UTC),
+        )
+
+
+@pytest.mark.asyncio
+async def test_update_recording_rejects_secondary_equal_to_primary(
+    db_session: AsyncSession,
+) -> None:
+    rs = _import_service()
+    user = await make_user(db_session)
+    project_id = await _seed_project(db_session)
+    genre, sub = await _seed_genre(db_session)
+    rec = await _seed_recording(db_session, user.id, project_id, genre.id, sub.id)
+
+    with pytest.raises(ValidationError):
+        await rs.update_recording(
+            db_session,
+            rec.id,
+            RecordingUpdate(secondary_genre_id=genre.id),
+        )
+
+
+@pytest.mark.asyncio
 async def test_list_recordings_filter_by_user_and_storyteller(
     db_session: AsyncSession,
 ) -> None:
@@ -429,11 +495,19 @@ async def test_list_recordings_filter_by_user_and_storyteller(
     st_b = await _seed_storyteller(db_session, project_id, name="Beto")
 
     rec_a = await _seed_recording(
-        db_session, user_a.id, project_id, genre.id, sub.id,
+        db_session,
+        user_a.id,
+        project_id,
+        genre.id,
+        sub.id,
         upload_status=UploadStatus.UPLOADED,
     )
     rec_b = await _seed_recording(
-        db_session, user_b.id, project_id, genre.id, sub.id,
+        db_session,
+        user_b.id,
+        project_id,
+        genre.id,
+        sub.id,
         upload_status=UploadStatus.UPLOADED,
     )
     rec_a.storyteller_id = st_a.id
@@ -443,7 +517,5 @@ async def test_list_recordings_filter_by_user_and_storyteller(
     by_user = await rs.list_recordings(db_session, project_id, user_id=user_a.id)
     assert {r.id for r in by_user} == {rec_a.id}
 
-    by_st = await rs.list_recordings(
-        db_session, project_id, storyteller_id=st_b.id
-    )
+    by_st = await rs.list_recordings(db_session, project_id, storyteller_id=st_b.id)
     assert {r.id for r in by_st} == {rec_b.id}
