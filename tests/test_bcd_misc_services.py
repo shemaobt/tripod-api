@@ -137,7 +137,11 @@ async def test_track_step_failure(db_session):
 async def test_update_section_requires_lock(db_session):
     user = await make_user(db_session, email="lock_required@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth", order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id)
 
@@ -150,7 +154,11 @@ async def test_update_section_wrong_user_cannot_edit(db_session):
     owner = await make_user(db_session, email="owner@test.com")
     intruder = await make_user(db_session, email="intruder@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth", order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, owner.id)
     bcd.locked_by = owner.id
@@ -165,7 +173,11 @@ async def test_update_section_wrong_user_cannot_edit(db_session):
 async def test_update_section_en_drops_section_from_cached_locales(db_session):
     user = await make_user(db_session, email="en_drop@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth", order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id, places=[{"name": "old"}])
     bcd.locked_by = user.id
@@ -207,7 +219,11 @@ async def test_update_section_non_en_stores_original_payload(db_session, monkeyp
 
     user = await make_user(db_session, email="pt_store@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth", order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id, genre_context={"primary_genre": "old"})
     bcd.locked_by = user.id
@@ -216,7 +232,12 @@ async def test_update_section_non_en_stores_original_payload(db_session, monkeyp
 
     pt_payload = {"primary_genre": "narrativa", "sub_genres": ["história"]}
     updated = await update_section(
-        db_session, bcd.id, "genre_context", pt_payload, user.id, locale="pt-BR",
+        db_session,
+        bcd.id,
+        "genre_context",
+        pt_payload,
+        user.id,
+        locale="pt-BR",
     )
 
     assert updated.genre_context == {"english_version": True, "source_locale": "pt-BR"}
@@ -236,7 +257,11 @@ async def test_update_section_non_en_isolates_locale_caches(db_session, monkeypa
 
     user = await make_user(db_session, email="pt_isolate@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth", order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id)
     bcd.locked_by = user.id
@@ -250,7 +275,12 @@ async def test_update_section_non_en_isolates_locale_caches(db_session, monkeypa
 
     pt_payload = [{"name": "novo lugar"}]
     updated = await update_section(
-        db_session, bcd.id, "places", pt_payload, user.id, locale="pt-BR",
+        db_session,
+        bcd.id,
+        "places",
+        pt_payload,
+        user.id,
+        locale="pt-BR",
     )
 
     assert updated.translations["pt-BR"]["places"] == pt_payload
@@ -276,7 +306,11 @@ async def test_update_section_non_en_first_translation(db_session, monkeypatch):
 
     user = await make_user(db_session, email="pt_first@test.com")
     book = await make_bible_book(
-        db_session, name="Ruth", abbreviation="Rth", order=8, chapter_count=4,
+        db_session,
+        name="Ruth",
+        abbreviation="Rth",
+        order=8,
+        chapter_count=4,
     )
     bcd = await make_bcd(db_session, book.id, user.id)
     bcd.locked_by = user.id
@@ -286,7 +320,12 @@ async def test_update_section_non_en_first_translation(db_session, monkeypatch):
 
     pt_payload = {"primary_genre": "poesia"}
     updated = await update_section(
-        db_session, bcd.id, "genre_context", pt_payload, user.id, locale="pt-BR",
+        db_session,
+        bcd.id,
+        "genre_context",
+        pt_payload,
+        user.id,
+        locale="pt-BR",
     )
 
     assert updated.translations == {"pt-BR": {"genre_context": pt_payload}}
