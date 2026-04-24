@@ -11,6 +11,9 @@ env:
   BACKEND_SERVICE: tripod-backend
   GAR_REPO: tripod-backend
   SECRETS_PROJECT_NUMBER: ${{ secrets.SECRETS_PROJECT_NUMBER }}
+  # Opt JavaScript-based actions into Node.js 24 ahead of the 2026-06-02
+  # forced switch. Remove once the runner default is Node 24.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   deploy:
