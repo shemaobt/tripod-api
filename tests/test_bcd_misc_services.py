@@ -1,6 +1,8 @@
+from datetime import UTC, datetime
+
 import pytest
 
-from app.core.exceptions import ConflictError, NotFoundError
+from app.core.exceptions import AuthorizationError, ConflictError, NotFoundError
 from app.services.book_context.create_bcd import create_bcd
 from app.services.book_context.create_new_version import create_new_version
 from app.services.book_context.list_generation_logs import list_generation_logs
@@ -129,6 +131,165 @@ async def test_track_step_failure(db_session):
 
     assert log.status == "failed"
     assert "boom" in log.error_detail
+
+
+@pytest.mark.asyncio
+async def test_update_section_requires_lock(db_session):
+    user = await make_user(db_session, email="lock_required@test.com")
+    book = await make_bible_book(
+        db_session, name="Ruth", abbreviation="Rth", order=8, chapter_count=4,
+    )
+    bcd = await make_bcd(db_session, book.id, user.id)
+
+    with pytest.raises(ConflictError, match="lock the document"):
+        await update_section(db_session, bcd.id, "places", [], user.id)
+
+
+@pytest.mark.asyncio
+async def test_update_section_wrong_user_cannot_edit(db_session):
+    owner = await make_user(db_session, email="owner@test.com")
+    intruder = await make_user(db_session, email="intruder@test.com")
+    book = await make_bible_book(
+        db_session, name="Ruth", abbreviation="Rth", order=8, chapter_count=4,
+    )
+    bcd = await make_bcd(db_session, book.id, owner.id)
+    bcd.locked_by = owner.id
+    bcd.locked_at = datetime.now(UTC)
+    await db_session.commit()
+
+    with pytest.raises(AuthorizationError, match="locked by another user"):
+        await update_section(db_session, bcd.id, "places", [], intruder.id)
+
+
+@pytest.mark.asyncio
+async def test_update_section_en_drops_section_from_cached_locales(db_session):
+    user = await make_user(db_session, email="en_drop@test.com")
+    book = await make_bible_book(
+        db_session, name="Ruth", abbreviation="Rth", order=8, chapter_count=4,
+    )
+    bcd = await make_bcd(db_session, book.id, user.id, places=[{"name": "old"}])
+    bcd.locked_by = user.id
+    bcd.locked_at = datetime.now(UTC)
+    bcd.translations = {
+        "pt-BR": {
+            "places": [{"name": "pt places"}],
+            "objects": [{"name": "pt objects"}],
+        },
+        "es": {
+            "places": [{"name": "es places"}],
+            "objects": [{"name": "es objects"}],
+        },
+    }
+    await db_session.commit()
+
+    new_places = [{"name": "fresh english"}]
+    updated = await update_section(db_session, bcd.id, "places", new_places, user.id, locale="en")
+
+    assert updated.places == new_places
+    assert updated.translations is not None
+    # places dropped from both locales
+    assert "places" not in updated.translations["pt-BR"]
+    assert "places" not in updated.translations["es"]
+    # objects preserved in both locales
+    assert updated.translations["pt-BR"]["objects"] == [{"name": "pt objects"}]
+    assert updated.translations["es"]["objects"] == [{"name": "es objects"}]
+
+
+@pytest.mark.asyncio
+async def test_update_section_non_en_stores_original_payload(db_session, monkeypatch):
+    async def fake_back_translate(data, locale):
+        return {"english_version": True, "source_locale": locale}
+
+    monkeypatch.setattr(
+        "app.services.book_context.update_section.back_translate_content",
+        fake_back_translate,
+    )
+
+    user = await make_user(db_session, email="pt_store@test.com")
+    book = await make_bible_book(
+        db_session, name="Ruth", abbreviation="Rth", order=8, chapter_count=4,
+    )
+    bcd = await make_bcd(db_session, book.id, user.id, genre_context={"primary_genre": "old"})
+    bcd.locked_by = user.id
+    bcd.locked_at = datetime.now(UTC)
+    await db_session.commit()
+
+    pt_payload = {"primary_genre": "narrativa", "sub_genres": ["história"]}
+    updated = await update_section(
+        db_session, bcd.id, "genre_context", pt_payload, user.id, locale="pt-BR",
+    )
+
+    assert updated.genre_context == {"english_version": True, "source_locale": "pt-BR"}
+    assert updated.translations is not None
+    assert updated.translations["pt-BR"]["genre_context"] == pt_payload
+
+
+@pytest.mark.asyncio
+async def test_update_section_non_en_isolates_locale_caches(db_session, monkeypatch):
+    async def fake_back_translate(data, locale):
+        return {"english": "translated"}
+
+    monkeypatch.setattr(
+        "app.services.book_context.update_section.back_translate_content",
+        fake_back_translate,
+    )
+
+    user = await make_user(db_session, email="pt_isolate@test.com")
+    book = await make_bible_book(
+        db_session, name="Ruth", abbreviation="Rth", order=8, chapter_count=4,
+    )
+    bcd = await make_bcd(db_session, book.id, user.id)
+    bcd.locked_by = user.id
+    bcd.locked_at = datetime.now(UTC)
+    bcd.translations = {
+        "pt-BR": {"places": [{"name": "old pt"}], "theological_spine": "pt spine"},
+        "es": {"places": [{"name": "old es"}], "theological_spine": "es spine"},
+        "fr": {"places": [{"name": "old fr"}], "theological_spine": "fr spine"},
+    }
+    await db_session.commit()
+
+    pt_payload = [{"name": "novo lugar"}]
+    updated = await update_section(
+        db_session, bcd.id, "places", pt_payload, user.id, locale="pt-BR",
+    )
+
+    assert updated.translations["pt-BR"]["places"] == pt_payload
+    # pt-BR.theological_spine untouched (same section, different locale path)
+    assert updated.translations["pt-BR"]["theological_spine"] == "pt spine"
+    # places dropped from es and fr
+    assert "places" not in updated.translations["es"]
+    assert "places" not in updated.translations["fr"]
+    # theological_spine preserved in es and fr (different section)
+    assert updated.translations["es"]["theological_spine"] == "es spine"
+    assert updated.translations["fr"]["theological_spine"] == "fr spine"
+
+
+@pytest.mark.asyncio
+async def test_update_section_non_en_first_translation(db_session, monkeypatch):
+    async def fake_back_translate(data, locale):
+        return {"english": "back"}
+
+    monkeypatch.setattr(
+        "app.services.book_context.update_section.back_translate_content",
+        fake_back_translate,
+    )
+
+    user = await make_user(db_session, email="pt_first@test.com")
+    book = await make_bible_book(
+        db_session, name="Ruth", abbreviation="Rth", order=8, chapter_count=4,
+    )
+    bcd = await make_bcd(db_session, book.id, user.id)
+    bcd.locked_by = user.id
+    bcd.locked_at = datetime.now(UTC)
+    assert bcd.translations is None
+    await db_session.commit()
+
+    pt_payload = {"primary_genre": "poesia"}
+    updated = await update_section(
+        db_session, bcd.id, "genre_context", pt_payload, user.id, locale="pt-BR",
+    )
+
+    assert updated.translations == {"pt-BR": {"genre_context": pt_payload}}
 
 
 @pytest.mark.asyncio
