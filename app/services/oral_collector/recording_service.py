@@ -189,9 +189,7 @@ async def update_recording(
     recording = await get_recording(db, recording_id)
     update_fields = data.model_dump(exclude_unset=True)
     if data.storyteller_id is not None:
-        await _validate_storyteller_in_project(
-            db, data.storyteller_id, recording.project_id
-        )
+        await _validate_storyteller_in_project(db, data.storyteller_id, recording.project_id)
     if data.secondary_genre_id is not None:
         effective_primary = data.genre_id if data.genre_id is not None else recording.genre_id
         new_secondary = data.secondary_genre_id

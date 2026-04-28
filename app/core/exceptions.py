@@ -45,7 +45,7 @@ class ValidationError(Exception):
 
 
 class InvalidCleaningStatusError(ValidationError):
-    def __init__(self, status: str):
+    def __init__(self, status: str) -> None:
         super().__init__(
             f"Invalid cleaning status '{status}'. "
             f"Valid statuses are: {', '.join(USER_SETTABLE_CLEANING_STATUSES)}"
@@ -53,7 +53,7 @@ class InvalidCleaningStatusError(ValidationError):
 
 
 class GenreConflictError(ValidationError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("secondary_genre_id must differ from primary genre_id")
 
 
