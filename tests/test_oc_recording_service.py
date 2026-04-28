@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import CleaningStatus, UploadStatus
-from app.core.exceptions import AuthorizationError, NotFoundError, ValidationError
+from app.core.exceptions import AuthorizationError, GenreConflictError, InvalidCleaningStatusError, NotFoundError, ValidationError
 from app.db.models.oc_genre import OC_Genre, OC_Subcategory
 from app.db.models.oc_recording import OC_Recording
 from app.db.models.oc_storyteller import OC_Storyteller
@@ -175,7 +175,7 @@ async def test_update_recording_rejects_internal_cleaning_status(
     rec = await _seed_recording(db_session, user.id, project_id, genre.id, sub.id)
 
     for internal_status in (CleaningStatus.CLEANING, CleaningStatus.CLEANED, CleaningStatus.FAILED):
-        with pytest.raises(ValidationError):
+        with pytest.raises(InvalidCleaningStatusError):
             await rs.update_recording(
                 db_session, rec.id, RecordingUpdate(cleaning_status=internal_status)
             )
@@ -511,7 +511,7 @@ async def test_update_recording_rejects_secondary_equal_to_primary(
     genre, sub = await _seed_genre(db_session)
     rec = await _seed_recording(db_session, user.id, project_id, genre.id, sub.id)
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(GenreConflictError):
         await rs.update_recording(
             db_session,
             rec.id,
