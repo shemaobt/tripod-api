@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.enums import UploadStatus
+from app.core.enums import CleaningStatus, UploadStatus
 from app.core.exceptions import AuthorizationError, NotFoundError, ValidationError
 from app.db.models.oc_genre import OC_Genre, OC_Subcategory
 from app.db.models.oc_recording import OC_Recording
@@ -142,6 +142,43 @@ async def test_update_recording_sets_description(db_session: AsyncSession) -> No
 
     cleared = await rs.update_recording(db_session, rec.id, RecordingUpdate(description=None))
     assert cleared.description is None
+
+
+@pytest.mark.asyncio
+async def test_update_recording_sets_cleaning_status(db_session: AsyncSession) -> None:
+    rs = _import_service()
+    user = await make_user(db_session)
+    project_id = await _seed_project(db_session)
+    genre, sub = await _seed_genre(db_session)
+    rec = await _seed_recording(db_session, user.id, project_id, genre.id, sub.id)
+    assert rec.cleaning_status == CleaningStatus.NONE
+
+    updated = await rs.update_recording(
+        db_session, rec.id, RecordingUpdate(cleaning_status=CleaningStatus.NEEDS_CLEANING)
+    )
+    assert updated.cleaning_status == CleaningStatus.NEEDS_CLEANING
+
+    cleared = await rs.update_recording(
+        db_session, rec.id, RecordingUpdate(cleaning_status=CleaningStatus.NONE)
+    )
+    assert cleared.cleaning_status == CleaningStatus.NONE
+
+
+@pytest.mark.asyncio
+async def test_update_recording_rejects_internal_cleaning_status(
+    db_session: AsyncSession,
+) -> None:
+    rs = _import_service()
+    user = await make_user(db_session)
+    project_id = await _seed_project(db_session)
+    genre, sub = await _seed_genre(db_session)
+    rec = await _seed_recording(db_session, user.id, project_id, genre.id, sub.id)
+
+    for internal_status in (CleaningStatus.CLEANING, CleaningStatus.CLEANED, CleaningStatus.FAILED):
+        with pytest.raises(ValidationError):
+            await rs.update_recording(
+                db_session, rec.id, RecordingUpdate(cleaning_status=internal_status)
+            )
 
 
 @pytest.mark.asyncio
