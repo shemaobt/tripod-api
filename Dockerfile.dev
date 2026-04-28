@@ -9,8 +9,7 @@ RUN apt-get update && apt-get install -y gcc ffmpeg && rm -rf /var/lib/apt/lists
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv
 ENV UV_LINK_MODE=copy
 
-COPY pyproject.toml README.md ./
-RUN uv lock
+COPY pyproject.toml uv.lock README.md ./
 RUN uv sync --frozen --group dev
 
 COPY . .
