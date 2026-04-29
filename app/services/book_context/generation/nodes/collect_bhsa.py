@@ -4,6 +4,9 @@ from typing import Any
 
 from app.services.bhsa import loader as bhsa_loader
 from app.services.bhsa.reference import normalize_book_name
+from app.services.book_context.generation.bhsa_common_nouns import (
+    extract_common_noun_candidates,
+)
 from app.services.book_context.generation.bhsa_entities import extract_bhsa_entities
 from app.services.book_context.generation.bhsa_summary import build_bhsa_summary
 from app.services.book_context.generation.state import BCDGenerationState
@@ -31,4 +34,10 @@ def collect_bhsa(state: BCDGenerationState) -> dict[str, Any]:
             f"BHSA found no named entities for {book_name}. Cannot build participant register."
         )
 
-    return {"bhsa_summary": summary, "bhsa_entities": bhsa_entities}
+    common_nouns = extract_common_noun_candidates(tf_api, book_name, chapter_count)
+
+    return {
+        "bhsa_summary": summary,
+        "bhsa_entities": bhsa_entities,
+        "bhsa_common_nouns": common_nouns["bhsa_common_nouns"],
+    }

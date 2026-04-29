@@ -9,6 +9,7 @@ class BCDGenerationState(TypedDict, total=False):
     chapter_count: int
     bhsa_summary: str
     bhsa_entities: list[dict[str, Any]]
+    bhsa_common_nouns: list[dict[str, Any]]
     structural_outline: dict[str, Any]
     participant_register: list[dict[str, Any]]
     discourse_threads: list[dict[str, Any]]

@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Any
 
 _MAINLINE_TYPES = frozenset({"Way0", "WayX"})
+_CONTENT_FUNCTIONS = frozenset({"Subj", "Objc", "Cmpl", "PreC"})
+_PRONOMINAL_PDP = frozenset({"prde", "prps", "prin", "intj"})
 
 
 def is_mainline(clause_type: str) -> bool:
@@ -30,6 +32,32 @@ def _extract_lemmas(words: list[Any], F: Any) -> list[str]:
         if lemma:
             lemmas.append(lemma.rstrip("/=[]"))
     return lemmas
+
+
+def _content_word_entry(w: Any, F: Any, sp: str, function: str | None) -> dict[str, Any] | None:
+    lex_utf8 = None
+    for attr in ("lex_utf8", "g_lex_utf8"):
+        if hasattr(F, attr):
+            lex_utf8 = getattr(F, attr).v(w)
+            if lex_utf8:
+                break
+    lex_ascii = F.lex.v(w) if hasattr(F, "lex") else None
+    cleaned_utf8 = (lex_utf8 or "").rstrip("/=[]") or None
+    cleaned_ascii = (lex_ascii or "").rstrip("/=[]") or None
+    if not cleaned_utf8 and not cleaned_ascii:
+        return None
+    entry: dict[str, Any] = {
+        "lex_utf8": cleaned_utf8,
+        "lex": cleaned_ascii,
+        "sp": sp,
+        "gloss": (F.gloss.v(w) if hasattr(F, "gloss") else "") or "",
+        "pdp": F.pdp.v(w) if hasattr(F, "pdp") else None,
+        "function": function,
+    }
+    if sp == "verb":
+        entry["binyan"] = F.vs.v(w) if hasattr(F, "vs") else None
+        entry["tense"] = F.vt.v(w) if hasattr(F, "vt") else None
+    return entry
 
 
 def extract_clause(
@@ -68,6 +96,7 @@ def extract_clause(
     names: list[str] = []
     name_glosses: dict[str, str] = {}
     name_types: dict[str, str] = {}
+    content_words: list[dict[str, Any]] = []
 
     for phrase_node in L.d(clause_node, otype="phrase"):
         func = F.function.v(phrase_node)
@@ -81,7 +110,8 @@ def extract_clause(
             objects.append(clean)
 
         for w in phrase_words:
-            if F.sp.v(w) == "nmpr":
+            sp = F.sp.v(w)
+            if sp == "nmpr":
                 for attr in ("lex_utf8", "lex"):
                     if hasattr(F, attr):
                         name = getattr(F, attr).v(w)
@@ -97,6 +127,15 @@ def extract_clause(
                                 if nt:
                                     name_types[clean_name] = nt
                         break
+                continue
+
+            if sp == "verb" or (sp in ("subs", "adjv") and func in _CONTENT_FUNCTIONS):
+                pdp = F.pdp.v(w) if hasattr(F, "pdp") else None
+                if pdp in _PRONOMINAL_PDP:
+                    continue
+                entry = _content_word_entry(w, F, sp, func)
+                if entry:
+                    content_words.append(entry)
 
     return {
         "clause_id": clause_id,
@@ -116,4 +155,5 @@ def extract_clause(
         "names": list(set(names)),
         "name_glosses": name_glosses,
         "name_types": name_types,
+        "content_words": content_words,
     }
