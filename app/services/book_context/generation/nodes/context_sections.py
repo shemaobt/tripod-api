@@ -89,23 +89,30 @@ For source (b), you MUST select from the Common Noun Candidates list — do NOT 
 invent common-noun places outside the list.
 
 3. **Objects**: Significant physical objects, animals, or temporal markers from the text. \
-For each: name (in Hebrew if the original text uses a Hebrew term), english_gloss \
-(English translation of the name — if the name is already English, repeat it), \
-first_appears, what_it_is, meaning_across_scenes, appears_in. \
-PREFERRED: when a candidate from the Common Noun Candidates list matches an object \
-you would identify (e.g. sandal, grain, garment), use the candidate's lemma as `name`, \
-copy `english_gloss`, `first_appears`, and `appears_in` from the candidate. The \
-ability to infer objects from narrative context remains.
+For each: name, english_gloss, first_appears, what_it_is, meaning_across_scenes, appears_in. \
+PREFER rich, narrative names that capture the object's role in the story \
+(e.g. "The King's Signet Ring", "Royal Apparel and Horse", "The Golden Scepter", \
+"The Gallows", "Pur (The Lot)"). Use a Hebrew lemma as `name` only when the \
+Hebrew term is iconic in the narrative (e.g. נעל "sandal" in Ruth 4). \
+The Common Noun Candidates list anchors objects to specific BHSA lemmas — use it \
+to DISCOVER which objects appear in the text (sandal, signet ring, scepter, scroll, \
+horse, garment, grain) and to populate `appears_in` and `first_appears` from the \
+candidate when applicable. The legacy ability to infer richly-named objects from \
+narrative context remains and is preferred when the narrative gives an object a \
+distinctive role.
 
 4. **Institutions**: Cultural/legal/religious institutions referenced in the text. \
-For each: name (in Hebrew if the original text uses a Hebrew term), english_gloss \
-(English translation of the name — if the name is already English, repeat it), \
-first_invoked (chapter/verse), what_it_is, role_in_book, appears_in. \
-PREFERRED: when an institution corresponds to a verbal lemma in the candidates \
-(e.g. גאל "redeem" → kinsman-redemption institution; לקט "glean" → gleaning rights), \
-use the verbal lemma to anchor the entry with richer attestation. \
-You may also include institutions implicit in the narrative even when no single \
-lemma names them (e.g. levirate marriage in Ruth 4).
+For each: name, english_gloss, first_invoked (chapter/verse), what_it_is, \
+role_in_book, appears_in. \
+PREFER rich, narrative names that capture the institution's role in the book \
+(e.g. "The Festival of Purim", "Royal Banquets (Mishteh)", "The Royal Harem", \
+"The Irrevocable Decree (Law of the Medes and Persians)", "Levirate Marriage", \
+"Kinsman-Redemption (Go'el)", "Gleaning Rights"). \
+The Common Noun Candidates list anchors institutions to BHSA lemmas (גאל "redeem", \
+לקט "glean", משׁתה "feast", דת "decree", יבום "levirate") — use it as supporting \
+evidence inside `what_it_is`, not as a substitute for the rich English name. \
+Continue inferring institutions implicit in the narrative even when no single \
+lemma names them (e.g. levirate marriage in Ruth 4, the Festival of Purim in Esther 9).
 
 5. **Genre Context**:
 - primary_genre: The primary literary genre
@@ -166,23 +173,30 @@ places outside the list. (Proper-noun places are emitted in a separate batch —
 do NOT include them here.)
 
 3. **Objects**: Significant physical objects, animals, or temporal markers from the text. \
-For each: name (in Hebrew if the original text uses a Hebrew term), english_gloss \
-(English translation of the name — if the name is already English, repeat it), \
-first_appears, what_it_is, meaning_across_scenes, appears_in. \
-PREFERRED: when a candidate from the Common Noun Candidates list matches an object \
-you would identify (e.g. sandal, grain, garment), use the candidate's lemma as `name`, \
-copy `english_gloss`, `first_appears`, and `appears_in` from the candidate. The \
-ability to infer objects from narrative context remains.
+For each: name, english_gloss, first_appears, what_it_is, meaning_across_scenes, appears_in. \
+PREFER rich, narrative names that capture the object's role in the story \
+(e.g. "The King's Signet Ring", "Royal Apparel and Horse", "The Golden Scepter", \
+"The Gallows", "Pur (The Lot)"). Use a Hebrew lemma as `name` only when the \
+Hebrew term is iconic in the narrative (e.g. נעל "sandal" in Ruth 4). \
+The Common Noun Candidates list anchors objects to specific BHSA lemmas — use it \
+to DISCOVER which objects appear in the text (sandal, signet ring, scepter, scroll, \
+horse, garment, grain) and to populate `appears_in` and `first_appears` from the \
+candidate when applicable. The legacy ability to infer richly-named objects from \
+narrative context remains and is preferred when the narrative gives an object a \
+distinctive role.
 
 4. **Institutions**: Cultural/legal/religious institutions referenced in the text. \
-For each: name (in Hebrew if the original text uses a Hebrew term), english_gloss \
-(English translation of the name — if the name is already English, repeat it), \
-first_invoked (chapter/verse), what_it_is, role_in_book, appears_in. \
-PREFERRED: when an institution corresponds to a verbal lemma in the candidates \
-(e.g. גאל "redeem" → kinsman-redemption institution; לקט "glean" → gleaning rights), \
-use the verbal lemma to anchor the entry with richer attestation. \
-You may also include institutions implicit in the narrative even when no single \
-lemma names them (e.g. levirate marriage in Ruth 4).
+For each: name, english_gloss, first_invoked (chapter/verse), what_it_is, \
+role_in_book, appears_in. \
+PREFER rich, narrative names that capture the institution's role in the book \
+(e.g. "The Festival of Purim", "Royal Banquets (Mishteh)", "The Royal Harem", \
+"The Irrevocable Decree (Law of the Medes and Persians)", "Levirate Marriage", \
+"Kinsman-Redemption (Go'el)", "Gleaning Rights"). \
+The Common Noun Candidates list anchors institutions to BHSA lemmas (גאל "redeem", \
+לקט "glean", משׁתה "feast", דת "decree", יבום "levirate") — use it as supporting \
+evidence inside `what_it_is`, not as a substitute for the rich English name. \
+Continue inferring institutions implicit in the narrative even when no single \
+lemma names them (e.g. levirate marriage in Ruth 4, the Festival of Purim in Esther 9).
 
 5. **Genre Context**:
 - primary_genre: The primary literary genre

@@ -177,8 +177,9 @@ def test_separate_buckets_for_same_lemma_with_different_sp(
 
 
 def test_top_n_truncates_results(monkeypatch: pytest.MonkeyPatch) -> None:
+    n_lemmas = bhsa_common_nouns._TOP_N + 50
     clauses = []
-    for i in range(120):
+    for i in range(n_lemmas):
         lex = f"lex{i}"
         clauses.append(
             {
@@ -196,7 +197,7 @@ def test_top_n_truncates_results(monkeypatch: pytest.MonkeyPatch) -> None:
                 ],
             }
         )
-    payload = [{"chapter": 1, "verse_count": 240, "clauses": clauses}]
+    payload = [{"chapter": 1, "verse_count": n_lemmas * 2, "clauses": clauses}]
     monkeypatch.setattr(bhsa_common_nouns, "stream_book_clauses", _stream(payload))
     result = bhsa_common_nouns.extract_common_noun_candidates(None, "Ruth", 1)
-    assert len(result["bhsa_common_nouns"]) == 80
+    assert len(result["bhsa_common_nouns"]) == bhsa_common_nouns._TOP_N

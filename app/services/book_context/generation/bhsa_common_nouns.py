@@ -5,7 +5,7 @@ from typing import Any
 
 from app.services.book_context.generation.bhsa_stream import stream_book_clauses
 
-_TOP_N = 80
+_TOP_N = 250
 _MIN_APPEARANCES = 2
 _NOMINAL_FUNCTIONS = frozenset({"Subj", "Objc", "Cmpl", "PreC"})
 _SAMPLE_LIMIT = 8
