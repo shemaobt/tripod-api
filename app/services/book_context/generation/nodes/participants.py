@@ -32,9 +32,26 @@ entity_type, entry_verse, exit_verse, appears_in, and appearance_count.
 
 {person_entities}
 
+## Common Noun Candidates (BHSA-extracted substantives — for groups/roles only)
+
+The following common nouns were extracted from the BHSA. Inspect this list to \
+identify HUMAN COLLECTIVE ROLES that participate in the narrative as groups (e.g. \
+elders, women of Bethlehem, reapers, servants, kinsmen). Each candidate includes: \
+lemma (Hebrew), lemma_ascii, english_gloss, sp ("subs" / "adjv" / "verb"), \
+appearance_count, top_functions, first_appears, sample_appears_in.
+
+ONLY substantives (`sp == "subs"`) referring to human roles/groups should become \
+participant entries from this list. Verbs and abstract substantives must be \
+ignored here (they are processed in other sections of the document).
+
+{common_nouns}
+
 ## Your Task
 
-Create a participant entry for EACH person entity listed above. \
+Produce participant entries from BOTH sources above:
+
+### Source A — Person Entities (proper nouns)
+Create an entry for EACH person entity listed above. \
 All entities have already been classified as persons — do not skip any.
 
 For each participant:
@@ -53,13 +70,30 @@ translation of the Hebrew name.
 - arc: List of {{at: {{chapter, verse}}, state: "description"}} tracking their development
 - status_at_end: Their state at the book's conclusion
 
+### Source B — Common Noun Groups/Roles
+For each substantive candidate above that denotes a HUMAN COLLECTIVE ROLE \
+narratively significant in the book, add a participant entry with:
+- name: the Hebrew lemma (lemma field) from the candidate
+- english_gloss: the candidate's english_gloss
+- entity_type: "person_common"
+- type: "group"
+- entry_verse: copy from candidate's first_appears
+- exit_verse: leave null
+- appears_in: copy from candidate's sample_appears_in
+- appearance_count: copy from candidate's appearance_count
+- role_in_book, relationships, what_audience_knows_at_entry, arc, status_at_end: \
+your scholarly enrichment based on the narrative.
+
 CRITICAL RULES:
-1. Create an entry for EVERY person entity in the list — do NOT skip any.
-2. Do NOT invent new participants not in the list.
-3. The name, english_gloss, entity_type, entry_verse, exit_verse, appears_in, \
+1. For Source A: create an entry for EVERY person entity in the list — do NOT skip any.
+2. For Source A: do NOT invent new proper-noun participants not in the list. \
+The name, english_gloss, entity_type, entry_verse, exit_verse, appears_in, \
 and appearance_count MUST be copied exactly — these are static fields.
-4. Your enrichment is limited to: type, role_in_book, relationships, \
-what_audience_knows_at_entry, arc, and status_at_end.
+3. For Source B: you MUST select from the Common Noun Candidates list — \
+do NOT invent groups/roles not in the list. Only include candidates that \
+clearly denote human collective roles (skip objects, places, abstract concepts, verbs).
+4. Your enrichment for both sources is limited to: type, role_in_book, \
+relationships, what_audience_knows_at_entry, arc, and status_at_end.
 """
 
 
@@ -67,12 +101,14 @@ async def _generate_batch(
     entities: list[dict[str, Any]],
     state: BCDGenerationState,
     outline_json: str,
+    common_nouns_json: str,
 ) -> list[dict[str, Any]]:
     prompt = PARTICIPANT_PROMPT.format(
         book_name=state["book_name"],
         outline=outline_json,
         bhsa_summary=state.get("bhsa_summary", ""),
         person_entities=json.dumps(entities, indent=2),
+        common_nouns=common_nouns_json,
     )
     if state.get("user_feedback"):
         prompt += (
@@ -91,12 +127,17 @@ async def generate_participants(
 ) -> dict[str, list[dict[str, Any]]]:
     bhsa_entities = state.get("bhsa_entities", [])
     person_entities = [e for e in bhsa_entities if e.get("entity_type") in ("person", "ambiguous")]
+    common_nouns = [
+        c for c in state.get("bhsa_common_nouns", []) if c.get("sp") == "subs"
+    ]
+    common_nouns_json = json.dumps(common_nouns, indent=2, ensure_ascii=False)
 
     if len(person_entities) <= BATCH_SIZE:
         participants = await _generate_batch(
             person_entities,
             state,
             json.dumps(state.get("structural_outline", {}), indent=2),
+            common_nouns_json,
         )
         return {"participant_register": participants}
 
@@ -124,7 +165,7 @@ async def generate_participants(
             log.output_summary = f"Batch {idx}/{len(batches)} ({len(batch)} entities)"
             await db.commit()
 
-        batch_result = await _generate_batch(batch, state, outline_json)
+        batch_result = await _generate_batch(batch, state, outline_json, common_nouns_json)
         for p in batch_result:
             name = p.get("name", "")
             if name not in seen_names:
