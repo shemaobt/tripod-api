@@ -22,6 +22,9 @@ def test_state_accepts_all_fields():
         "chapter_count": 4,
         "bhsa_summary": "summary text",
         "bhsa_entities": [{"name": "Ruth", "entry_verse": {"chapter": 1, "verse": 4}}],
+        "bhsa_common_nouns": [
+            {"lemma": "שדה", "sp": "subs", "english_gloss": "field", "appearance_count": 5}
+        ],
         "structural_outline": {"book_arc": "test"},
         "participant_register": [{"name": "Naomi"}],
         "discourse_threads": [],
@@ -35,6 +38,28 @@ def test_state_accepts_all_fields():
     assert state["bhsa_summary"] == "summary text"
     assert state["structural_outline"]["book_arc"] == "test"
     assert len(state["bhsa_entities"]) == 1
+    assert state["bhsa_common_nouns"][0]["lemma"] == "שדה"
+
+
+def test_shared_context_includes_common_nouns():
+    from app.services.book_context.generation.nodes.context_sections import (
+        _build_shared_context,
+    )
+
+    state: BCDGenerationState = {
+        "book_name": "Ruth",
+        "book_id": "abc",
+        "bcd_id": "bcd",
+        "genre": "narrative",
+        "chapter_count": 4,
+        "bhsa_common_nouns": [
+            {"lemma": "שדה", "sp": "subs", "english_gloss": "field", "appearance_count": 6},
+        ],
+    }
+    ctx = _build_shared_context(state)
+    assert "common_nouns" in ctx
+    assert "שדה" in ctx["common_nouns"]
+    assert "field" in ctx["common_nouns"]
 
 
 def test_bhsa_stream_generator_structure():

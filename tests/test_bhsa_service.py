@@ -136,3 +136,49 @@ async def test_extract_passage_returns_clauses() -> None:
     assert clause["clause_type"] == "Way0"
     assert clause["is_mainline"] is True
     assert clause["gloss"] == "walk"
+    assert "content_words" in clause
+    assert isinstance(clause["content_words"], list)
+
+
+@pytest.mark.asyncio
+async def test_extract_clause_collects_content_words() -> None:
+    from app.services.bhsa.clause import extract_clause
+
+    mock_word_verb = MagicMock(name="verb_word")
+    mock_word_subs = MagicMock(name="subs_word")
+    mock_phrase = MagicMock(name="phrase")
+    mock_clause = MagicMock(name="clause")
+
+    sp_map = {mock_word_verb: "verb", mock_word_subs: "subs"}
+    lex_utf8_map = {mock_word_verb: "גאל", mock_word_subs: "שדה"}
+    lex_map = {mock_word_verb: "GAL/", mock_word_subs: "FDH/"}
+    gloss_map = {mock_word_verb: "redeem", mock_word_subs: "field"}
+    pdp_map = {mock_word_verb: "verb", mock_word_subs: "subs"}
+
+    F = MagicMock()
+    F.typ.v.return_value = "Way0"
+    F.sp.v.side_effect = lambda w: sp_map.get(w)
+    F.lex_utf8.v.side_effect = lambda w: lex_utf8_map.get(w)
+    F.lex.v.side_effect = lambda w: lex_map.get(w)
+    F.gloss.v.side_effect = lambda w: gloss_map.get(w, "")
+    F.pdp.v.side_effect = lambda w: pdp_map.get(w)
+    F.vs.v.return_value = "qal"
+    F.vt.v.return_value = "wayq"
+    F.function.v.return_value = "Objc"
+
+    L = MagicMock()
+    L.d.side_effect = lambda node, otype=None: {
+        ("clause", "word"): [mock_word_verb, mock_word_subs],
+        ("clause", "phrase"): [mock_phrase],
+        ("phrase", "word"): [mock_word_verb, mock_word_subs],
+    }.get((node._mock_name, otype), [])
+
+    T = MagicMock()
+    T.text.return_value = "test"
+
+    result = extract_clause(mock_clause, verse=1, clause_id=1, prev_type=None, F=F, L=L, T=T)
+
+    assert "content_words" in result
+    lemmas = {(cw["lex_utf8"], cw["sp"]) for cw in result["content_words"]}
+    assert ("גאל", "verb") in lemmas
+    assert ("שדה", "subs") in lemmas
