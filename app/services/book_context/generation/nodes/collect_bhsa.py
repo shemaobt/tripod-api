@@ -1,18 +1,13 @@
 from __future__ import annotations
 
-from typing import Any
-
 from app.services.bhsa import loader as bhsa_loader
 from app.services.bhsa.reference import normalize_book_name
-from app.services.book_context.generation.bhsa_common_nouns import (
-    extract_common_noun_candidates,
-)
-from app.services.book_context.generation.bhsa_entities import extract_bhsa_entities
-from app.services.book_context.generation.bhsa_summary import build_bhsa_summary
+from app.services.book_context.generation.bhsa_collection import collect_bhsa_data
 from app.services.book_context.generation.state import BCDGenerationState
+from app.services.book_context.generation.types import CollectBHSAOutput
 
 
-def collect_bhsa(state: BCDGenerationState) -> dict[str, Any]:
+def collect_bhsa(state: BCDGenerationState) -> CollectBHSAOutput:
     if not bhsa_loader.get_status().is_loaded:
         raise RuntimeError("BHSA data is not loaded. Cannot generate Book Context.")
 
@@ -20,24 +15,15 @@ def collect_bhsa(state: BCDGenerationState) -> dict[str, Any]:
     book_name = normalize_book_name(state["book_name"])
     chapter_count = state["chapter_count"]
 
-    summary = build_bhsa_summary(tf_api, book_name, chapter_count)
-    if not summary.strip():
+    result = collect_bhsa_data(tf_api, book_name, chapter_count)
+
+    if not result["bhsa_summary"].strip():
         raise RuntimeError(
             f"BHSA returned empty summary for {book_name}. Check book name and chapter count."
         )
-
-    entities = extract_bhsa_entities(tf_api, book_name, chapter_count)
-    bhsa_entities = entities["bhsa_entities"]
-
-    if not bhsa_entities:
+    if not result["bhsa_entities"]:
         raise RuntimeError(
             f"BHSA found no named entities for {book_name}. Cannot build participant register."
         )
 
-    common_nouns = extract_common_noun_candidates(tf_api, book_name, chapter_count)
-
-    return {
-        "bhsa_summary": summary,
-        "bhsa_entities": bhsa_entities,
-        "bhsa_common_nouns": common_nouns["bhsa_common_nouns"],
-    }
+    return result

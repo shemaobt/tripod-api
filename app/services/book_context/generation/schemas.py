@@ -56,7 +56,13 @@ class ContextSectionsSchema(BaseModel):
     maintenance_notes: MaintenanceNotesSchema = Field(default_factory=MaintenanceNotesSchema)
 
 
-class ContextSectionsNoPlacesSchema(BaseModel):
+class ContextSectionsBatchSchema(BaseModel):
+    """Sections produced when proper-noun places are batched separately.
+
+    The `places` field here holds COMMON-NOUN places (`entity_type="place_common"`);
+    proper-noun places are emitted by `PLACES_BATCH_PROMPT` and merged downstream.
+    """
+
     theological_spine: str = ""
     places: list[PlaceSchema] = Field(default_factory=list)
     objects: list[ObjectSchema] = Field(default_factory=list)

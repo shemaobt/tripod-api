@@ -2,9 +2,13 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.services.book_context.generation.types import ClauseExtract, ContentWordEntry
+
 _MAINLINE_TYPES = frozenset({"Way0", "WayX"})
 _CONTENT_FUNCTIONS = frozenset({"Subj", "Objc", "Cmpl", "PreC"})
-_PRONOMINAL_PDP = frozenset({"prde", "prps", "prin", "intj"})
+# Excludes both pronominal pdps (prde/prps/prin) and interjections (intj):
+# neither yields a meaningful content-word entry for downstream aggregation.
+_FILTERED_PDP = frozenset({"prde", "prps", "prin", "intj"})
 
 
 def is_mainline(clause_type: str) -> bool:
@@ -34,7 +38,7 @@ def _extract_lemmas(words: list[Any], F: Any) -> list[str]:
     return lemmas
 
 
-def _content_word_entry(w: Any, F: Any, sp: str, function: str | None) -> dict[str, Any] | None:
+def _content_word_entry(w: Any, F: Any, sp: str, function: str | None) -> ContentWordEntry | None:
     lex_utf8 = None
     for attr in ("lex_utf8", "g_lex_utf8"):
         if hasattr(F, attr):
@@ -46,7 +50,7 @@ def _content_word_entry(w: Any, F: Any, sp: str, function: str | None) -> dict[s
     cleaned_ascii = (lex_ascii or "").rstrip("/=[]") or None
     if not cleaned_utf8 and not cleaned_ascii:
         return None
-    entry: dict[str, Any] = {
+    entry: ContentWordEntry = {
         "lex_utf8": cleaned_utf8,
         "lex": cleaned_ascii,
         "sp": sp,
@@ -68,7 +72,7 @@ def extract_clause(
     F: Any,
     L: Any,
     T: Any,
-) -> dict[str, Any]:
+) -> ClauseExtract:
     text = T.text(clause_node).strip()
     clause_type = F.typ.v(clause_node) or "Unknown"
     words = L.d(clause_node, otype="word")
@@ -96,7 +100,7 @@ def extract_clause(
     names: list[str] = []
     name_glosses: dict[str, str] = {}
     name_types: dict[str, str] = {}
-    content_words: list[dict[str, Any]] = []
+    content_words: list[ContentWordEntry] = []
 
     for phrase_node in L.d(clause_node, otype="phrase"):
         func = F.function.v(phrase_node)
@@ -131,7 +135,7 @@ def extract_clause(
 
             if sp == "verb" or (sp in ("subs", "adjv") and func in _CONTENT_FUNCTIONS):
                 pdp = F.pdp.v(w) if hasattr(F, "pdp") else None
-                if pdp in _PRONOMINAL_PDP:
+                if pdp in _FILTERED_PDP:
                     continue
                 entry = _content_word_entry(w, F, sp, func)
                 if entry:

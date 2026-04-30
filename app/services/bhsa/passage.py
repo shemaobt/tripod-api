@@ -4,6 +4,7 @@ from typing import Any
 
 from app.services.bhsa.clause import extract_clause
 from app.services.bhsa.reference import parse_reference
+from app.services.book_context.generation.types import ClauseExtract
 
 _CLAUSE_OTYPE = "clause"
 
@@ -24,7 +25,7 @@ def _extract_verses(
     L = tf_api.api.L
     T = tf_api.api.T
 
-    clauses: list[dict[str, Any]] = []
+    clauses: list[ClauseExtract] = []
     clause_id = 1
     prev_type: str | None = None
     actual_end = start_verse

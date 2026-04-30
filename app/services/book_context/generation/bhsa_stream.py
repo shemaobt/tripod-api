@@ -4,6 +4,7 @@ from collections.abc import Generator
 from typing import Any
 
 from app.services.bhsa.clause import extract_clause
+from app.services.book_context.generation.types import ClauseExtract
 
 
 def stream_book_clauses(
@@ -16,7 +17,7 @@ def stream_book_clauses(
     L = tf_api.api.L
 
     for chapter in range(1, chapter_count + 1):
-        clauses: list[dict[str, Any]] = []
+        clauses: list[ClauseExtract] = []
         clause_id = 1
         prev_type: str | None = None
 

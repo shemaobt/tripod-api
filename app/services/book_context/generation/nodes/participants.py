@@ -10,6 +10,7 @@ from app.db.models.book_context import BCDGenerationLog
 from app.services.book_context.generation.llm import call_llm
 from app.services.book_context.generation.schemas import ParticipantRegisterSchema
 from app.services.book_context.generation.state import BCDGenerationState
+from app.services.book_context.generation.types import BHSAEntity
 
 logger = logging.getLogger(__name__)
 
@@ -32,73 +33,74 @@ entity_type, entry_verse, exit_verse, appears_in, and appearance_count.
 
 {person_entities}
 
-## Common Noun Candidates (BHSA-extracted substantives — for groups/roles only)
+## Common Noun Candidates (AUTHORITATIVE — BHSA-extracted lemmas)
 
-The following common nouns were extracted from the BHSA. Inspect this list to \
-identify HUMAN COLLECTIVE ROLES that participate in the narrative as groups (e.g. \
-elders, women of Bethlehem, reapers, servants, kinsmen). Each candidate includes: \
-lemma (Hebrew), lemma_ascii, english_gloss, sp ("subs" / "adjv" / "verb"), \
-appearance_count, top_functions, first_appears, sample_appears_in.
+The following lemmas were extracted directly from the BHSA. They are the ONLY \
+source from which common-noun participant groups/roles may be drawn. Each \
+candidate includes: lemma (Hebrew), lemma_ascii, english_gloss, sp \
+("subs" / "adjv" / "verb"), appearance_count, top_functions, first_appears, \
+sample_appears_in.
 
-ONLY substantives (`sp == "subs"`) referring to human roles/groups should become \
-participant entries from this list. Verbs and abstract substantives must be \
-ignored here (they are processed in other sections of the document).
+This list is filtered to substantives (`sp == "subs"`) so only nominal \
+candidates are eligible. Verbs and abstract substantives that do not denote \
+human collective roles are processed by other sections of the document.
 
 {common_nouns}
 
-## Your Task
+## Output Rules (BHSA-strict)
 
-Produce participant entries from BOTH sources above:
+You MUST produce participant entries ONLY from the two sources below. You MUST \
+NOT invent participants that lack a BHSA anchor (proper-noun entity or \
+common-noun candidate). Your scholarly enrichment is restricted to the \
+descriptive fields explicitly listed for each source (`role_in_book`, \
+`relationships`, `what_audience_knows_at_entry`, `arc`, `status_at_end`, and \
+`type`).
 
 ### Source A — Person Entities (proper nouns)
-Create an entry for EACH person entity listed above. \
+Create an entry for EACH person entity in the Person Entities list above. \
 All entities have already been classified as persons — do not skip any.
 
 For each participant:
-- name: Copy EXACTLY from the entity data
-- english_gloss: Copy from the entity data. If empty, provide the English \
+- name: copy EXACTLY from the entity data
+- english_gloss: copy from the entity data. If empty, provide the English \
 translation of the Hebrew name.
-- entity_type: Copy EXACTLY from the entity data
+- entity_type: copy EXACTLY from the entity data
 - type: "named" for individuals, "group" for groups, "divine" for God/YHWH
-- entry_verse: Copy EXACTLY from the entity data (do NOT change)
-- exit_verse: Copy EXACTLY from the entity data (do NOT change)
-- appears_in: Copy the ENTIRE appears_in list EXACTLY from the entity data
-- appearance_count: Copy EXACTLY from the entity data
-- role_in_book: Their narrative role (protagonist, antagonist, supporting, etc.)
-- relationships: List of relationship descriptions
-- what_audience_knows_at_entry: What the audience knows when they first appear
-- arc: List of {{at: {{chapter, verse}}, state: "description"}} tracking their development
-- status_at_end: Their state at the book's conclusion
+- entry_verse: copy EXACTLY from the entity data (do NOT change)
+- exit_verse: copy EXACTLY from the entity data (do NOT change)
+- appears_in: copy the ENTIRE appears_in list EXACTLY from the entity data
+- appearance_count: copy EXACTLY from the entity data
+- role_in_book: their narrative role (protagonist, antagonist, supporting, etc.)
+- relationships: list of relationship descriptions
+- what_audience_knows_at_entry: what the audience knows when they first appear
+- arc: list of {{at: {{chapter, verse}}, state: "description"}} tracking their development
+- status_at_end: their state at the book's conclusion
+
+You MUST NOT invent proper-noun participants outside the entity list.
 
 ### Source B — Common Noun Groups/Roles
-For each substantive candidate above that denotes a HUMAN COLLECTIVE ROLE \
-narratively significant in the book, add a participant entry with:
-- name: the Hebrew lemma (lemma field) from the candidate
-- english_gloss: the candidate's english_gloss
+For EACH candidate in the Common Noun Candidates list whose `sp == "subs"` and \
+whose semantics denote a HUMAN COLLECTIVE ROLE (elders, women, reapers, \
+servants, kinsmen, etc.), create a participant entry:
+- name: the Hebrew lemma (the `lemma` field) — copy EXACTLY
+- english_gloss: copy EXACTLY from the candidate's `english_gloss`
 - entity_type: "person_common"
 - type: "group"
-- entry_verse: copy from candidate's first_appears
-- exit_verse: leave null
-- appears_in: copy from candidate's sample_appears_in
-- appearance_count: copy from candidate's appearance_count
+- entry_verse: copy EXACTLY from the candidate's `first_appears`
+- exit_verse: null
+- appears_in: copy EXACTLY from the candidate's `sample_appears_in`
+- appearance_count: copy EXACTLY from the candidate's `appearance_count`
 - role_in_book, relationships, what_audience_knows_at_entry, arc, status_at_end: \
-your scholarly enrichment based on the narrative.
+your scholarly enrichment based on the narrative
 
-CRITICAL RULES:
-1. For Source A: create an entry for EVERY person entity in the list — do NOT skip any.
-2. For Source A: do NOT invent new proper-noun participants not in the list. \
-The name, english_gloss, entity_type, entry_verse, exit_verse, appears_in, \
-and appearance_count MUST be copied exactly — these are static fields.
-3. For Source B: you MUST select from the Common Noun Candidates list — \
-do NOT invent groups/roles not in the list. Only include candidates that \
-clearly denote human collective roles (skip objects, places, abstract concepts, verbs).
-4. Your enrichment for both sources is limited to: type, role_in_book, \
-relationships, what_audience_knows_at_entry, arc, and status_at_end.
+You MUST NOT invent groups/roles outside the candidate list. Skip candidates \
+whose semantics do not denote a human collective role (objects, places, \
+abstract concepts go to other sections).
 """
 
 
 async def _generate_batch(
-    entities: list[dict[str, Any]],
+    entities: list[BHSAEntity],
     state: BCDGenerationState,
     outline_json: str,
     common_nouns_json: str,
