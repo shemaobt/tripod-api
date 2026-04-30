@@ -1,0 +1,61 @@
+name: Claude Mention
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+  issues:
+    types: [opened, assigned]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  claude:
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Claude
+        id: claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: |
+            --model claude-opus-4-7
+            --max-turns 15
+
+      - name: Render cost summary
+        if: always()
+        shell: bash
+        env:
+          CLAUDE_EXECUTION_FILE: ${{ steps.claude.outputs.execution_file }}
+          CLAUDE_COST_OUT: ${{ runner.temp }}/claude-cost.json
+          CLAUDE_COST_PR_FOOTER: ${{ runner.temp }}/claude-cost-pr-footer.md
+          CLAUDE_PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+        run: python3 .github/scripts/claude_cost.py
+
+      - name: Upload cost stats artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-cost-${{ github.run_id }}
+          path: ${{ runner.temp }}/claude-cost.json
+          retention-days: 14
+          if-no-files-found: ignore
