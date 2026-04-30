@@ -181,7 +181,7 @@ def render_markdown(stats: dict[str, Any], cost_usd: float) -> str:
         f"| Cache create | {stats['cache_creation_input_tokens']:,} |",
         f"| Turns | {stats['turns']} |",
         f"| Duration | {duration_s:.1f}s |",
-        f"| Estimated cost (API equivalent) | ${cost_usd:.4f} |",
+        f"| API-equivalent cost (not billed) | ${cost_usd:.4f} |",
         "",
         "_OAuth/Pro-Max usage is quota-based; the cost is computed at public "
         "API list pricing as a stable comparison metric._",
@@ -194,10 +194,10 @@ def render_pr_footer(stats: dict[str, Any], cost_usd: float, run_url: str) -> st
     model = stats["model"] or "unknown"
     return (
         "<!-- claude-cost-marker -->\n"
-        f"> **Claude review cost** — model `{model}` · "
+        f"> **Claude review usage** — model `{model}` · "
         f"in {stats['input_tokens']:,} · out {stats['output_tokens']:,} · "
         f"cache {stats['cache_read_input_tokens']:,} · "
-        f"~${cost_usd:.4f} · "
+        f"API-equivalent ~${cost_usd:.4f} (OAuth/Max quota, not billed) · "
         f"[Actions run]({run_url})"
     )
 
