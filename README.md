@@ -33,6 +33,7 @@ Each layer has a single responsibility: routers call services, services use db m
 | Reviewer requested on PR | Claude PR review (Sonnet 4.6) — inline + summary comments |
 | `deep-review` label added | Claude PR review (Opus 4.7) — adds `[ARCHITECTURE]` critique |
 | `@claude` mention in PR/issue | Claude answers in-thread (Opus 4.7) |
+| Weekly (Mon 09:00 UTC) | Claude usage rollup → optional Discord webhook |
 | Push to `main` | Build image → `alembic upgrade head` → deploy to Cloud Run |
 
 Config is pulled from GCP Secret Manager at container startup — no env vars are set manually in production or CI.
@@ -46,6 +47,16 @@ Claude reviews PRs on demand, not on every push:
 - **Follow-ups** — comment `@claude <question>` on a PR or issue (Opus 4.7). Useful for "explain this change", "suggest a service-layer refactor for this endpoint", or "is there a simpler approach here?".
 
 Drafts and bot-authored PRs are skipped automatically. Linting and tests still run on every push as usual.
+
+### Cost monitoring
+
+OAuth/Pro-Max billing has no per-token dashboard, so each Claude run reports its own usage:
+
+- **Per-run summary** — every Actions run for `claude-review` and `claude-mention` writes a token / model / cost-equivalent table to the run's job summary (visible at the top of the Actions run page).
+- **PR cost footer** — each PR review posts (and updates in place) a single comment with the same numbers, so reviewers can see what each review cost without leaving the PR.
+- **Weekly Discord rollup** — `claude-cost-report.yml` runs Mondays at 09:00 UTC. It downloads the per-run cost artifacts from the prior 7 days, aggregates totals by model tier and workflow, and posts an embed to the `DISCORD_WEBHOOK_URL` repo secret. If the secret is unset, the workflow still produces the report in its job summary; only the Discord post is skipped. Trigger an ad-hoc rollup with `gh workflow run claude-cost-report.yml -f lookback_days=14`.
+
+Costs are computed at public API list pricing as a stable comparison metric — actual billing under OAuth is your Pro/Max subscription's quota.
 
 ## Local development
 
