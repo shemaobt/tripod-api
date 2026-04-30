@@ -119,9 +119,17 @@ jobs:
             (with `confirmed: true`) for inline issues and
             `gh pr comment` for the summary. Do not push commits or edit
             files.
+
+            Be efficient with tools. Read CLAUDE.md once, read the PR
+            diff (`gh pr diff`) once, and only open the specific changed
+            files you need to verify a finding. Do not re-read files,
+            do not explore unrelated parts of the repo, and do not call
+            tools "just to be thorough" once you have enough signal to
+            judge. Post all inline comments in a batch toward the end,
+            then post the summary, then stop.
           claude_args: |
             --model ${{ steps.tier.outputs.model }}
-            --max-turns 12
+            --max-turns 25
             --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(git log:*),Bash(git diff:*),Read,Grep,Glob"
 
       - name: Render cost summary
