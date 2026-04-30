@@ -1,0 +1,117 @@
+name: Claude Cost Report
+
+on:
+  schedule:
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+    inputs:
+      lookback_days:
+        description: "How many days of artifacts to aggregate"
+        required: false
+        default: "7"
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  LOOKBACK_DAYS: ${{ github.event.inputs.lookback_days || '7' }}
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Aggregate Claude cost artifacts
+        id: aggregate
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          ARTIFACT_DIR: ${{ runner.temp }}/claude-cost-artifacts
+          REPORT_FILE: ${{ runner.temp }}/claude-cost-report.md
+          DISCORD_PAYLOAD: ${{ runner.temp }}/discord-payload.json
+        run: |
+          set -euo pipefail
+          mkdir -p "$ARTIFACT_DIR"
+
+          SINCE_EPOCH=$(date -u -d "$LOOKBACK_DAYS days ago" +%s 2>/dev/null \
+            || python3 -c "import time, os; print(int(time.time()) - int(os.environ['LOOKBACK_DAYS']) * 86400)")
+          echo "Aggregating Claude cost artifacts created in the last $LOOKBACK_DAYS day(s) (since epoch $SINCE_EPOCH)."
+
+          PAGE=1
+          MATCHED=0
+          while :; do
+            BATCH=$(gh api "repos/$REPO/actions/artifacts?per_page=100&page=$PAGE")
+            COUNT=$(echo "$BATCH" | jq '.artifacts | length')
+            if [ "$COUNT" = "0" ]; then
+              break
+            fi
+            echo "$BATCH" | jq -c '.artifacts[] | select(.name | startswith("claude-cost-"))' \
+              | while read -r ART; do
+                ART_ID=$(echo "$ART" | jq -r '.id')
+                ART_NAME=$(echo "$ART" | jq -r '.name')
+                CREATED=$(echo "$ART" | jq -r '.created_at')
+                CREATED_EPOCH=$(date -u -d "$CREATED" +%s 2>/dev/null \
+                  || python3 -c "from datetime import datetime; print(int(datetime.fromisoformat('$CREATED'.replace('Z','+00:00')).timestamp()))")
+                if [ "$CREATED_EPOCH" -lt "$SINCE_EPOCH" ]; then
+                  continue
+                fi
+                if echo "$ART" | jq -e '.expired' >/dev/null && [ "$(echo "$ART" | jq -r '.expired')" = "true" ]; then
+                  continue
+                fi
+                echo "Downloading $ART_NAME (id=$ART_ID, created=$CREATED)"
+                ZIP_PATH="$ARTIFACT_DIR/$ART_NAME.zip"
+                gh api "repos/$REPO/actions/artifacts/$ART_ID/zip" > "$ZIP_PATH" || continue
+                unzip -o -q "$ZIP_PATH" -d "$ARTIFACT_DIR/$ART_NAME" || continue
+                rm -f "$ZIP_PATH"
+              done
+            PAGE=$((PAGE + 1))
+            if [ "$PAGE" -gt 20 ]; then
+              echo "Reached pagination cap; stopping artifact discovery."
+              break
+            fi
+          done
+
+          MATCHED=$(find "$ARTIFACT_DIR" -name claude-cost.json -type f | wc -l | tr -d ' ')
+          echo "Found $MATCHED cost artifact(s)."
+          echo "matched=$MATCHED" >> "$GITHUB_OUTPUT"
+
+          python3 .github/scripts/claude_cost_report.py \
+            --artifacts-dir "$ARTIFACT_DIR" \
+            --lookback-days "$LOOKBACK_DAYS" \
+            --markdown-out "$REPORT_FILE" \
+            --discord-out "$DISCORD_PAYLOAD" \
+            --repo "$REPO"
+
+          {
+            echo "report_file=$REPORT_FILE"
+            echo "discord_payload=$DISCORD_PAYLOAD"
+          } >> "$GITHUB_OUTPUT"
+
+          cat "$REPORT_FILE" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Send Discord webhook
+        if: ${{ steps.aggregate.outputs.matched != '0' && env.DISCORD_WEBHOOK_URL != '' }}
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_PAYLOAD: ${{ steps.aggregate.outputs.discord_payload }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f "$DISCORD_PAYLOAD" ]; then
+            echo "No Discord payload generated; skipping webhook."
+            exit 0
+          fi
+          STATUS=$(curl -sS -o /tmp/discord-response.txt -w "%{http_code}" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            --data @"$DISCORD_PAYLOAD" \
+            "$DISCORD_WEBHOOK_URL")
+          echo "Discord webhook HTTP $STATUS"
+          if [ "$STATUS" -lt 200 ] || [ "$STATUS" -ge 300 ]; then
+            cat /tmp/discord-response.txt
+            exit 1
+          fi

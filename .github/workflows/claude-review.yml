@@ -1,0 +1,172 @@
+name: Claude PR Review
+
+on:
+  pull_request:
+    branches: [main]
+    types: [review_requested, labeled]
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  review:
+    if: >-
+      github.event.pull_request.draft == false &&
+      !endsWith(github.event.pull_request.user.login, '[bot]') &&
+      (
+        github.event.action == 'review_requested' ||
+        (github.event.action == 'labeled' && github.event.label.name == 'deep-review')
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Pick review tier
+        id: tier
+        shell: bash
+        run: |
+          if [ "${{ github.event.action }}" = "labeled" ]; then
+            echo "model=claude-opus-4-7" >> "$GITHUB_OUTPUT"
+            echo "label=deep" >> "$GITHUB_OUTPUT"
+          else
+            echo "model=claude-sonnet-4-6" >> "$GITHUB_OUTPUT"
+            echo "label=standard" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run Claude review
+        id: claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          track_progress: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+            REVIEW TIER: ${{ steps.tier.outputs.label }}
+
+            You are a senior backend reviewer for this FastAPI + SQLAlchemy
+            async repo. CLAUDE.md is the source of truth — read it before
+            reviewing. The PR branch is checked out at the working directory.
+
+            Goal: catch what `ruff`, `mypy`, and `pytest` cannot. Do **not**
+            comment on formatting, import order, type-annotation style, or
+            anything those tools already validate.
+
+            Focus, in order of importance:
+
+            1. **Consistency with repo conventions.**
+               - Any DB access (`session.execute`, `select`, `db.add`, etc.)
+                 in `app/api/` is a hard violation — flag it BLOCKING.
+               - `HTTPException` raised from `app/services/` is a hard
+                 violation — flag it BLOCKING.
+               - New domain errors should subclass existing exceptions in
+                 `app/core/exceptions.py` and be mapped, not invented ad-hoc.
+               - SQLAlchemy models live in `app/db/models/`, Pydantic
+                 schemas in `app/models/`. Mixing the two is a smell.
+               - Schema changes (new column / table / enum value / index)
+                 require a matching Alembic file under `alembic/versions/`.
+                 If one is missing, flag BLOCKING.
+               - Async end-to-end: any `time.sleep`, sync `requests.*`, or
+                 sync DB call inside an async path is BLOCKING.
+
+            2. **Relevance.** Does the diff match the PR title/description?
+               Call out scope creep ("PR says X but also rewrites Y").
+               Call out missing pieces ("PR adds field but no migration",
+               "endpoint added but no test").
+
+            3. **Over-engineering.** Flag SUGGESTION:
+               - New abstractions / base classes / generic helpers with one
+                 caller.
+               - Defensive checks for conditions that cannot occur given
+                 internal call sites.
+               - Feature flags / env toggles for changes that don't need
+                 them.
+               - Dead code, commented-out code, unused parameters.
+
+            If REVIEW TIER is `deep`, also do a fourth pass:
+
+            4. **Architectural critique.** Take a step back and look at the
+               diff as a whole. Are there alternative designs that would be
+               simpler, more consistent with the rest of the codebase, or
+               eliminate a class of bugs? Call them out as `[ARCHITECTURE]`
+               with a one-paragraph rationale. Be specific — cite the
+               existing pattern or file the alternative would follow.
+               Generic "consider extracting" comments are not useful.
+
+            Output style:
+               - Inline comments only where there's a real issue, tagged
+                 `[BLOCKING]`, `[SUGGESTION]`, `[NIT]`, or (deep tier only)
+                 `[ARCHITECTURE]`. Use NIT sparingly.
+               - One short top-level summary comment via `gh pr comment`:
+                 a 2–4 line verdict (approve / request changes / blocking
+                 issues) plus the count of each tag.
+               - If the PR is clean, post a single short approval comment
+                 and skip inline comments. Do not invent issues.
+               - Be concise. Match review length to PR size — small PRs
+                 deserve small reviews.
+
+            Tools: use `mcp__github_inline_comment__create_inline_comment`
+            (with `confirmed: true`) for inline issues and
+            `gh pr comment` for the summary. Do not push commits or edit
+            files.
+          claude_args: |
+            --model ${{ steps.tier.outputs.model }}
+            --max-turns 12
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(git log:*),Bash(git diff:*),Read,Grep,Glob"
+
+      - name: Render cost summary
+        id: cost
+        if: always()
+        shell: bash
+        env:
+          CLAUDE_EXECUTION_FILE: ${{ steps.claude.outputs.execution_file }}
+          CLAUDE_COST_OUT: ${{ runner.temp }}/claude-cost.json
+          CLAUDE_COST_PR_FOOTER: ${{ runner.temp }}/claude-cost-pr-footer.md
+          CLAUDE_PR_NUMBER: ${{ github.event.pull_request.number }}
+          CLAUDE_REVIEW_TIER: ${{ steps.tier.outputs.label }}
+        run: python3 .github/scripts/claude_cost.py
+
+      - name: Post or update PR cost footer
+        if: always() && github.event.pull_request.number != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          FOOTER_FILE: ${{ runner.temp }}/claude-cost-pr-footer.md
+        run: |
+          if [ ! -f "$FOOTER_FILE" ]; then
+            echo "No footer file from cost step; skipping."
+            exit 0
+          fi
+          MARKER='<!-- claude-cost-marker -->'
+          COMMENT_ID=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" --paginate \
+            --jq ".[] | select(.body | contains(\"$MARKER\")) | .id" | head -n1)
+          PAYLOAD=$(jq -n --rawfile body "$FOOTER_FILE" '{body: $body}')
+          if [ -n "$COMMENT_ID" ]; then
+            echo "Updating existing cost comment $COMMENT_ID"
+            echo "$PAYLOAD" | gh api -X PATCH "repos/$REPO/issues/comments/$COMMENT_ID" --input -
+          else
+            echo "Creating new cost footer comment"
+            echo "$PAYLOAD" | gh api -X POST "repos/$REPO/issues/$PR_NUMBER/comments" --input -
+          fi
+
+      - name: Upload cost stats artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-cost-${{ github.run_id }}
+          path: ${{ runner.temp }}/claude-cost.json
+          retention-days: 14
+          if-no-files-found: ignore
