@@ -65,7 +65,15 @@ For each participant:
 - english_gloss: copy from the entity data. If empty, provide the English \
 translation of the Hebrew name.
 - entity_type: copy EXACTLY from the entity data
-- type: "named" for individuals, "group" for groups, "divine" for God/YHWH
+- type:
+  - "named" (DEFAULT) — for any individual proper noun, INCLUDING toponyms \
+treated as quasi-named entities (regions, tribal lands, kingdoms). \
+Examples of `named`: personal names AND topo­nyms like Judah, Moab, Israel, \
+Persia when used as country/region references.
+  - "group" — ONLY for proper-noun collectives that explicitly denote a \
+plurality of people as a corporate party (e.g., "Israelites", "Moabites" \
+as a people). DO NOT use for country/region toponyms.
+  - "divine" — for God / YHWH / Almighty / Elohim and divine epithets.
 - entry_verse: copy EXACTLY from the entity data (do NOT change)
 - exit_verse: copy EXACTLY from the entity data (do NOT change)
 - appears_in: copy the ENTIRE appears_in list EXACTLY from the entity data
@@ -78,14 +86,29 @@ translation of the Hebrew name.
 
 You MUST NOT invent proper-noun participants outside the entity list.
 
-### Source B — Common Noun Groups/Roles
-For EACH candidate in the Common Noun Candidates list whose `sp == "subs"` and \
-whose semantics denote a HUMAN COLLECTIVE ROLE (elders, women, reapers, \
-servants, kinsmen, etc.), create a participant entry:
+### Source B — Common Noun Groups, Roles, and Officials
+For EACH candidate in the Common Noun Candidates list whose `sp == "subs"` \
+and whose semantics denote either:
+
+  (a) a HUMAN COLLECTIVE GROUP — a plural/corporate party narratively \
+significant in the book (e.g., elders, women of the city, reapers, \
+foreigners, nobles, witnesses, the seven sons), OR
+
+  (b) an INSTITUTIONAL ROLE OR OFFICE — a categorial human title that \
+identifies a position in the book's social/political/religious system \
+(e.g., king, queen, prince, priest, prophet, judge, official, eunuch, \
+governor, satrap, lord, foreman, kinsman-redeemer).
+
+create a participant entry. Static fields below MUST be copied EXACTLY \
+from the candidate (they are deterministic):
 - name: the Hebrew lemma (the `lemma` field) — copy EXACTLY
 - english_gloss: copy EXACTLY from the candidate's `english_gloss`
 - entity_type: "person_common"
-- type: "group"
+- type:
+  - "group" for category (a) — collective groups
+  - "role" for category (b) — institutional roles/offices
+  - "divine" for the divine common noun אלהים (god[s]) when it refers \
+to the proper deity. In that case ALSO override entity_type to "person".
 - entry_verse: copy EXACTLY from the candidate's `first_appears`
 - exit_verse: null
 - appears_in: copy EXACTLY from the candidate's `sample_appears_in`
@@ -93,9 +116,17 @@ servants, kinsmen, etc.), create a participant entry:
 - role_in_book, relationships, what_audience_knows_at_entry, arc, status_at_end: \
 your scholarly enrichment based on the narrative
 
-You MUST NOT invent groups/roles outside the candidate list. Skip candidates \
-whose semantics do not denote a human collective role (objects, places, \
-abstract concepts go to other sections).
+You MUST skip generic kinship terms (אב "father", אם "mother", אח \
+"brother", בן "son", בת "daughter") UNLESS the book uses them to form \
+a distinct narrative group with a specific role (e.g., "the seven sons \
+of X" as a corporate party, "the daughters of Y" as a legal-precedent \
+group). Mere familial references that fit any biblical narrative do not \
+warrant participant entries.
+
+You MUST NOT invent participants outside the candidate list. Skip candidates \
+whose semantics do not denote a human collective group, an institutional \
+role, or the divine deity (objects, places, rituals, and abstract concepts \
+go to other sections).
 """
 
 
