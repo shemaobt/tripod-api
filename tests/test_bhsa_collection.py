@@ -198,9 +198,9 @@ def test_collect_bhsa_data_runs_single_pass(monkeypatch: pytest.MonkeyPatch) -> 
     result = collect_bhsa_data(None, "Ruth", 1)
 
     assert call_count["n"] == 1
-    assert "=== Chapter 1 (2 clauses) ===" in result["bhsa_summary"]
-    assert any(e["name"] == "Naomi" for e in result["bhsa_entities"])
-    assert any(c["lemma"] == "שדה" for c in result["bhsa_common_nouns"])
+    assert "=== Chapter 1 (2 clauses) ===" in result.bhsa_summary
+    assert any(e["name"] == "Naomi" for e in result.bhsa_entities)
+    assert any(c["lemma"] == "שדה" for c in result.bhsa_common_nouns)
 
 
 def test_collect_bhsa_data_matches_legacy_wrappers(
@@ -247,6 +247,6 @@ def test_collect_bhsa_data_matches_legacy_wrappers(
         "bhsa_common_nouns"
     ]
 
-    assert combined["bhsa_summary"] == legacy_summary
-    assert combined["bhsa_entities"] == legacy_entities
-    assert combined["bhsa_common_nouns"] == legacy_common
+    assert combined.bhsa_summary == legacy_summary
+    assert combined.bhsa_entities == legacy_entities
+    assert combined.bhsa_common_nouns == legacy_common

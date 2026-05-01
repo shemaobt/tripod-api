@@ -227,8 +227,8 @@ def collect_bhsa_data(tf_api: Any, book_name: str, chapter_count: int) -> Collec
             entities_b.consume(ch, clause)
             common_b.consume(ch, clause)
 
-    return {
-        "bhsa_summary": summary_b.build(),
-        "bhsa_entities": entities_b.build(),
-        "bhsa_common_nouns": common_b.build(),
-    }
+    return CollectBHSAOutput(
+        bhsa_summary=summary_b.build(),
+        bhsa_entities=entities_b.build(),
+        bhsa_common_nouns=common_b.build(),
+    )
