@@ -60,7 +60,12 @@ You MUST produce common-noun places, objects and institutions ONLY by selecting 
 candidates from the list above. You MUST NOT invent entries that lack a BHSA \
 lemma anchor. Your scholarly enrichment is restricted to the descriptive fields \
 explicitly listed for each task (e.g. `meaning_and_function`, `what_it_is`, \
-`role_in_book`).
+`role_in_book`, `display_name`).
+
+You MUST NOT include in `objects` or `institutions` any lemma that already \
+appears in the participant register with `entity_type == "person_common"` \
+(human collective groups, kinship categories, institutional roles/offices). \
+Those belong only in the participant register; do not duplicate them here.
 
 Generate the following sections:
 
@@ -98,30 +103,59 @@ candidates whose semantics do not denote a narrative setting (those go to other 
 sections).
 
 3. **Objects**: For EACH candidate in the Common Noun Candidates list whose \
-`sp == "subs"` and whose semantics denote a PHYSICAL OBJECT, ANIMAL or TEMPORAL \
-MARKER (sandal, signet ring, scepter, scroll, horse, garment, grain, lot, etc.), \
-create an entry:
+`sp == "subs"` and whose semantics denote a SIGNIFICANT PHYSICAL OBJECT \
+(ritual items, garments, tools, animals, monetary units, scrolls/letters, \
+weapons, food items), or a SYMBOLIC ITEM with narrative weight, create an \
+entry:
 - name: the Hebrew lemma (the `lemma` field) — copy EXACTLY
+- display_name: A rich, narrative-faithful English name when scholarly \
+tradition has one (e.g., a recurring ceremonial garment may be known by a \
+canonical English label; a distinctive item central to the plot may have \
+a culturally-known name in English biblical scholarship). Leave empty when \
+the english_gloss is already self-explanatory and adding a label would be \
+artificial.
 - english_gloss: copy EXACTLY from the candidate's `english_gloss`
 - first_appears: copy EXACTLY from the candidate's `first_appears`
 - appears_in: copy EXACTLY from the candidate's `sample_appears_in`
 - what_it_is: 1-2 sentences describing what the object is
 - meaning_across_scenes: 2-3 sentences on how its role evolves in the narrative
-You MUST NOT invent objects outside the candidate list. Skip candidates whose \
-semantics do not denote a physical object/animal/temporal marker.
+
+Skip generic temporal markers (day, night, month, year) UNLESS they carry \
+distinctive narrative or symbolic weight in this specific book (e.g., a \
+named feast day, a counted period of mourning). Skip body parts (hand, eye, \
+foot, etc.) UNLESS they appear in a ritual or symbolic action central to \
+the narrative. You MUST NOT invent objects outside the candidate list.
 
 4. **Institutions**: For EACH candidate in the Common Noun Candidates list \
-that denotes an INSTITUTIONAL ACTION OR OBJECT — including verbal lemmas of \
-institutional actions (`sp == "verb"` such as גאל "redeem", לקט "glean", \
-יבם "perform levirate marriage") AND substantive lemmas of institutional \
-objects/concepts (`sp == "subs"` such as משׁתה "feast", דת "decree", פור "lot") \
-— create an entry:
+that denotes a CULTURAL, LEGAL, RELIGIOUS, OR CEREMONIAL STRUCTURE — NOT a \
+human role/title (those go to participants as `type=role`). This includes:
+  - Rituals and rites (e.g., feast, fast, festival, mourning rite, sealing)
+  - Legal practices (e.g., redemption rights, gleaning rights, levirate \
+marriage, decree, inheritance law)
+  - Social structures as institutions (e.g., kinship clan as an institutional \
+unit, kingship as an office, priesthood as an order)
+
+Verbal lemmas (`sp == "verb"`) that name an institutional action (e.g., a \
+verb of redemption, gleaning, sealing, fasting) are eligible. Substantive \
+lemmas (`sp == "subs"`) naming the rite/concept itself are eligible. Skip \
+candidates that are merely a human title or office (those belong in \
+participants).
+
+For each entry:
 - name: the Hebrew lemma (the `lemma` field) — copy EXACTLY
+- display_name: A rich, narrative-faithful English name in the form scholarly \
+tradition uses (e.g., a culturally-recognized festival name, a legal-practice \
+label, an institutional office name). The display_name should be readable to \
+a Bible translator who does not read Hebrew (e.g., "Festival of Purim", \
+"Kinsman-Redemption (Go'el)", "Levirate Marriage", "Persian Law / Irrevocable \
+Decree"). Leave empty only when the english_gloss already serves as a \
+recognized institutional name on its own.
 - english_gloss: copy EXACTLY from the candidate's `english_gloss`
 - first_invoked: copy EXACTLY from the candidate's `first_appears`
 - appears_in: copy EXACTLY from the candidate's `sample_appears_in`
 - what_it_is: 1-2 sentences describing the institution
 - role_in_book: 1-2 sentences on its narrative function
+
 You MUST NOT invent institutions outside the candidate list. Inferred \
 institutions without a BHSA lemma anchor are NOT permitted.
 
@@ -168,7 +202,12 @@ You MUST produce common-noun places, objects and institutions ONLY by selecting 
 candidates from the list above. You MUST NOT invent entries that lack a BHSA \
 lemma anchor. Your scholarly enrichment is restricted to the descriptive fields \
 explicitly listed for each task (e.g. `meaning_and_function`, `what_it_is`, \
-`role_in_book`).
+`role_in_book`, `display_name`).
+
+You MUST NOT include in `objects` or `institutions` any lemma that already \
+appears in the participant register with `entity_type == "person_common"` \
+(human collective groups, kinship categories, institutional roles/offices). \
+Those belong only in the participant register; do not duplicate them here.
 
 Generate the following sections (proper-noun places are handled in a separate batch):
 
@@ -192,30 +231,59 @@ You MUST NOT invent common-noun places outside the candidate list. Proper-noun \
 places are emitted in a separate batch — do NOT include them here.
 
 3. **Objects**: For EACH candidate in the Common Noun Candidates list whose \
-`sp == "subs"` and whose semantics denote a PHYSICAL OBJECT, ANIMAL or TEMPORAL \
-MARKER (sandal, signet ring, scepter, scroll, horse, garment, grain, lot, etc.), \
-create an entry:
+`sp == "subs"` and whose semantics denote a SIGNIFICANT PHYSICAL OBJECT \
+(ritual items, garments, tools, animals, monetary units, scrolls/letters, \
+weapons, food items), or a SYMBOLIC ITEM with narrative weight, create an \
+entry:
 - name: the Hebrew lemma (the `lemma` field) — copy EXACTLY
+- display_name: A rich, narrative-faithful English name when scholarly \
+tradition has one (e.g., a recurring ceremonial garment may be known by a \
+canonical English label; a distinctive item central to the plot may have \
+a culturally-known name in English biblical scholarship). Leave empty when \
+the english_gloss is already self-explanatory and adding a label would be \
+artificial.
 - english_gloss: copy EXACTLY from the candidate's `english_gloss`
 - first_appears: copy EXACTLY from the candidate's `first_appears`
 - appears_in: copy EXACTLY from the candidate's `sample_appears_in`
 - what_it_is: 1-2 sentences describing what the object is
 - meaning_across_scenes: 2-3 sentences on how its role evolves in the narrative
-You MUST NOT invent objects outside the candidate list. Skip candidates whose \
-semantics do not denote a physical object/animal/temporal marker.
+
+Skip generic temporal markers (day, night, month, year) UNLESS they carry \
+distinctive narrative or symbolic weight in this specific book (e.g., a \
+named feast day, a counted period of mourning). Skip body parts (hand, eye, \
+foot, etc.) UNLESS they appear in a ritual or symbolic action central to \
+the narrative. You MUST NOT invent objects outside the candidate list.
 
 4. **Institutions**: For EACH candidate in the Common Noun Candidates list \
-that denotes an INSTITUTIONAL ACTION OR OBJECT — including verbal lemmas of \
-institutional actions (`sp == "verb"` such as גאל "redeem", לקט "glean", \
-יבם "perform levirate marriage") AND substantive lemmas of institutional \
-objects/concepts (`sp == "subs"` such as משׁתה "feast", דת "decree", פור "lot") \
-— create an entry:
+that denotes a CULTURAL, LEGAL, RELIGIOUS, OR CEREMONIAL STRUCTURE — NOT a \
+human role/title (those go to participants as `type=role`). This includes:
+  - Rituals and rites (e.g., feast, fast, festival, mourning rite, sealing)
+  - Legal practices (e.g., redemption rights, gleaning rights, levirate \
+marriage, decree, inheritance law)
+  - Social structures as institutions (e.g., kinship clan as an institutional \
+unit, kingship as an office, priesthood as an order)
+
+Verbal lemmas (`sp == "verb"`) that name an institutional action (e.g., a \
+verb of redemption, gleaning, sealing, fasting) are eligible. Substantive \
+lemmas (`sp == "subs"`) naming the rite/concept itself are eligible. Skip \
+candidates that are merely a human title or office (those belong in \
+participants).
+
+For each entry:
 - name: the Hebrew lemma (the `lemma` field) — copy EXACTLY
+- display_name: A rich, narrative-faithful English name in the form scholarly \
+tradition uses (e.g., a culturally-recognized festival name, a legal-practice \
+label, an institutional office name). The display_name should be readable to \
+a Bible translator who does not read Hebrew (e.g., "Festival of Purim", \
+"Kinsman-Redemption (Go'el)", "Levirate Marriage", "Persian Law / Irrevocable \
+Decree"). Leave empty only when the english_gloss already serves as a \
+recognized institutional name on its own.
 - english_gloss: copy EXACTLY from the candidate's `english_gloss`
 - first_invoked: copy EXACTLY from the candidate's `first_appears`
 - appears_in: copy EXACTLY from the candidate's `sample_appears_in`
 - what_it_is: 1-2 sentences describing the institution
 - role_in_book: 1-2 sentences on its narrative function
+
 You MUST NOT invent institutions outside the candidate list. Inferred \
 institutions without a BHSA lemma anchor are NOT permitted.
 
