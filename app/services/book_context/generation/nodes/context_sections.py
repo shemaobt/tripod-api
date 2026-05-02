@@ -103,10 +103,21 @@ candidates whose semantics do not denote a narrative setting (those go to other 
 sections).
 
 3. **Objects**: For EACH candidate in the Common Noun Candidates list whose \
-`sp == "subs"` and whose semantics denote a SIGNIFICANT PHYSICAL OBJECT \
-(ritual items, garments, tools, animals, monetary units, scrolls/letters, \
-weapons, food items), or a SYMBOLIC ITEM with narrative weight, create an \
-entry:
+`sp == "subs"` and whose semantics fall into ONE of these classes, create \
+an entry:
+
+  (a) PHYSICAL OBJECT — ritual items, garments, tools, animals, monetary \
+units, scrolls/letters, weapons, food and drink items, containers, \
+agricultural products, body adornments
+  (b) SYMBOLIC ITEM with narrative weight in the book (e.g., gallows as \
+sign of judgment, sandal as legal exchange token, ashes as mourning sign)
+  (c) NARRATIVE STATE OR CONDITION that recurs as a plot anchor \
+(e.g., pregnancy/offspring when it drives the narrative, rest/security \
+as a sought-after outcome, life as a recurring concern). Include this \
+class ONLY when the lemma is referenced multiple times AND functions as \
+a narrative thread, not when it is a passing abstraction.
+
+For each entry:
 - name: the Hebrew lemma (the `lemma` field) — copy EXACTLY
 - display_name: A rich, narrative-faithful English name when scholarly \
 tradition has one (e.g., a recurring ceremonial garment may be known by a \
@@ -117,14 +128,16 @@ artificial.
 - english_gloss: copy EXACTLY from the candidate's `english_gloss`
 - first_appears: copy EXACTLY from the candidate's `first_appears`
 - appears_in: copy EXACTLY from the candidate's `sample_appears_in`
-- what_it_is: 1-2 sentences describing what the object is
+- what_it_is: 1-2 sentences describing what the object/state is
 - meaning_across_scenes: 2-3 sentences on how its role evolves in the narrative
 
 Skip generic temporal markers (day, night, month, year) UNLESS they carry \
-distinctive narrative or symbolic weight in this specific book (e.g., a \
-named feast day, a counted period of mourning). Skip body parts (hand, eye, \
-foot, etc.) UNLESS they appear in a ritual or symbolic action central to \
-the narrative. You MUST NOT invent objects outside the candidate list.
+distinctive narrative or symbolic weight in this specific book. Skip body \
+parts UNLESS they appear in a ritual or symbolic action central to the \
+narrative. Skip purely theological abstractions (God's name, righteousness \
+as a virtue, glory) — those belong in `theological_spine` or as \
+institutions when they name a recognized structure. You MUST NOT invent \
+objects outside the candidate list.
 
 4. **Institutions**: For EACH candidate in the Common Noun Candidates list \
 that denotes a CULTURAL, LEGAL, RELIGIOUS, OR CEREMONIAL STRUCTURE — NOT a \
@@ -231,10 +244,21 @@ You MUST NOT invent common-noun places outside the candidate list. Proper-noun \
 places are emitted in a separate batch — do NOT include them here.
 
 3. **Objects**: For EACH candidate in the Common Noun Candidates list whose \
-`sp == "subs"` and whose semantics denote a SIGNIFICANT PHYSICAL OBJECT \
-(ritual items, garments, tools, animals, monetary units, scrolls/letters, \
-weapons, food items), or a SYMBOLIC ITEM with narrative weight, create an \
-entry:
+`sp == "subs"` and whose semantics fall into ONE of these classes, create \
+an entry:
+
+  (a) PHYSICAL OBJECT — ritual items, garments, tools, animals, monetary \
+units, scrolls/letters, weapons, food and drink items, containers, \
+agricultural products, body adornments
+  (b) SYMBOLIC ITEM with narrative weight in the book (e.g., gallows as \
+sign of judgment, sandal as legal exchange token, ashes as mourning sign)
+  (c) NARRATIVE STATE OR CONDITION that recurs as a plot anchor \
+(e.g., pregnancy/offspring when it drives the narrative, rest/security \
+as a sought-after outcome, life as a recurring concern). Include this \
+class ONLY when the lemma is referenced multiple times AND functions as \
+a narrative thread, not when it is a passing abstraction.
+
+For each entry:
 - name: the Hebrew lemma (the `lemma` field) — copy EXACTLY
 - display_name: A rich, narrative-faithful English name when scholarly \
 tradition has one (e.g., a recurring ceremonial garment may be known by a \
@@ -245,14 +269,16 @@ artificial.
 - english_gloss: copy EXACTLY from the candidate's `english_gloss`
 - first_appears: copy EXACTLY from the candidate's `first_appears`
 - appears_in: copy EXACTLY from the candidate's `sample_appears_in`
-- what_it_is: 1-2 sentences describing what the object is
+- what_it_is: 1-2 sentences describing what the object/state is
 - meaning_across_scenes: 2-3 sentences on how its role evolves in the narrative
 
 Skip generic temporal markers (day, night, month, year) UNLESS they carry \
-distinctive narrative or symbolic weight in this specific book (e.g., a \
-named feast day, a counted period of mourning). Skip body parts (hand, eye, \
-foot, etc.) UNLESS they appear in a ritual or symbolic action central to \
-the narrative. You MUST NOT invent objects outside the candidate list.
+distinctive narrative or symbolic weight in this specific book. Skip body \
+parts UNLESS they appear in a ritual or symbolic action central to the \
+narrative. Skip purely theological abstractions (God's name, righteousness \
+as a virtue, glory) — those belong in `theological_spine` or as \
+institutions when they name a recognized structure. You MUST NOT invent \
+objects outside the candidate list.
 
 4. **Institutions**: For EACH candidate in the Common Noun Candidates list \
 that denotes a CULTURAL, LEGAL, RELIGIOUS, OR CEREMONIAL STRUCTURE — NOT a \
