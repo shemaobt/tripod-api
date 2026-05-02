@@ -12,6 +12,7 @@ from app.services.book_context.generation.bhsa_collection import (
     BHSACommonNounsBuilder,
     BHSAEntitiesBuilder,
     BHSASummaryBuilder,
+    _min_appearances_for,
     collect_bhsa_data,
 )
 
@@ -150,6 +151,52 @@ def test_common_nouns_builder_filters_low_frequency() -> None:
     builder = BHSACommonNounsBuilder()
     builder.consume(1, _clause(1, content_words=[_cw("rare", "subs", function="Subj")]))
     assert builder.build() == []
+
+
+def test_common_nouns_builder_accepts_min_appearances_override() -> None:
+    builder = BHSACommonNounsBuilder(min_appearances=1)
+    builder.consume(
+        1, _clause(1, content_words=[_cw("איפה", "subs", gloss="ephah", function="Objc")])
+    )
+    candidates = builder.build()
+    assert len(candidates) == 1
+    assert candidates[0]["lemma"] == "איפה"
+    assert candidates[0]["appearance_count"] == 1
+
+
+def test_min_appearances_for_small_book() -> None:
+    assert _min_appearances_for(1) == 1
+    assert _min_appearances_for(4) == 1
+    assert _min_appearances_for(5) == 2
+    assert _min_appearances_for(50) == 2
+
+
+def test_collect_bhsa_data_uses_adaptive_threshold(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Books with ≤4 chapters accept single-occurrence lemmas (Strategy 1)."""
+    payload = [
+        {
+            "chapter": 1,
+            "verse_count": 1,
+            "clauses": [
+                _clause(
+                    1,
+                    names=["A"],
+                    name_types={"A": "pers"},
+                    content_words=[_cw("איפה", "subs", gloss="ephah", function="Objc")],
+                ),
+            ],
+        }
+    ]
+    monkeypatch.setattr(bhsa_collection, "stream_book_clauses", _stream(payload))
+
+    # 4 chapters → threshold 1 → single-occurrence lemma kept
+    result_small = collect_bhsa_data(None, "Ruth", 4)
+    assert any(c["lemma"] == "איפה" for c in result_small.bhsa_common_nouns)
+
+    # 50 chapters → threshold 2 → single-occurrence lemma dropped
+    monkeypatch.setattr(bhsa_collection, "stream_book_clauses", _stream(payload))
+    result_large = collect_bhsa_data(None, "Genesis", 50)
+    assert not any(c["lemma"] == "איפה" for c in result_large.bhsa_common_nouns)
 
 
 def test_common_nouns_builder_includes_verbs_with_any_function() -> None:

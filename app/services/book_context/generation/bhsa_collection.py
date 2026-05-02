@@ -22,6 +22,17 @@ _NOMINAL_FUNCTIONS = frozenset({"Subj", "Objc", "Cmpl", "PreC"})
 _SAMPLE_LIMIT = 8
 
 
+def _min_appearances_for(chapter_count: int) -> int:
+    """Adaptive frequency threshold for common-noun candidates.
+
+    Small books (≤4 chapters) like Ruth/Jonah/Obadiah/Joel/Haggai/Malachi accept
+    single-occurrence lemmas, since one verse can carry decisive narrative
+    weight (e.g., Ephah of barley in Ruth 2:17). Larger books keep the default
+    threshold of 2 to avoid noise.
+    """
+    return 1 if chapter_count <= 4 else _MIN_APPEARANCES
+
+
 def _classify_nametype(nametype: str) -> str:
     if nametype in _PERSON_TYPES:
         return "person"
@@ -141,8 +152,9 @@ class BHSAEntitiesBuilder:
 class BHSACommonNounsBuilder:
     """Aggregates common-noun / verb / adjective lemma candidates across the book."""
 
-    def __init__(self) -> None:
+    def __init__(self, min_appearances: int = _MIN_APPEARANCES) -> None:
         self._aggregates: dict[tuple[str, str], dict[str, Any]] = {}
+        self._min_appearances = min_appearances
 
     def consume(self, ch: int, clause: ClauseExtract) -> None:
         v = clause["verse"]
@@ -185,7 +197,7 @@ class BHSACommonNounsBuilder:
         candidates: list[CommonNounCandidate] = []
         for bucket in self._aggregates.values():
             appearance_count = len(bucket["appears_in"])
-            if appearance_count < _MIN_APPEARANCES:
+            if appearance_count < self._min_appearances:
                 continue
 
             sp = bucket["sp"]
@@ -217,7 +229,7 @@ def collect_bhsa_data(tf_api: Any, book_name: str, chapter_count: int) -> Collec
 
     summary_b = BHSASummaryBuilder()
     entities_b = BHSAEntitiesBuilder()
-    common_b = BHSACommonNounsBuilder()
+    common_b = BHSACommonNounsBuilder(min_appearances=_min_appearances_for(chapter_count))
 
     for chapter_data in stream_book_clauses(tf_api, book_name, chapter_count):
         ch = chapter_data["chapter"]

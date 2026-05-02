@@ -35,6 +35,8 @@ def _content(
 
 
 def test_filters_lemmas_below_min_appearances(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Use 10 chapters so the adaptive threshold is 2 (default).
+    # Single-occurrence lemmas in books >4 chapters must be filtered out.
     payload = [
         {
             "chapter": 1,
@@ -48,7 +50,7 @@ def test_filters_lemmas_below_min_appearances(monkeypatch: pytest.MonkeyPatch) -
         }
     ]
     monkeypatch.setattr(bhsa_common_nouns, "stream_book_clauses", _stream(payload))
-    result = bhsa_common_nouns.extract_common_noun_candidates(None, "Ruth", 1)
+    result = bhsa_common_nouns.extract_common_noun_candidates(None, "Genesis", 10)
     assert result["bhsa_common_nouns"] == []
 
 
