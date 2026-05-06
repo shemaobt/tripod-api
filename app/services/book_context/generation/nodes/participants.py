@@ -70,6 +70,9 @@ translation of the Hebrew name.
 treated as quasi-named entities (regions, tribal lands, kingdoms). \
 Examples of `named`: personal names AND topo­nyms like Judah, Moab, Israel, \
 Persia when used as country/region references.
+  - "unnamed" — for a person entity referenced anonymously in the narrative \
+(e.g., "the man's servant", "a woman from Bethlehem"). Rare for proper-noun \
+sources but possible when the BHSA entity stands for an unnamed individual.
   - "group" — ONLY for proper-noun collectives that explicitly denote a \
 plurality of people as a corporate party (e.g., "Israelites", "Moabites" \
 as a people). DO NOT use for country/region toponyms.
