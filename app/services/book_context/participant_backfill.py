@@ -28,12 +28,8 @@ def _normalize_participant(participant: dict, bcd_id: str) -> bool:
     return True
 
 
-async def backfill_participant_enums(
-    db: AsyncSession, *, dry_run: bool = False
-) -> tuple[int, int]:
-    stmt = select(BookContextDocument).where(
-        BookContextDocument.participant_register.is_not(None)
-    )
+async def backfill_participant_enums(db: AsyncSession, *, dry_run: bool = False) -> tuple[int, int]:
+    stmt = select(BookContextDocument).where(BookContextDocument.participant_register.is_not(None))
     result = await db.execute(stmt)
     docs = list(result.scalars().all())
 
