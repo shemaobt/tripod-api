@@ -13,6 +13,14 @@ class EntryProvenance(StrEnum):
     HUMAN = "human"
 
 
+class ParticipantType(StrEnum):
+    NAMED = "named"
+    UNNAMED = "unnamed"
+    GROUP = "group"
+    DIVINE = "divine"
+    ROLE = "role"
+
+
 class VerseRef(BaseModel):
     chapter: int
     verse: int
@@ -34,7 +42,7 @@ class BCDParticipantEntry(BaseModel):
     name: str
     english_gloss: str = ""
     entity_type: str = "person"
-    type: str = "named"
+    type: ParticipantType = ParticipantType.NAMED
     entry_verse: VerseRef
     exit_verse: VerseRef | None = None
     appears_in: list[VerseRef] = Field(default_factory=list)
