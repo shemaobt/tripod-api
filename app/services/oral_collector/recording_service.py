@@ -56,7 +56,9 @@ def _get_gcs_client():  # type: ignore[no-untyped-def]
 def _get_signing_info() -> tuple[str, str]:
     global _signing_credentials
     if _signing_credentials is None:
-        _signing_credentials, _ = google.auth.default()
+        _signing_credentials, _ = google.auth.default(
+            scopes=["https://www.googleapis.com/auth/cloud-platform"]
+        )
     if not _signing_credentials.valid:
         _signing_credentials.refresh(google.auth.transport.requests.Request())
     creds = _signing_credentials
