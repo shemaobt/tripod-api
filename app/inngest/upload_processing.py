@@ -1,7 +1,9 @@
+import base64
 import logging
 from datetime import UTC, datetime
 
 import inngest
+from google.cloud import storage
 
 from app.core.database import AsyncSessionLocal
 from app.core.enums import (
@@ -21,6 +23,46 @@ from app.services.oral_collector.constants import GCS_OC_BUCKET, GCS_OC_PROJECT
 from app.services.oral_collector.gcs_utils import GCS_PUBLIC_BASE
 
 logger = logging.getLogger(__name__)
+
+
+def verify_gcs_blob(payload: UploadConfirmedPayload) -> BlobVerificationResult:
+    """Verify the uploaded blob in GCS matches what the client claimed.
+
+    Raises `inngest.NonRetriableError` on any mismatch (size, md5, crc32c)
+    or if the blob does not exist. Returns the verified size on success.
+    """
+    client = storage.Client(project=GCS_OC_PROJECT)
+    bucket = client.bucket(GCS_OC_BUCKET)
+    blob = bucket.blob(payload.expected_blob_path)
+
+    if not blob.exists():
+        raise inngest.NonRetriableError("Blob does not exist in GCS — upload may have failed")
+
+    blob.reload()
+    actual_size = blob.size or 0
+    if payload.expected_size_bytes > 0 and actual_size != payload.expected_size_bytes:
+        raise inngest.NonRetriableError(
+            f"Size mismatch: expected {payload.expected_size_bytes}, got {actual_size}"
+        )
+
+    if payload.expected_md5_hash and blob.md5_hash:
+        gcs_md5_bytes = base64.b64decode(blob.md5_hash)
+        gcs_md5_hex = gcs_md5_bytes.hex()
+        if gcs_md5_hex != payload.expected_md5_hash.lower():
+            raise inngest.NonRetriableError(
+                f"MD5 mismatch: client={payload.expected_md5_hash}, gcs={gcs_md5_hex}"
+            )
+
+    if (
+        payload.expected_crc32c
+        and blob.crc32c
+        and blob.crc32c != payload.expected_crc32c
+    ):
+        raise inngest.NonRetriableError(
+            f"CRC32C mismatch: client={payload.expected_crc32c}, gcs={blob.crc32c}"
+        )
+
+    return BlobVerificationResult(size=actual_size)
 
 
 async def _on_upload_failure(ctx: inngest.Context, _step: inngest.Step) -> None:
@@ -67,43 +109,10 @@ async def process_upload_fn(ctx: inngest.Context, step: inngest.Step) -> str:
 
     await step.run("set-upload-metadata", _set_upload_metadata)
 
-    async def _verify_gcs_blob() -> dict[str, int]:
-        import base64
-
-        from google.cloud import storage
-
-        client = storage.Client(project=GCS_OC_PROJECT)
-        bucket = client.bucket(GCS_OC_BUCKET)
-        blob = bucket.blob(payload.expected_blob_path)
-
-        if not blob.exists():
-            raise inngest.NonRetriableError("Blob does not exist in GCS — upload may have failed")
-
-        blob.reload()
-        actual_size = blob.size or 0
-        if payload.expected_size_bytes > 0 and actual_size != payload.expected_size_bytes:
-            raise inngest.NonRetriableError(
-                f"Size mismatch: expected {payload.expected_size_bytes}, got {actual_size}"
-            )
-
-        if payload.expected_md5_hash and blob.md5_hash:
-            gcs_md5_bytes = base64.b64decode(blob.md5_hash)
-            gcs_md5_hex = gcs_md5_bytes.hex()
-            if gcs_md5_hex != payload.expected_md5_hash.lower():
-                raise inngest.NonRetriableError(
-                    f"MD5 mismatch: client={payload.expected_md5_hash}, gcs={gcs_md5_hex}"
-                )
-
-        if payload.expected_crc32c and blob.crc32c:
-            if blob.crc32c != payload.expected_crc32c:
-                raise inngest.NonRetriableError(
-                    f"CRC32C mismatch: client={payload.expected_crc32c}, gcs={blob.crc32c}"
-                )
-
-        return BlobVerificationResult(size=actual_size).model_dump()
-
     blob_info = BlobVerificationResult.model_validate(
-        await step.run("verify-gcs-blob", _verify_gcs_blob)
+        await step.run(
+            "verify-gcs-blob", lambda: verify_gcs_blob(payload).model_dump()
+        )
     )
 
     await step.run(
