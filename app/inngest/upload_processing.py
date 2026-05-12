@@ -94,6 +94,12 @@ async def process_upload_fn(ctx: inngest.Context, step: inngest.Step) -> str:
                     f"MD5 mismatch: client={payload.expected_md5_hash}, gcs={gcs_md5_hex}"
                 )
 
+        if payload.expected_crc32c and blob.crc32c:
+            if blob.crc32c != payload.expected_crc32c:
+                raise inngest.NonRetriableError(
+                    f"CRC32C mismatch: client={payload.expected_crc32c}, gcs={blob.crc32c}"
+                )
+
         return BlobVerificationResult(size=actual_size).model_dump()
 
     blob_info = BlobVerificationResult.model_validate(
