@@ -76,9 +76,7 @@ def _make_blob_mock(
 def _patch_storage(blob: MagicMock):
     client = MagicMock()
     client.bucket.return_value.blob.return_value = blob
-    return patch(
-        "app.inngest.upload_processing.storage.Client", return_value=client
-    )
+    return patch("app.inngest.upload_processing.storage.Client", return_value=client)
 
 
 def test_verify_blob_missing_raises() -> None:
@@ -166,8 +164,6 @@ def test_verify_blob_both_hashes_validated() -> None:
         expected_md5_hash="0cc175b9c0f1b6a831c399e269772661",
         expected_crc32c="Nks/tw==",
     )
-    with _patch_storage(
-        _make_blob_mock(md5_hash="DMF1ucDxtqgxw5niaXcmYQ==", crc32c="Nks/tw==")
-    ):
+    with _patch_storage(_make_blob_mock(md5_hash="DMF1ucDxtqgxw5niaXcmYQ==", crc32c="Nks/tw==")):
         result = verify_gcs_blob(payload)
     assert result.size == 1024

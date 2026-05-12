@@ -53,11 +53,7 @@ def verify_gcs_blob(payload: UploadConfirmedPayload) -> BlobVerificationResult:
                 f"MD5 mismatch: client={payload.expected_md5_hash}, gcs={gcs_md5_hex}"
             )
 
-    if (
-        payload.expected_crc32c
-        and blob.crc32c
-        and blob.crc32c != payload.expected_crc32c
-    ):
+    if payload.expected_crc32c and blob.crc32c and blob.crc32c != payload.expected_crc32c:
         raise inngest.NonRetriableError(
             f"CRC32C mismatch: client={payload.expected_crc32c}, gcs={blob.crc32c}"
         )
@@ -110,9 +106,7 @@ async def process_upload_fn(ctx: inngest.Context, step: inngest.Step) -> str:
     await step.run("set-upload-metadata", _set_upload_metadata)
 
     blob_info = BlobVerificationResult.model_validate(
-        await step.run(
-            "verify-gcs-blob", lambda: verify_gcs_blob(payload).model_dump()
-        )
+        await step.run("verify-gcs-blob", lambda: verify_gcs_blob(payload).model_dump())
     )
 
     await step.run(
