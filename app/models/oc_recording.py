@@ -127,6 +127,7 @@ class ResumableUploadUrlResponse(BaseModel):
 
 class ConfirmUploadRequest(BaseModel):
     md5_hash: str | None = None
+    crc32c: str | None = None
 
 
 class SplitSegment(BaseModel):
