@@ -7,6 +7,7 @@ class UploadConfirmedPayload(BaseModel):
     expected_blob_path: str
     expected_size_bytes: int
     expected_md5_hash: str | None = None
+    expected_crc32c: str | None = None
 
 
 class CleanRequestedPayload(BaseModel):

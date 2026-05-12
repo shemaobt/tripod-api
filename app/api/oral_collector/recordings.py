@@ -154,7 +154,10 @@ async def confirm_upload(
     existing = await recording_service.get_recording(db, recording_id)
     await recording_service.check_recording_access(db, existing, user.id)
     md5_hash = payload.md5_hash if payload else None
-    recording = await recording_service.confirm_upload(db, recording_id, md5_hash=md5_hash)
+    crc32c = payload.crc32c if payload else None
+    recording = await recording_service.confirm_upload(
+        db, recording_id, md5_hash=md5_hash, crc32c=crc32c
+    )
     return RecordingResponse.model_validate(recording)
 
 
