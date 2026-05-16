@@ -91,7 +91,6 @@ async def send_message(
         agent_id=None,
     )
     db.add(user_msg)
-    await db.flush()
 
     system_prompt = await get_system_prompt_text(db, effective_agent)
     contents = _build_contents(history, content)
