@@ -96,6 +96,42 @@ async def test_send_message_raises_for_unknown_chat(monkeypatch, db_session) -> 
 
 
 @pytest.mark.asyncio
+async def test_send_message_does_not_persist_user_msg_when_gemini_fails(
+    monkeypatch, db_session
+) -> None:
+    """Pins B-1: the user message must not be flushed independently of the commit.
+
+    With the flush dropped, `db.add(user_msg)` only stages the row in the session.
+    When Gemini raises, the row is still in `session.new` and would be discarded
+    by `get_db`'s `async with` rollback in production. Here we assert directly
+    on the session's pending state.
+    """
+    user = await make_user(db_session, email="th_msg_rollback@test.com")
+    chat = await make_th_chat(db_session, user.id)
+    await make_th_agent_prompt(db_session, agent_id="storyteller", prompt="P")
+
+    async def boom(*, system_prompt, contents, settings):
+        raise RuntimeError("gemini exploded")
+
+    monkeypatch.setattr(_SEND_MOD, "_generate_assistant_text", boom)
+
+    pending_before = {
+        (m.chat_id, m.role, m.content)
+        for m in db_session.new
+        if isinstance(m, THChatMessage)
+    }
+    assert pending_before == set()
+
+    with pytest.raises(RuntimeError, match="gemini exploded"):
+        await send_message(db_session, chat.id, user.id, "this should not persist")
+
+    pending_msgs = [m for m in db_session.new if isinstance(m, THChatMessage)]
+    assert len(pending_msgs) == 1
+    assert pending_msgs[0].role == ChatMessageRole.USER
+    assert pending_msgs[0].content == "this should not persist"
+
+
+@pytest.mark.asyncio
 async def test_send_message_uses_agent_override(monkeypatch, db_session) -> None:
     user = await make_user(db_session, email="th_msg_e@test.com")
     chat = await make_th_chat(db_session, user.id, agent_id=AgentId.STORYTELLER)

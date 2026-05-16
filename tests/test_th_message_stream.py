@@ -1,9 +1,11 @@
 import sys
 from collections.abc import AsyncIterator
+from types import SimpleNamespace
 
 import pytest
 from sqlalchemy import select
 
+from app.api.translation_helper import chats as chats_router
 from app.db.models.translation_helper import (
     ChatMessageRole,
     THChatMessage,
@@ -57,3 +59,40 @@ async def test_stream_message_persists_concatenated_text(monkeypatch, db_session
     assert [r.role for r in rows] == [ChatMessageRole.USER, ChatMessageRole.ASSISTANT]
     assert rows[0].content == "hi"
     assert rows[1].content == "ABC"
+
+
+@pytest.mark.asyncio
+async def test_stream_chat_message_error_event_does_not_leak_exception(monkeypatch) -> None:
+    """Pins B-5: SSE error events must show a generic message, not the raw exception."""
+    secret = "SUPER_SECRET_INTERNAL_DETAIL_xyz123"
+
+    async def boom(*args, **kwargs):
+        raise RuntimeError(secret)
+        yield  # pragma: no cover — make this an async generator
+
+    fake_service = SimpleNamespace(stream_message=boom)
+    monkeypatch.setattr(chats_router, "th_service", fake_service)
+
+    class _FakeSession:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a):
+            return False
+
+    monkeypatch.setattr(chats_router, "AsyncSessionLocal", lambda: _FakeSession())
+
+    fake_user = SimpleNamespace(id="user-1")
+    payload = SimpleNamespace(content="hi", agent_id=None)
+
+    response = await chats_router.stream_chat_message(
+        chat_id="chat-1",
+        payload=payload,
+        user=fake_user,
+    )
+
+    body = b"".join([chunk async for chunk in response.body_iterator])
+    decoded = body.decode("utf-8")
+    assert "Streaming failed" in decoded
+    assert secret not in decoded
+    assert "RuntimeError" not in decoded
