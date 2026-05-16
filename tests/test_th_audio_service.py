@@ -58,9 +58,7 @@ async def test_transcribe_audio_warns_on_missing_mime(monkeypatch, caplog) -> No
     """B-4: when neither filename, mime, nor a sniffable magic byte is available,
     we should log a warning so the operator can debug a confused Gemini call."""
     _patch_genai_client(monkeypatch, "ok")
-    caplog.set_level(
-        logging.WARNING, logger="app.services.translation_helper.transcribe_audio"
-    )
+    caplog.set_level(logging.WARNING, logger="app.services.translation_helper.transcribe_audio")
     await transcribe_audio(
         b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b", settings=_settings()
     )
@@ -92,12 +90,8 @@ async def test_synthesize_speech_caches_on_repeat_calls() -> None:
         synthesize_speech=AsyncMock(return_value=_audio_response(b"MP3DATA"))
     )
 
-    entry1, cached1 = await synthesize_speech(
-        "hello", language_code="en-US", client=fake_client
-    )
-    entry2, cached2 = await synthesize_speech(
-        "hello", language_code="en-US", client=fake_client
-    )
+    entry1, cached1 = await synthesize_speech("hello", language_code="en-US", client=fake_client)
+    entry2, cached2 = await synthesize_speech("hello", language_code="en-US", client=fake_client)
 
     assert cached1 is False
     assert cached2 is True
@@ -116,9 +110,7 @@ async def test_synthesize_speech_rejects_empty_text() -> None:
 @pytest.mark.asyncio
 async def test_synthesize_speech_raises_when_no_audio() -> None:
     audio_cache.clear()
-    fake_client = SimpleNamespace(
-        synthesize_speech=AsyncMock(return_value=_audio_response(b""))
-    )
+    fake_client = SimpleNamespace(synthesize_speech=AsyncMock(return_value=_audio_response(b"")))
     with pytest.raises(ValidationError):
         await synthesize_speech("hello world", client=fake_client)
 

@@ -50,12 +50,16 @@ async def test_stream_message_persists_concatenated_text(monkeypatch, db_session
         pass
 
     rows = (
-        await db_session.execute(
-            select(THChatMessage)
-            .where(THChatMessage.chat_id == chat.id)
-            .order_by(THChatMessage.created_at.asc())
+        (
+            await db_session.execute(
+                select(THChatMessage)
+                .where(THChatMessage.chat_id == chat.id)
+                .order_by(THChatMessage.created_at.asc())
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     assert [r.role for r in rows] == [ChatMessageRole.USER, ChatMessageRole.ASSISTANT]
     assert rows[0].content == "hi"
     assert rows[1].content == "ABC"

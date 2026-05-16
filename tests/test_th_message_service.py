@@ -47,12 +47,16 @@ async def test_send_message_persists_both_turns(monkeypatch, db_session) -> None
     assert assistant_msg.agent_id == AgentId.STORYTELLER
 
     rows = (
-        await db_session.execute(
-            select(THChatMessage)
-            .where(THChatMessage.chat_id == chat.id)
-            .order_by(THChatMessage.created_at.asc())
+        (
+            await db_session.execute(
+                select(THChatMessage)
+                .where(THChatMessage.chat_id == chat.id)
+                .order_by(THChatMessage.created_at.asc())
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     assert [r.role for r in rows] == [ChatMessageRole.USER, ChatMessageRole.ASSISTANT]
     assert rows[0].content == "Tell me about Ruth"
     assert rows[1].content == "ASSISTANT REPLY"
@@ -144,9 +148,7 @@ async def test_send_message_does_not_persist_user_msg_when_gemini_fails(
     monkeypatch.setattr(_SEND_MOD, "_generate_assistant_text", boom)
 
     pending_before = {
-        (m.chat_id, m.role, m.content)
-        for m in db_session.new
-        if isinstance(m, THChatMessage)
+        (m.chat_id, m.role, m.content) for m in db_session.new if isinstance(m, THChatMessage)
     }
     assert pending_before == set()
 
@@ -166,9 +168,7 @@ async def test_send_message_uses_agent_override(monkeypatch, db_session) -> None
     await make_th_agent_prompt(db_session, agent_id="oral", prompt="ORAL PROMPT")
 
     calls = _patch_genai(monkeypatch, assistant_text="oral reply")
-    msg = await send_message(
-        db_session, chat.id, user.id, "speak it", agent_id=AgentId.ORAL
-    )
+    msg = await send_message(db_session, chat.id, user.id, "speak it", agent_id=AgentId.ORAL)
 
     assert msg.agent_id == AgentId.ORAL
     assert calls["assistant"][0]["system_prompt"] == "ORAL PROMPT"

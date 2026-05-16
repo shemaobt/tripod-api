@@ -30,9 +30,7 @@ async def test_create_chat_default(db_session) -> None:
 @pytest.mark.asyncio
 async def test_create_chat_custom_agent_and_title(db_session) -> None:
     user = await make_user(db_session, email="th_b@test.com")
-    chat = await create_chat(
-        db_session, user.id, agent_id=AgentId.BACKTRANS, title="Romans 8"
-    )
+    chat = await create_chat(db_session, user.id, agent_id=AgentId.BACKTRANS, title="Romans 8")
     assert chat.agent_id == AgentId.BACKTRANS
     assert chat.title == "Romans 8"
 
@@ -79,9 +77,7 @@ async def test_get_chat_or_404_raises_when_other_user(db_session) -> None:
 async def test_update_chat_title_and_agent(db_session) -> None:
     user = await make_user(db_session, email="th_d@test.com")
     chat = await make_th_chat(db_session, user.id, title="old")
-    updated = await update_chat(
-        db_session, chat.id, user.id, title="new", agent_id=AgentId.ORAL
-    )
+    updated = await update_chat(db_session, chat.id, user.id, title="new", agent_id=AgentId.ORAL)
     assert updated.title == "new"
     assert updated.agent_id == AgentId.ORAL
 
@@ -91,9 +87,7 @@ async def test_delete_chat_cascades_messages(db_session) -> None:
     user = await make_user(db_session, email="th_e@test.com")
     chat = await make_th_chat(db_session, user.id)
     await make_th_message(db_session, chat.id, content="m1")
-    await make_th_message(
-        db_session, chat.id, role=ChatMessageRole.ASSISTANT, content="m2"
-    )
+    await make_th_message(db_session, chat.id, role=ChatMessageRole.ASSISTANT, content="m2")
 
     await delete_chat(db_session, chat.id, user.id)
 
@@ -102,9 +96,7 @@ async def test_delete_chat_cascades_messages(db_session) -> None:
     ).scalar_one_or_none()
     assert remaining_chats is None
     remaining_msgs = (
-        await db_session.execute(
-            select(THChatMessage).where(THChatMessage.chat_id == chat.id)
-        )
+        await db_session.execute(select(THChatMessage).where(THChatMessage.chat_id == chat.id))
     ).all()
     assert remaining_msgs == []
 

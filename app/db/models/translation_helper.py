@@ -45,9 +45,7 @@ class THChatMessage(Base):
     __table_args__ = (Index("ix_th_chat_messages_chat_created", "chat_id", "created_at"),)
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    chat_id: Mapped[str] = mapped_column(
-        ForeignKey("th_chats.id", ondelete="CASCADE"), index=True
-    )
+    chat_id: Mapped[str] = mapped_column(ForeignKey("th_chats.id", ondelete="CASCADE"), index=True)
     role: Mapped[ChatMessageRole] = mapped_column(_CHAT_MESSAGE_ROLE_TYPE)
     content: Mapped[str] = mapped_column(Text)
     agent_id: Mapped[AgentId | None] = mapped_column(_AGENT_ID_TYPE, nullable=True)

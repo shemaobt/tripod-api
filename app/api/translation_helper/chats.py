@@ -45,9 +45,7 @@ async def create_chat(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ChatListResponse:
-    chat = await th_service.create_chat(
-        db, user.id, agent_id=payload.agent_id, title=payload.title
-    )
+    chat = await th_service.create_chat(db, user.id, agent_id=payload.agent_id, title=payload.title)
     return ChatListResponse.model_validate(chat)
 
 

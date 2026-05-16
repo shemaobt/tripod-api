@@ -89,9 +89,7 @@ async def test_update_agent_prompt_no_bump_when_only_metadata(db_session) -> Non
 async def test_reset_agent_prompt_restores_default_and_bumps_version(db_session) -> None:
     await seed_agent_prompts(db_session)
     admin = await make_user(db_session, email="th_admin3@test.com", is_platform_admin=True)
-    await update_agent_prompt(
-        db_session, AgentId.STORYTELLER, updated_by=admin.id, prompt="custom"
-    )
+    await update_agent_prompt(db_session, AgentId.STORYTELLER, updated_by=admin.id, prompt="custom")
 
     reset = await reset_agent_prompt_to_default(
         db_session, AgentId.STORYTELLER, updated_by=admin.id
@@ -154,9 +152,7 @@ async def test_seed_agent_prompts_recovers_from_savepoint_conflict(db_session) -
     # Storyteller conflicts; the other 4 succeed.
     assert inserted == 4
 
-    final_rows = (
-        await db_session.execute(select(THAgentPrompt.agent_id))
-    ).scalars().all()
+    final_rows = (await db_session.execute(select(THAgentPrompt.agent_id))).scalars().all()
     assert sorted(final_rows) == sorted(str(a) for a in AgentId)
 
 
