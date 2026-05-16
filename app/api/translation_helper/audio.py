@@ -1,6 +1,6 @@
 import base64
 
-from fastapi import APIRouter, Depends, File, Form, Response, UploadFile
+from fastapi import APIRouter, File, Form, Response, UploadFile
 
 from app.api.translation_helper._deps import th_access
 from app.core.exceptions import ValidationError

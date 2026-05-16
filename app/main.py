@@ -67,7 +67,10 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
             print(f"[STARTUP] Seeded {seeded} Bible books.", flush=True)
         seeded_prompts = await seed_agent_prompts(db)
         if seeded_prompts:
-            print(f"[STARTUP] Seeded {seeded_prompts} translation-helper agent prompts.", flush=True)
+            print(
+                f"[STARTUP] Seeded {seeded_prompts} translation-helper agent prompts.",
+                flush=True,
+            )
     await init_qdrant()
     threading.Thread(target=_load_bhsa_background, daemon=True).start()
     try:

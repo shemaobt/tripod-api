@@ -58,8 +58,12 @@ async def test_transcribe_audio_warns_on_missing_mime(monkeypatch, caplog) -> No
     """B-4: when neither filename, mime, nor a sniffable magic byte is available,
     we should log a warning so the operator can debug a confused Gemini call."""
     _patch_genai_client(monkeypatch, "ok")
-    caplog.set_level(logging.WARNING, logger="app.services.translation_helper.transcribe_audio")
-    await transcribe_audio(b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b", settings=_settings())
+    caplog.set_level(
+        logging.WARNING, logger="app.services.translation_helper.transcribe_audio"
+    )
+    await transcribe_audio(
+        b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b", settings=_settings()
+    )
     assert any("mime-type fallback" in r.message for r in caplog.records)
 
 

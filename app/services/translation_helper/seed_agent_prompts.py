@@ -16,7 +16,7 @@ async def seed_agent_prompts(db: AsyncSession) -> int:
     """
     existing_stmt = select(THAgentPrompt.agent_id)
     result = await db.execute(existing_stmt)
-    existing_ids = {row for row in result.scalars().all()}
+    existing_ids = set(result.scalars().all())
 
     inserted = 0
     for agent_id in AgentId:

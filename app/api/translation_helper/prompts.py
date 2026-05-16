@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.translation_helper._deps import th_access
-from app.core.auth_middleware import get_current_user, require_platform_admin
+from app.core.auth_middleware import require_platform_admin
 from app.core.database import get_db
 from app.db.models.auth import User
 from app.db.models.translation_helper import AgentId

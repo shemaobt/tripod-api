@@ -1,6 +1,15 @@
+from typing import TypedDict
+
 from app.db.models.translation_helper import AgentId
 
-AGENT_CATALOG: dict[AgentId, dict[str, object]] = {
+
+class AgentCatalogEntry(TypedDict):
+    icon: str
+    short: str
+    starters: list[str]
+
+
+AGENT_CATALOG: dict[AgentId, AgentCatalogEntry] = {
     AgentId.STORYTELLER: {
         "icon": "book-open",
         "short": "A story to illuminate the concept",
@@ -23,7 +32,7 @@ AGENT_CATALOG: dict[AgentId, dict[str, object]] = {
         "icon": "mic-vocal",
         "short": "Say it in clear, natural oral language",
         "starters": [
-            "Say Matthew 5:1–12 in clear spoken language",
+            "Say Matthew 5:1-12 in clear spoken language",
             "Read John 3:16 the way an elder would say it",
             "Speak Psalm 23 as comfort",
         ],
@@ -49,5 +58,5 @@ AGENT_CATALOG: dict[AgentId, dict[str, object]] = {
 }
 
 
-def get_catalog_entry(agent_id: AgentId) -> dict[str, object]:
+def get_catalog_entry(agent_id: AgentId) -> AgentCatalogEntry:
     return AGENT_CATALOG[agent_id]

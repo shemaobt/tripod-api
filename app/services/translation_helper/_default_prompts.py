@@ -1,3 +1,7 @@
+# ruff: noqa: E501, RUF001 — prompts are verbatim data; line
+# length and "ambiguous" unicode characters (en dashes, smart quotes, ellipses)
+# are intentional typography from the original source.
+
 from app.db.models.translation_helper import AgentId
 
 LANGUAGE_INSTRUCTION = """

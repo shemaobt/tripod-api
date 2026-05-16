@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models.translation_helper import THChat, THChatMessage
 
 
-async def list_chats_for_user(db: AsyncSession, user_id: str) -> list[dict]:
+async def list_chats_for_user(db: AsyncSession, user_id: str) -> list[dict[str, object]]:
     last_msg_sq = (
         select(
             THChatMessage.chat_id.label("chat_id"),
@@ -28,4 +28,4 @@ async def list_chats_for_user(db: AsyncSession, user_id: str) -> list[dict]:
         .order_by(desc(func.coalesce(last_msg_sq.c.last_message_at, THChat.created_at)))
     )
     result = await db.execute(stmt)
-    return list(result.mappings().all())
+    return [dict(r) for r in result.mappings().all()]

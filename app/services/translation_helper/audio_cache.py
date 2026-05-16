@@ -26,7 +26,7 @@ class AudioCache:
 
     @staticmethod
     def make_key(text: str, language_code: str, voice_name: str | None) -> str:
-        raw = f"{language_code}|{voice_name or ''}|{text}".encode("utf-8")
+        raw = f"{language_code}|{voice_name or ''}|{text}".encode()
         return hashlib.sha256(raw).hexdigest()
 
     @staticmethod

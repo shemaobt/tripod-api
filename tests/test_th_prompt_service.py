@@ -112,9 +112,10 @@ async def test_seed_agent_prompts_recovers_from_savepoint_conflict(db_session) -
     IntegrityError on that row must NOT poison the final commit. SQLAlchemy's
     savepoint rollback detaches the row automatically; we verify the seed
     function reaches its final commit successfully and inserts the rest."""
+    from sqlalchemy.exc import IntegrityError
+
     from app.db.models.translation_helper import THAgentPrompt
     from app.services.translation_helper._default_prompts import DEFAULT_PROMPTS
-    from sqlalchemy.exc import IntegrityError
 
     # Pre-seed the storyteller row directly, but don't commit yet — leaves it
     # invisible to the seed's "existing_ids" probe (which reads committed state).

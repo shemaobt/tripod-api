@@ -11,7 +11,6 @@ from app.core.exceptions import ValidationError
 from app.db.models.translation_helper import (
     AgentId,
     ChatMessageRole,
-    THChat,
     THChatMessage,
 )
 from app.services.translation_helper.get_agent_prompt import get_system_prompt_text

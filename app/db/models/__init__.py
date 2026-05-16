@@ -43,12 +43,14 @@ from app.db.models.translation_helper import (
 
 __all__ = [
     "AccessRequest",
+    "AgentId",
     "App",
     "BCDApproval",
     "BCDGenerationLog",
     "BCDSectionFeedback",
     "BibleBook",
     "BookContextDocument",
+    "ChatMessageRole",
     "Language",
     "MeaningMap",
     "MeaningMapFeedback",

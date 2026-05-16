@@ -132,7 +132,7 @@ async def send_chat_message(
 
 
 def _sse(event: str, data: dict) -> bytes:
-    return f"event: {event}\ndata: {json.dumps(data)}\n\n".encode("utf-8")
+    return f"event: {event}\ndata: {json.dumps(data)}\n\n".encode()
 
 
 @router.post(

@@ -15,10 +15,10 @@ router = APIRouter()
 @router.get("/agents", response_model=list[AgentInfoResponse], dependencies=[th_access])
 async def list_agents(db: AsyncSession = Depends(get_db)) -> list[AgentInfoResponse]:
     rows = await th_service.list_agent_prompts(db)
-    by_id = {row.agent_id: row for row in rows}
+    by_id = {AgentId(row.agent_id): row for row in rows}
     result: list[AgentInfoResponse] = []
     for agent_id, catalog in AGENT_CATALOG.items():
-        db_row = by_id.get(str(agent_id))
+        db_row = by_id.get(agent_id)
         if db_row is not None:
             name = db_row.name
             description = db_row.description
@@ -30,12 +30,12 @@ async def list_agents(db: AsyncSession = Depends(get_db)) -> list[AgentInfoRespo
             prompt_version = None
         result.append(
             AgentInfoResponse(
-                id=AgentId(str(agent_id)),
+                id=agent_id,
                 name=name,
                 description=description,
-                short=str(catalog["short"]),
-                icon=str(catalog["icon"]),
-                starters=list(catalog["starters"]),  # type: ignore[arg-type]
+                short=catalog["short"],
+                icon=catalog["icon"],
+                starters=list(catalog["starters"]),
                 prompt_version=prompt_version,
             )
         )
