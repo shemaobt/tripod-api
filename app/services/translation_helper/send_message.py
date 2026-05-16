@@ -56,6 +56,15 @@ async def _generate_assistant_text(
     return response.text
 
 
+def _fallback_title(user_message: str) -> str:
+    """Best-effort title from the user's own first message when Gemini can't help."""
+    cleaned = " ".join(user_message.split())  # collapse whitespace
+    truncated = cleaned[:50].strip()
+    if len(cleaned) > 50:
+        truncated = f"{truncated.rstrip()}…"
+    return truncated or "New chat"
+
+
 async def _generate_title(user_message: str, settings: Settings) -> str:
     client = genai.Client(api_key=settings.google_api_key)
     response = await client.aio.models.generate_content(
@@ -65,7 +74,7 @@ async def _generate_title(user_message: str, settings: Settings) -> str:
     title = (response.text or "").strip().strip('"').strip("'")
     if len(title) > 100:
         title = title[:100]
-    return title or "New chat"
+    return title or _fallback_title(user_message)
 
 
 async def send_message(
@@ -113,6 +122,7 @@ async def send_message(
             chat.title = await _generate_title(content, settings)
         except Exception as e:
             logger.warning("Auto-title failed for chat %s: %s", chat.id, e)
+            chat.title = _fallback_title(content)
 
     await db.commit()
     await db.refresh(assistant_msg)

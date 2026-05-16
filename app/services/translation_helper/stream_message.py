@@ -19,6 +19,7 @@ from app.services.translation_helper.list_messages import list_messages
 from app.services.translation_helper.send_message import (
     CHAT_MODEL,
     _build_contents,
+    _fallback_title,
     _generate_title,
 )
 
@@ -92,5 +93,6 @@ async def stream_message(
             chat.title = await _generate_title(content, settings)
         except Exception as e:
             logger.warning("Auto-title failed for chat %s: %s", chat.id, e)
+            chat.title = _fallback_title(content)
 
     await db.commit()
