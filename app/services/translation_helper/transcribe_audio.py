@@ -17,6 +17,29 @@ TRANSCRIBE_INSTRUCTION = (
 )
 
 
+def _sniff_mime_from_bytes(audio_bytes: bytes) -> str | None:
+    """Best-effort MIME detection from the first few bytes of common audio formats."""
+    if len(audio_bytes) < 12:
+        return None
+    head = audio_bytes[:12]
+    # RIFF....WAVE
+    if head[0:4] == b"RIFF" and head[8:12] == b"WAVE":
+        return "audio/wav"
+    # OggS (Ogg/Opus container)
+    if head[0:4] == b"OggS":
+        return "audio/ogg"
+    # ID3-tagged MP3
+    if head[0:3] == b"ID3":
+        return "audio/mp3"
+    # MPEG frame sync (raw MP3, no ID3 header)
+    if head[0] == 0xFF and (head[1] & 0xE0) == 0xE0:
+        return "audio/mp3"
+    # EBML — WebM/Matroska
+    if head[0:4] == b"\x1a\x45\xdf\xa3":
+        return "audio/webm"
+    return None
+
+
 def _guess_mime_type(filename: str | None, fallback: str | None) -> str:
     if filename:
         lower = filename.lower()
@@ -46,6 +69,16 @@ async def transcribe_audio(
         raise ValidationError("Audio payload is empty")
     settings = settings or get_settings()
     resolved_mime = _guess_mime_type(filename, mime_type)
+    if resolved_mime == "audio/mpeg" and not filename and not mime_type:
+        sniffed = _sniff_mime_from_bytes(audio_bytes)
+        if sniffed is not None:
+            resolved_mime = sniffed
+        else:
+            logger.warning(
+                "Audio mime-type fallback hit for transcription: filename=%r mime=%r",
+                filename,
+                mime_type,
+            )
 
     client = genai.Client(api_key=settings.google_api_key)
     response = await client.aio.models.generate_content(
