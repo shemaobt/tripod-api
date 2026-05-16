@@ -52,7 +52,13 @@ async def db_session(test_engine) -> AsyncGenerator[AsyncSession, None]:
             name="Meaning Map Generator",
             is_active=True,
         )
+        th_app = App(
+            app_key="translation-helper",
+            name="Translation Helper",
+            is_active=True,
+        )
         session.add(mm_app)
+        session.add(th_app)
         await session.commit()
 
         yield session

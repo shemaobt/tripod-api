@@ -23,6 +23,13 @@ from app.db.models.project import (
     ProjectOrganizationAccess,
     ProjectUserAccess,
 )
+from app.db.models.translation_helper import (
+    AgentId,
+    ChatMessageRole,
+    THAgentPrompt,
+    THChat,
+    THChatMessage,
+)
 from app.services.auth.hash_password import hash_password
 
 SAMPLE_MM_DATA: dict = {
@@ -521,6 +528,83 @@ async def make_bcd_feedback(
     await db.commit()
     await db.refresh(fb)
     return fb
+
+
+async def make_th_chat(
+    db: AsyncSession,
+    user_id: str,
+    *,
+    agent_id: AgentId = AgentId.STORYTELLER,
+    title: str | None = None,
+) -> THChat:
+    chat = THChat(user_id=user_id, agent_id=agent_id, title=title)
+    db.add(chat)
+    await db.commit()
+    await db.refresh(chat)
+    return chat
+
+
+async def make_th_message(
+    db: AsyncSession,
+    chat_id: str,
+    *,
+    role: ChatMessageRole = ChatMessageRole.USER,
+    content: str = "hello",
+    agent_id: AgentId | None = None,
+) -> THChatMessage:
+    msg = THChatMessage(
+        chat_id=chat_id,
+        role=role,
+        content=content,
+        agent_id=agent_id,
+    )
+    db.add(msg)
+    await db.commit()
+    await db.refresh(msg)
+    return msg
+
+
+async def make_th_agent_prompt(
+    db: AsyncSession,
+    *,
+    agent_id: str = "storyteller",
+    name: str = "Storyteller",
+    description: str = "desc",
+    prompt: str = "you are a storyteller",
+    version: int = 1,
+    updated_by: str | None = None,
+) -> THAgentPrompt:
+    row = THAgentPrompt(
+        agent_id=agent_id,
+        name=name,
+        description=description,
+        prompt=prompt,
+        version=version,
+        updated_by=updated_by,
+    )
+    db.add(row)
+    await db.commit()
+    await db.refresh(row)
+    return row
+
+
+async def grant_app_role(
+    db: AsyncSession,
+    user: User,
+    app: App,
+    *,
+    role_key: str = "user",
+    label: str | None = None,
+) -> UserAppRole:
+    """Convenience: ensure a role with `role_key` exists for `app` and assign it to `user`."""
+    role = await make_role(
+        db,
+        app.id,
+        role_key=role_key,
+        label=label or role_key.title(),
+        is_system=True,
+    )
+    return await make_user_app_role(db, user.id, app.id, role.id)
 
 
 async def make_bcd_generation_log(
