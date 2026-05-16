@@ -10,6 +10,7 @@ from app.services import (
     phase,
     project,
     rag,
+    translation_helper,
     user,
 )
 
@@ -24,6 +25,7 @@ organization_service = org
 phase_service = phase
 project_service = project
 rag_service = rag
+translation_helper_service = translation_helper
 user_service = user
 
 __all__ = [
@@ -49,6 +51,8 @@ __all__ = [
     "project_service",
     "rag",
     "rag_service",
+    "translation_helper",
+    "translation_helper_service",
     "user",
     "user_service",
 ]
