@@ -113,7 +113,19 @@ def upgrade() -> None:
     op.create_table(
         "th_agent_prompts",
         sa.Column("id", sa.String(length=36), nullable=False),
-        sa.Column("agent_id", sa.String(length=40), nullable=False),
+        sa.Column(
+            "agent_id",
+            sa.Enum(
+                "storyteller",
+                "conversation",
+                "oral",
+                "health",
+                "backtrans",
+                name="th_agent_id_enum",
+                create_type=False,
+            ),
+            nullable=False,
+        ),
         sa.Column("name", sa.String(length=120), nullable=False),
         sa.Column("description", sa.Text(), nullable=False),
         sa.Column("prompt", sa.Text(), nullable=False),

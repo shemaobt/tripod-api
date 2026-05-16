@@ -50,7 +50,7 @@ class ChatResponse(ChatListResponse):
 
 class AgentPromptResponse(BaseModel):
     id: str
-    agent_id: str
+    agent_id: AgentId
     name: str
     description: str
     prompt: str

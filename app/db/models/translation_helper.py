@@ -60,7 +60,7 @@ class THAgentPrompt(Base):
     __tablename__ = "th_agent_prompts"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    agent_id: Mapped[str] = mapped_column(String(40), unique=True, index=True)
+    agent_id: Mapped[AgentId] = mapped_column(_AGENT_ID_TYPE, unique=True, index=True)
     name: Mapped[str] = mapped_column(String(120))
     description: Mapped[str] = mapped_column(Text)
     prompt: Mapped[str] = mapped_column(Text)
