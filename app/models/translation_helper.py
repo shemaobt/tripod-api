@@ -16,7 +16,7 @@ class ChatUpdate(BaseModel):
 
 
 class ChatMessageCreate(BaseModel):
-    content: str = Field(min_length=1)
+    content: str = Field(min_length=1, max_length=20000)
     agent_id: AgentId | None = None
 
 
