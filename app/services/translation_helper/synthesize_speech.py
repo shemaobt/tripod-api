@@ -31,8 +31,14 @@ VOICE_MAP: dict[str, dict[str, str]] = {
 }
 
 
+_client_singleton: texttospeech.TextToSpeechAsyncClient | None = None
+
+
 def _make_client() -> texttospeech.TextToSpeechAsyncClient:
-    return texttospeech.TextToSpeechAsyncClient()
+    global _client_singleton
+    if _client_singleton is None:
+        _client_singleton = texttospeech.TextToSpeechAsyncClient()
+    return _client_singleton
 
 
 def _resolve_voice(language_code: str, voice_name: str | None) -> dict[str, str]:
