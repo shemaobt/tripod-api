@@ -35,6 +35,8 @@ async def seed_agent_prompts(db: AsyncSession) -> int:
                 db.add(row)
             inserted += 1
         except IntegrityError:
+            # Savepoint rollback already detaches `row` from the session,
+            # so no expunge is needed here.
             continue
 
     if inserted:

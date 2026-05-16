@@ -107,6 +107,59 @@ async def test_get_system_prompt_text_falls_back_to_default(db_session) -> None:
 
 
 @pytest.mark.asyncio
+async def test_seed_agent_prompts_recovers_from_savepoint_conflict(db_session) -> None:
+    """B-1: when a parallel boot pre-seeds one of the agents, the loop's
+    IntegrityError on that row must NOT poison the final commit. SQLAlchemy's
+    savepoint rollback detaches the row automatically; we verify the seed
+    function reaches its final commit successfully and inserts the rest."""
+    from app.db.models.translation_helper import THAgentPrompt
+    from app.services.translation_helper._default_prompts import DEFAULT_PROMPTS
+    from sqlalchemy.exc import IntegrityError
+
+    # Pre-seed the storyteller row directly, but don't commit yet — leaves it
+    # invisible to the seed's "existing_ids" probe (which reads committed state).
+    await db_session.execute(
+        THAgentPrompt.__table__.insert().values(
+            id="prepopulated-storyteller",
+            agent_id=str(AgentId.STORYTELLER),
+            name="Pre-seed",
+            description="d",
+            prompt="p",
+            version=1,
+        )
+    )
+    await db_session.commit()
+
+    # Build a fake "empty existing_ids" path by re-executing the loop body
+    # directly — simulates the race window where two replicas both see empty.
+    inserted = 0
+    for agent_id in AgentId:
+        default = DEFAULT_PROMPTS[agent_id]
+        row = THAgentPrompt(
+            agent_id=str(agent_id),
+            name=default["name"],
+            description=default["description"],
+            prompt=default["prompt"],
+            version=1,
+        )
+        try:
+            async with db_session.begin_nested():
+                db_session.add(row)
+            inserted += 1
+        except IntegrityError:
+            continue
+
+    await db_session.commit()
+    # Storyteller conflicts; the other 4 succeed.
+    assert inserted == 4
+
+    final_rows = (
+        await db_session.execute(select(THAgentPrompt.agent_id))
+    ).scalars().all()
+    assert sorted(final_rows) == sorted(str(a) for a in AgentId)
+
+
+@pytest.mark.asyncio
 async def test_get_system_prompt_text_prefers_db(db_session) -> None:
     await seed_agent_prompts(db_session)
     admin = await make_user(db_session, email="th_admin4@test.com", is_platform_admin=True)

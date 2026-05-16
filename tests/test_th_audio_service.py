@@ -1,3 +1,4 @@
+import logging
 import sys
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -37,6 +38,29 @@ async def test_transcribe_audio_returns_trimmed_text(monkeypatch) -> None:
     text = await transcribe_audio(b"abc", filename="clip.wav", settings=_settings())
     assert text == "hello world"
     assert mock_call.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_transcribe_audio_sniffs_wav_when_filename_and_mime_missing(
+    monkeypatch,
+) -> None:
+    """B-4: unknown audio + no metadata should sniff the magic bytes, not fall back
+    silently to audio/mpeg."""
+    mock_call = _patch_genai_client(monkeypatch, "hello")
+    wav_header = b"RIFF\x00\x00\x00\x00WAVE" + b"\x00" * 16
+    await transcribe_audio(wav_header, settings=_settings())
+    sent_mime = mock_call.await_args.kwargs["contents"][0].inline_data.mime_type
+    assert sent_mime == "audio/wav"
+
+
+@pytest.mark.asyncio
+async def test_transcribe_audio_warns_on_missing_mime(monkeypatch, caplog) -> None:
+    """B-4: when neither filename, mime, nor a sniffable magic byte is available,
+    we should log a warning so the operator can debug a confused Gemini call."""
+    _patch_genai_client(monkeypatch, "ok")
+    caplog.set_level(logging.WARNING, logger="app.services.translation_helper.transcribe_audio")
+    await transcribe_audio(b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b", settings=_settings())
+    assert any("mime-type fallback" in r.message for r in caplog.records)
 
 
 @pytest.mark.asyncio

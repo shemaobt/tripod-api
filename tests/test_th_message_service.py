@@ -96,6 +96,34 @@ async def test_send_message_raises_for_unknown_chat(monkeypatch, db_session) -> 
 
 
 @pytest.mark.asyncio
+async def test_send_message_falls_back_to_content_when_title_generation_fails(
+    monkeypatch, db_session
+) -> None:
+    """B-3: if _generate_title raises, chat.title should fall back to a truncated
+    version of the user's first message, not stay None forever."""
+    user = await make_user(db_session, email="th_title_fallback@test.com")
+    chat = await make_th_chat(db_session, user.id, title=None)
+    await make_th_agent_prompt(db_session, agent_id="storyteller", prompt="P")
+
+    async def title_boom(user_message, settings):
+        raise RuntimeError("title quota exceeded")
+
+    async def fake_assistant_text(*, system_prompt, contents, settings):
+        return "reply"
+
+    monkeypatch.setattr(_SEND_MOD, "_generate_assistant_text", fake_assistant_text)
+    monkeypatch.setattr(_SEND_MOD, "_generate_title", title_boom)
+
+    user_msg = "Tell me about the Prodigal Son in three sentences"
+    await send_message(db_session, chat.id, user.id, user_msg)
+
+    await db_session.refresh(chat)
+    assert chat.title is not None
+    assert chat.title != "New chat"  # don't fall back to the agent literal
+    assert chat.title.startswith("Tell me about")
+
+
+@pytest.mark.asyncio
 async def test_send_message_does_not_persist_user_msg_when_gemini_fails(
     monkeypatch, db_session
 ) -> None:
