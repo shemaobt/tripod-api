@@ -22,8 +22,16 @@ class ChatMessageRole(enum.StrEnum):
     ASSISTANT = "assistant"
 
 
-_AGENT_ID_TYPE = Enum(AgentId, name="th_agent_id_enum")
-_CHAT_MESSAGE_ROLE_TYPE = Enum(ChatMessageRole, name="th_chat_message_role_enum")
+_AGENT_ID_TYPE = Enum(
+    AgentId,
+    name="th_agent_id_enum",
+    values_callable=lambda enum_cls: [m.value for m in enum_cls],
+)
+_CHAT_MESSAGE_ROLE_TYPE = Enum(
+    ChatMessageRole,
+    name="th_chat_message_role_enum",
+    values_callable=lambda enum_cls: [m.value for m in enum_cls],
+)
 
 
 class THChat(Base):
