@@ -1,4 +1,5 @@
 import json
+import logging
 from collections.abc import AsyncIterator
 
 from fastapi import APIRouter, Depends, Query, status
@@ -18,6 +19,8 @@ from app.models.translation_helper import (
     ChatUpdate,
 )
 from app.services import translation_helper_service as th_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -153,7 +156,8 @@ async def stream_chat_message(
                 ):
                     yield _sse("chunk", {"text": chunk})
                 yield _sse("done", {})
-            except Exception as exc:
-                yield _sse("error", {"message": str(exc)})
+            except Exception:
+                logger.exception("SSE streaming failed for chat %s", chat_id)
+                yield _sse("error", {"message": "Streaming failed. Please try again."})
 
     return StreamingResponse(_generator(), media_type="text/event-stream")
