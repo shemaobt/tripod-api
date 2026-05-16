@@ -33,6 +33,13 @@ from app.db.models.project import (
     ProjectOrganizationAccess,
     ProjectUserAccess,
 )
+from app.db.models.translation_helper import (
+    AgentId,
+    ChatMessageRole,
+    THAgentPrompt,
+    THChat,
+    THChatMessage,
+)
 
 __all__ = [
     "AccessRequest",
@@ -65,6 +72,9 @@ __all__ = [
     "RefreshToken",
     "Role",
     "RolePermission",
+    "THAgentPrompt",
+    "THChat",
+    "THChatMessage",
     "User",
     "UserAppRole",
 ]
