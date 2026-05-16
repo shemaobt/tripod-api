@@ -34,6 +34,7 @@ from app.api.places import router as places_router
 from app.api.projects import router as projects_router
 from app.api.rag import router as rag_router
 from app.api.roles import router as roles_router
+from app.api.translation_helper import router as translation_helper_router
 from app.api.uploads import router as uploads_router
 from app.api.users import router as users_router
 from app.core.config import get_settings
@@ -43,6 +44,7 @@ from app.core.logging import setup_logging
 from app.core.qdrant import close_qdrant, init_qdrant
 from app.services.bhsa import loader
 from app.services.meaning_map.seed_books import seed_books
+from app.services.translation_helper.seed_agent_prompts import seed_agent_prompts
 
 
 def _load_bhsa_background() -> None:
@@ -63,6 +65,9 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         seeded = await seed_books(db)
         if seeded:
             print(f"[STARTUP] Seeded {seeded} Bible books.", flush=True)
+        seeded_prompts = await seed_agent_prompts(db)
+        if seeded_prompts:
+            print(f"[STARTUP] Seeded {seeded_prompts} translation-helper agent prompts.", flush=True)
     await init_qdrant()
     threading.Thread(target=_load_bhsa_background, daemon=True).start()
     try:
@@ -103,6 +108,11 @@ def create_app() -> FastAPI:
     app.include_router(books_router, prefix="/api/books", tags=["books"])
     app.include_router(pericopes_router, prefix="/api/pericopes", tags=["pericopes"])
     app.include_router(meaning_maps_router, prefix="/api/meaning-maps", tags=["meaning-maps"])
+    app.include_router(
+        translation_helper_router,
+        prefix="/api/translation-helper",
+        tags=["translation-helper"],
+    )
     app.include_router(notifications_router, prefix="/api/notifications", tags=["notifications"])
     app.include_router(rag_router, prefix="/api/rag", tags=["rag"])
     app.include_router(bhsa_router, prefix="/api/bhsa", tags=["bhsa"])
