@@ -138,7 +138,6 @@ async def test_synthesize_speech_falls_back_to_default_on_short_text() -> None:
     fake_client = SimpleNamespace(
         synthesize_speech=AsyncMock(return_value=_audio_response(b"OK_MP3"))
     )
-    # "ok" is way below MIN_TEXT_LEN_FOR_DETECT → falls back to en-US default.
     await synthesize_speech("ok then", client=fake_client)
     assert _voice_name_of(fake_client.synthesize_speech.await_args) == "en-US-Studio-O"
 
@@ -149,7 +148,6 @@ async def test_synthesize_speech_explicit_language_overrides_detection() -> None
     fake_client = SimpleNamespace(
         synthesize_speech=AsyncMock(return_value=_audio_response(b"FORCED_MP3"))
     )
-    # Portuguese text BUT explicit en-US override → English Studio voice wins.
     await synthesize_speech(
         "Olá, conte-me uma história sobre o Filho Pródigo.",
         language_code="en-US",

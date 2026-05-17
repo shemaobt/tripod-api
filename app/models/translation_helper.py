@@ -85,8 +85,6 @@ class TranscribeResponse(BaseModel):
 
 class SpeakRequest(BaseModel):
     text: str = Field(min_length=1, max_length=5000)
-    # Omit to let the backend detect the language from `text` content.
-    # Pass a value (e.g. "pt-BR") to force a specific voice.
     language_code: str | None = Field(default=None, max_length=20)
     voice_name: str | None = Field(default=None, max_length=80)
 
