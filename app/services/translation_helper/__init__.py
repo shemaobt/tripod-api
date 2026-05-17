@@ -1,6 +1,7 @@
 from app.services.translation_helper.audio_cache import audio_cache
 from app.services.translation_helper.create_chat import create_chat
 from app.services.translation_helper.delete_chat import delete_chat
+from app.services.translation_helper.detect_language import detect_language_code
 from app.services.translation_helper.get_agent_prompt import (
     get_agent_prompt,
     get_system_prompt_text,
@@ -24,6 +25,7 @@ __all__ = [
     "audio_cache",
     "create_chat",
     "delete_chat",
+    "detect_language_code",
     "get_agent_prompt",
     "get_chat_or_404",
     "get_system_prompt_text",

@@ -10,7 +10,7 @@ MAX_FILE_SIZE = 5 * 1024 * 1024
 
 
 async def upload_image(file: UploadFile, folder: str = "images") -> str:
-    from google.cloud import storage
+    from google.cloud import storage  # type: ignore[attr-defined]
 
     if file.content_type not in ALLOWED_CONTENT_TYPES:
         raise ValueError(f"Unsupported file type: {file.content_type}")
