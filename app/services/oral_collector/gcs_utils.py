@@ -5,7 +5,7 @@ GCS_PUBLIC_BASE = f"https://storage.googleapis.com/{GCS_OC_BUCKET}/"
 
 async def upload_gcs_blob(blob_name: str, data: bytes, content_type: str) -> str:
     """Upload data to GCS and return the public URL."""
-    from google.cloud import storage
+    from google.cloud import storage  # type: ignore[attr-defined]
 
     client = storage.Client(project=GCS_OC_PROJECT)
     bucket = client.bucket(GCS_OC_BUCKET)
@@ -16,7 +16,7 @@ async def upload_gcs_blob(blob_name: str, data: bytes, content_type: str) -> str
 
 async def copy_gcs_blob(source_name: str, dest_name: str) -> None:
     """Copy a blob within the OC bucket."""
-    from google.cloud import storage
+    from google.cloud import storage  # type: ignore[attr-defined]
 
     client = storage.Client(project=GCS_OC_PROJECT)
     bucket = client.bucket(GCS_OC_BUCKET)

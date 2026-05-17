@@ -70,7 +70,7 @@ async def process_upload_fn(ctx: inngest.Context, step: inngest.Step) -> str:
     async def _verify_gcs_blob() -> dict[str, int]:
         import base64
 
-        from google.cloud import storage
+        from google.cloud import storage  # type: ignore[attr-defined]
 
         client = storage.Client(project=GCS_OC_PROJECT)
         bucket = client.bucket(GCS_OC_BUCKET)
