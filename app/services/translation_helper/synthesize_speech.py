@@ -7,18 +7,21 @@ from google.cloud import texttospeech
 
 from app.core.exceptions import ValidationError
 from app.services.translation_helper.audio_cache import CachedAudio, audio_cache
+from app.services.translation_helper.detect_language import detect_language_code
 
 logger = logging.getLogger(__name__)
 
 VOICE_MAP: dict[str, dict[str, str]] = {
-    "en-US": {"language_code": "en-US", "name": "en-US-Neural2-C", "gender": "FEMALE"},
-    "en-GB": {"language_code": "en-GB", "name": "en-GB-Neural2-C", "gender": "FEMALE"},
-    "es-ES": {"language_code": "es-ES", "name": "es-ES-Neural2-C", "gender": "FEMALE"},
-    "es-MX": {"language_code": "es-US", "name": "es-US-Neural2-A", "gender": "FEMALE"},
-    "fr-FR": {"language_code": "fr-FR", "name": "fr-FR-Neural2-C", "gender": "FEMALE"},
+    # Studio-tier voices (best quality, natural prosody) for our core languages.
+    "en-US": {"language_code": "en-US", "name": "en-US-Studio-O", "gender": "FEMALE"},
+    "en-GB": {"language_code": "en-GB", "name": "en-GB-Studio-C", "gender": "FEMALE"},
+    "es-ES": {"language_code": "es-ES", "name": "es-ES-Studio-C", "gender": "FEMALE"},
+    "es-MX": {"language_code": "es-US", "name": "es-US-Studio-B", "gender": "MALE"},
+    "fr-FR": {"language_code": "fr-FR", "name": "fr-FR-Studio-A", "gender": "FEMALE"},
+    "pt-BR": {"language_code": "pt-BR", "name": "pt-BR-Studio-B", "gender": "MALE"},
+    # Neural2 / Wavenet fallbacks where Studio isn't yet generally available.
     "de-DE": {"language_code": "de-DE", "name": "de-DE-Neural2-C", "gender": "FEMALE"},
     "it-IT": {"language_code": "it-IT", "name": "it-IT-Neural2-A", "gender": "FEMALE"},
-    "pt-BR": {"language_code": "pt-BR", "name": "pt-BR-Neural2-C", "gender": "FEMALE"},
     "ja-JP": {"language_code": "ja-JP", "name": "ja-JP-Neural2-B", "gender": "FEMALE"},
     "ko-KR": {"language_code": "ko-KR", "name": "ko-KR-Neural2-B", "gender": "FEMALE"},
     "zh-CN": {"language_code": "cmn-CN", "name": "cmn-CN-Wavenet-A", "gender": "FEMALE"},
@@ -55,13 +58,22 @@ def _resolve_voice(language_code: str, voice_name: str | None) -> dict[str, str]
 async def synthesize_speech(
     text: str,
     *,
-    language_code: str = "en-US",
+    language_code: str | None = None,
     voice_name: str | None = None,
     client: texttospeech.TextToSpeechAsyncClient | None = None,
 ) -> tuple[CachedAudio, bool]:
-    """Return (cached audio entry, cached?) tuple."""
+    """Return (cached audio entry, cached?) tuple.
+
+    When `language_code` is omitted (or None), the language is detected
+    from `text` and the matching Studio voice is picked. Pass an explicit
+    `language_code` to force a specific voice (e.g. when the caller
+    already knows the language).
+    """
     if not text or not text.strip():
         raise ValidationError("text must not be empty")
+
+    if language_code is None:
+        language_code = detect_language_code(text)
 
     cache_key = audio_cache.make_key(text, language_code, voice_name)
     cached = audio_cache.get(cache_key)
