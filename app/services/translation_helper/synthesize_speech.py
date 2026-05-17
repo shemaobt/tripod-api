@@ -17,7 +17,7 @@ VOICE_MAP: dict[str, dict[str, str]] = {
     "es-ES": {"language_code": "es-ES", "name": "es-ES-Studio-C", "gender": "FEMALE"},
     "es-MX": {"language_code": "es-US", "name": "es-US-Studio-B", "gender": "MALE"},
     "fr-FR": {"language_code": "fr-FR", "name": "fr-FR-Studio-A", "gender": "FEMALE"},
-    "pt-BR": {"language_code": "pt-BR", "name": "pt-BR-Studio-B", "gender": "MALE"},
+    "pt-BR": {"language_code": "pt-BR", "name": "pt-BR-Chirp3-HD-Achird", "gender": "MALE"},
     "de-DE": {"language_code": "de-DE", "name": "de-DE-Neural2-C", "gender": "FEMALE"},
     "it-IT": {"language_code": "it-IT", "name": "it-IT-Neural2-A", "gender": "FEMALE"},
     "ja-JP": {"language_code": "ja-JP", "name": "ja-JP-Neural2-B", "gender": "FEMALE"},
