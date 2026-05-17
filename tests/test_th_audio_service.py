@@ -100,6 +100,64 @@ async def test_synthesize_speech_caches_on_repeat_calls() -> None:
     assert fake_client.synthesize_speech.await_count == 1
 
 
+def _voice_name_of(call) -> str:
+    """Pull the VoiceSelectionParams.name out of a mocked synthesize_speech call."""
+    request = call.kwargs.get("request")
+    return request.voice.name
+
+
+@pytest.mark.asyncio
+async def test_synthesize_speech_detects_portuguese_and_picks_studio() -> None:
+    audio_cache.clear()
+    fake_client = SimpleNamespace(
+        synthesize_speech=AsyncMock(return_value=_audio_response(b"PT_MP3"))
+    )
+    await synthesize_speech(
+        "Olá, conte-me uma história sobre o Filho Pródigo, por favor.",
+        client=fake_client,
+    )
+    assert _voice_name_of(fake_client.synthesize_speech.await_args) == "pt-BR-Studio-B"
+
+
+@pytest.mark.asyncio
+async def test_synthesize_speech_detects_spanish_and_picks_studio() -> None:
+    audio_cache.clear()
+    fake_client = SimpleNamespace(
+        synthesize_speech=AsyncMock(return_value=_audio_response(b"ES_MP3"))
+    )
+    await synthesize_speech(
+        "Hola, cuéntame una historia sobre la oveja perdida, por favor.",
+        client=fake_client,
+    )
+    assert _voice_name_of(fake_client.synthesize_speech.await_args) == "es-ES-Studio-C"
+
+
+@pytest.mark.asyncio
+async def test_synthesize_speech_falls_back_to_default_on_short_text() -> None:
+    audio_cache.clear()
+    fake_client = SimpleNamespace(
+        synthesize_speech=AsyncMock(return_value=_audio_response(b"OK_MP3"))
+    )
+    # "ok" is way below MIN_TEXT_LEN_FOR_DETECT → falls back to en-US default.
+    await synthesize_speech("ok then", client=fake_client)
+    assert _voice_name_of(fake_client.synthesize_speech.await_args) == "en-US-Studio-O"
+
+
+@pytest.mark.asyncio
+async def test_synthesize_speech_explicit_language_overrides_detection() -> None:
+    audio_cache.clear()
+    fake_client = SimpleNamespace(
+        synthesize_speech=AsyncMock(return_value=_audio_response(b"FORCED_MP3"))
+    )
+    # Portuguese text BUT explicit en-US override → English Studio voice wins.
+    await synthesize_speech(
+        "Olá, conte-me uma história sobre o Filho Pródigo.",
+        language_code="en-US",
+        client=fake_client,
+    )
+    assert _voice_name_of(fake_client.synthesize_speech.await_args) == "en-US-Studio-O"
+
+
 @pytest.mark.asyncio
 async def test_synthesize_speech_rejects_empty_text() -> None:
     fake_client = SimpleNamespace(synthesize_speech=AsyncMock())
