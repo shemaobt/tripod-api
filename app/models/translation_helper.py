@@ -77,7 +77,6 @@ class AgentInfoResponse(BaseModel):
 
 class TranscribeResponse(BaseModel):
     text: str
-    duration_sec: float | None = None
 
 
 class SpeakRequest(BaseModel):
