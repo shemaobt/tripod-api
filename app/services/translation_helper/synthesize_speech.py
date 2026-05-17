@@ -17,7 +17,7 @@ VOICE_MAP: dict[str, dict[str, str]] = {
     "es-ES": {"language_code": "es-ES", "name": "es-ES-Studio-C", "gender": "FEMALE"},
     "es-MX": {"language_code": "es-US", "name": "es-US-Studio-B", "gender": "MALE"},
     "fr-FR": {"language_code": "fr-FR", "name": "fr-FR-Studio-A", "gender": "FEMALE"},
-    "pt-BR": {"language_code": "pt-BR", "name": "pt-BR-Chirp3-HD-Achird", "gender": "MALE"},
+    "pt-BR": {"language_code": "pt-BR", "name": "pt-BR-Neural2-C", "gender": "FEMALE"},
     "de-DE": {"language_code": "de-DE", "name": "de-DE-Neural2-C", "gender": "FEMALE"},
     "it-IT": {"language_code": "it-IT", "name": "it-IT-Neural2-A", "gender": "FEMALE"},
     "ja-JP": {"language_code": "ja-JP", "name": "ja-JP-Neural2-B", "gender": "FEMALE"},
@@ -87,6 +87,7 @@ async def synthesize_speech(
         ),
         audio_config=texttospeech.AudioConfig(
             audio_encoding=texttospeech.AudioEncoding.MP3,
+            sample_rate_hertz=24000,
             speaking_rate=1.0,
             pitch=0.0,
         ),
