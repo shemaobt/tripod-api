@@ -107,7 +107,7 @@ def _voice_name_of(call) -> str:
 
 
 @pytest.mark.asyncio
-async def test_synthesize_speech_detects_portuguese_and_picks_chirp3_hd() -> None:
+async def test_synthesize_speech_detects_portuguese_and_picks_neural2() -> None:
     audio_cache.clear()
     fake_client = SimpleNamespace(
         synthesize_speech=AsyncMock(return_value=_audio_response(b"PT_MP3"))
@@ -116,7 +116,7 @@ async def test_synthesize_speech_detects_portuguese_and_picks_chirp3_hd() -> Non
         "Olá, conte-me uma história sobre o Filho Pródigo, por favor.",
         client=fake_client,
     )
-    assert _voice_name_of(fake_client.synthesize_speech.await_args) == "pt-BR-Chirp3-HD-Achird"
+    assert _voice_name_of(fake_client.synthesize_speech.await_args) == "pt-BR-Neural2-C"
 
 
 @pytest.mark.asyncio
