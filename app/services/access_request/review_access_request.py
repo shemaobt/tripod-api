@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError, RoleError
 from app.db.models.auth import AccessRequest, App, User
+from app.services.access_request._default_roles import default_role_for
 from app.services.authorization.assign_role import assign_role
 
 
@@ -38,7 +39,7 @@ async def review_access_request(
         app_result = await db.execute(app_stmt)
         app = app_result.scalar_one()
 
-        await assign_role(db, actor, request.user_id, app.app_key, "analyst")
+        await assign_role(db, actor, request.user_id, app.app_key, default_role_for(app.app_key))
     else:
         await db.commit()
         await db.refresh(request)
