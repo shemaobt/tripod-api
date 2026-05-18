@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     elevenlabs_stt_model: str = "scribe_v2"
     elevenlabs_output_format: str = "mp3_44100_128"
 
+    ph_elevenlabs_api_key: str = ""
+
     gcs_bucket_name: str = ""
     bhsa_data_path: str = ""
 
