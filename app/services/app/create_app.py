@@ -16,6 +16,7 @@ async def create_app(
     android_url: str | None = None,
     platform: str = "web",
     is_active: bool = True,
+    auto_approve: bool = False,
 ) -> App:
     existing = await db.execute(select(App).where(App.app_key == app_key))
     if existing.scalar_one_or_none():
@@ -31,6 +32,7 @@ async def create_app(
         android_url=android_url,
         platform=platform,
         is_active=is_active,
+        auto_approve=auto_approve,
     )
     db.add(app)
     await db.commit()
