@@ -2,6 +2,7 @@ from app.services.authorization.assert_can_manage_roles import assert_can_manage
 from app.services.authorization.assign_role import assign_role
 from app.services.authorization.get_app_by_key import get_app_by_key
 from app.services.authorization.get_role import get_role
+from app.services.authorization.grant_app_role import grant_app_role
 from app.services.authorization.has_role import has_role
 from app.services.authorization.list_roles import list_roles
 from app.services.authorization.resolve_app_roles import (
@@ -15,6 +16,7 @@ __all__ = [
     "assign_role",
     "get_app_by_key",
     "get_role",
+    "grant_app_role",
     "has_role",
     "list_roles",
     "resolve_user_app_role",
