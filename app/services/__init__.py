@@ -9,6 +9,7 @@ from app.services import (
     org,
     phase,
     project,
+    project_health,
     rag,
     translation_helper,
     user,
@@ -24,6 +25,7 @@ notification_service = notifications
 organization_service = org
 phase_service = phase
 project_service = project
+project_health_service = project_health
 rag_service = rag
 translation_helper_service = translation_helper
 user_service = user
@@ -48,6 +50,8 @@ __all__ = [
     "phase",
     "phase_service",
     "project",
+    "project_health",
+    "project_health_service",
     "project_service",
     "rag",
     "rag_service",
