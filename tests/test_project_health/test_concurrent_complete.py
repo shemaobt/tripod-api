@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.db.models.project_health import PHInterview, PHLanguage, PHReport
+from app.db.models.project_health import PHLanguage, PHReport
 from app.services.project_health import complete_interview, create_interview
 
 _ALL_DOMAINS = (
