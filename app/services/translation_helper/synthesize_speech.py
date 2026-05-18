@@ -137,8 +137,6 @@ async def synthesize_speech(
     timepoints: list[tuple[str, float]] = [
         (tp.mark_name, float(tp.time_seconds)) for tp in getattr(response, "timepoints", [])
     ]
-    entry = audio_cache.put(
-        cache_key, audio_bytes, mime_type="audio/mpeg", timepoints=timepoints
-    )
+    entry = audio_cache.put(cache_key, audio_bytes, mime_type="audio/mpeg", timepoints=timepoints)
     await asyncio.sleep(0)
     return entry, False
