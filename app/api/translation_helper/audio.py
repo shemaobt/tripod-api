@@ -4,7 +4,12 @@ from fastapi import APIRouter, File, Form, Response, UploadFile
 
 from app.api.translation_helper._deps import th_access
 from app.core.exceptions import ValidationError
-from app.models.translation_helper import SpeakRequest, SpeakResponse, TranscribeResponse
+from app.models.translation_helper import (
+    SpeakRequest,
+    SpeakResponse,
+    Timepoint,
+    TranscribeResponse,
+)
 from app.services import translation_helper_service as th_service
 
 router = APIRouter()
@@ -49,4 +54,5 @@ async def speak(payload: SpeakRequest, response: Response) -> SpeakResponse:
         mime_type=entry.mime_type,
         etag=entry.etag,
         cached=cached,
+        timepoints=[Timepoint(mark=name, time_sec=ts) for name, ts in entry.timepoints],
     )

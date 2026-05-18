@@ -8,7 +8,11 @@ import pytest
 from app.core.config import Settings
 from app.core.exceptions import ValidationError
 from app.services.translation_helper.audio_cache import AudioCache, audio_cache
-from app.services.translation_helper.synthesize_speech import synthesize_speech
+from app.services.translation_helper.synthesize_speech import (
+    build_ssml,
+    split_sentences,
+    synthesize_speech,
+)
 from app.services.translation_helper.transcribe_audio import transcribe_audio
 
 _TRANSCRIBE_MOD = sys.modules["app.services.translation_helper.transcribe_audio"]
@@ -79,8 +83,15 @@ async def test_transcribe_audio_raises_when_empty_response(monkeypatch) -> None:
         await transcribe_audio(b"abc", filename="x.wav", settings=_settings())
 
 
-def _audio_response(audio: bytes) -> SimpleNamespace:
-    return SimpleNamespace(audio_content=audio)
+def _audio_response(
+    audio: bytes, timepoints: list[tuple[str, float]] | None = None
+) -> SimpleNamespace:
+    return SimpleNamespace(
+        audio_content=audio,
+        timepoints=[
+            SimpleNamespace(mark_name=name, time_seconds=ts) for name, ts in (timepoints or [])
+        ],
+    )
 
 
 @pytest.mark.asyncio
@@ -179,3 +190,79 @@ def test_audio_cache_lru_eviction() -> None:
     assert cache.get("a") is None
     assert cache.get("b") is not None
     assert cache.get("c") is not None
+
+
+def test_split_sentences_basic() -> None:
+    assert split_sentences("Hello. World!") == ["Hello.", "World!"]
+    assert split_sentences("One.  Two?  Three!") == ["One.", "Two?", "Three!"]
+
+
+def test_split_sentences_trailing_remainder_without_punctuation() -> None:
+    assert split_sentences("Hello. Trailing fragment") == [
+        "Hello.",
+        "Trailing fragment",
+    ]
+
+
+def test_split_sentences_handles_spanish_inverted_punctuation() -> None:
+    assert split_sentences("¿Qué pasa? ¡Hola!") == ["¿Qué pasa?", "¡Hola!"]
+
+
+def test_split_sentences_drops_empty_strings() -> None:
+    assert split_sentences("") == []
+    assert split_sentences("   ") == []
+
+
+def test_build_ssml_emits_one_mark_per_sentence_in_order() -> None:
+    ssml, marks = build_ssml("One. Two. Three.")
+    assert marks == ["s0", "s1", "s2"]
+    assert ssml.startswith("<speak>")
+    assert ssml.endswith("</speak>")
+    assert ssml.index('<mark name="s0"/>') < ssml.index('<mark name="s1"/>')
+    assert ssml.index('<mark name="s1"/>') < ssml.index('<mark name="s2"/>')
+
+
+def test_build_ssml_escapes_xml_special_chars() -> None:
+    ssml, _ = build_ssml("Tom & Jerry said <hi> to her.")
+    assert "&amp;" in ssml
+    assert "&lt;hi&gt;" in ssml
+    assert "<hi>" not in ssml.replace("<mark", "").replace("<speak", "").replace("</speak", "")
+
+
+def test_build_ssml_no_marks_for_empty_text() -> None:
+    ssml, marks = build_ssml("")
+    assert marks == []
+    assert ssml == "<speak></speak>"
+
+
+@pytest.mark.asyncio
+async def test_synthesize_speech_returns_timepoints_from_tts() -> None:
+    audio_cache.clear()
+    fake_timepoints = [("s0", 0.0), ("s1", 1.42), ("s2", 3.05)]
+    fake_client = SimpleNamespace(
+        synthesize_speech=AsyncMock(
+            return_value=_audio_response(b"MP3", timepoints=fake_timepoints)
+        )
+    )
+    entry, cached = await synthesize_speech(
+        "One. Two. Three.", language_code="en-US", client=fake_client
+    )
+    assert cached is False
+    assert entry.timepoints == fake_timepoints
+
+    entry2, cached2 = await synthesize_speech(
+        "One. Two. Three.", language_code="en-US", client=fake_client
+    )
+    assert cached2 is True
+    assert entry2.timepoints == fake_timepoints
+
+
+@pytest.mark.asyncio
+async def test_synthesize_speech_sends_ssml_with_marks() -> None:
+    audio_cache.clear()
+    fake_client = SimpleNamespace(synthesize_speech=AsyncMock(return_value=_audio_response(b"MP3")))
+    await synthesize_speech("Hi. There.", language_code="en-US", client=fake_client)
+    request = fake_client.synthesize_speech.await_args.kwargs["request"]
+    assert request.input.ssml.startswith("<speak>")
+    assert '<mark name="s0"/>' in request.input.ssml
+    assert '<mark name="s1"/>' in request.input.ssml
