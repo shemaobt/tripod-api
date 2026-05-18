@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ConflictError, ValidationError
@@ -108,7 +109,14 @@ async def complete_interview(
     db.add(report)
     interview.status = PHInterviewStatus.COMPLETED
     interview.completed_at = datetime.now(UTC)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        existing = await _fetch_existing_report(db, interview.id)
+        if existing is None:
+            raise
+        return existing.id, TeamReport.model_validate(existing.team_report)
     await db.refresh(report)
     return report.id, team_report
 
