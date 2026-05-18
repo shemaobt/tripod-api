@@ -53,7 +53,10 @@ async def stream_message(
     agent_id: AgentId | None = None,
     settings: Settings | None = None,
 ) -> AsyncIterator[str]:
-    """Yield assistant text chunks; persist both turns once the stream completes."""
+    """Yield assistant text chunks; persist the user turn before streaming and
+    persist whatever assistant text (full or partial) was collected once the
+    stream ends — so a mid-stream LLM failure doesn't make the user's question
+    disappear."""
     settings = settings or get_settings()
     chat = await get_chat_or_404(db, chat_id, user_id=user_id)
     effective_agent = agent_id or chat.agent_id
@@ -68,31 +71,36 @@ async def stream_message(
         agent_id=None,
     )
     db.add(user_msg)
+    await db.commit()
 
     system_prompt = await get_system_prompt_text(db, effective_agent)
     contents = _build_contents(history, content)
 
     collected: list[str] = []
-    async for chunk in _stream_chunks(
-        system_prompt=system_prompt, contents=contents, settings=settings
-    ):
-        collected.append(chunk)
-        yield chunk
-
-    assistant_text = "".join(collected)
-    assistant_msg = THChatMessage(
-        chat_id=chat.id,
-        role=ChatMessageRole.ASSISTANT,
-        content=assistant_text,
-        agent_id=effective_agent,
-    )
-    db.add(assistant_msg)
-
-    if is_first_user_message and not chat.title:
+    try:
+        async for chunk in _stream_chunks(
+            system_prompt=system_prompt, contents=contents, settings=settings
+        ):
+            collected.append(chunk)
+            yield chunk
+    finally:
         try:
-            chat.title = await _generate_title(content, settings)
+            if collected:
+                assistant_msg = THChatMessage(
+                    chat_id=chat.id,
+                    role=ChatMessageRole.ASSISTANT,
+                    content="".join(collected),
+                    agent_id=effective_agent,
+                )
+                db.add(assistant_msg)
+                if is_first_user_message and not chat.title:
+                    try:
+                        chat.title = await _generate_title(content, settings)
+                    except Exception as e:
+                        logger.warning("Auto-title failed for chat %s: %s", chat.id, e)
+                        chat.title = _fallback_title(content)
+                await db.commit()
         except Exception as e:
-            logger.warning("Auto-title failed for chat %s: %s", chat.id, e)
-            chat.title = _fallback_title(content)
-
-    await db.commit()
+            logger.warning(
+                "Failed to persist assistant turn for chat %s: %s", chat.id, e
+            )

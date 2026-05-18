@@ -24,6 +24,17 @@ def _patch_stream(monkeypatch, chunks: list[str]) -> None:
     monkeypatch.setattr(_STREAM_MOD, "_stream_chunks", fake_stream)
 
 
+def _patch_stream_then_raise(
+    monkeypatch, chunks_before_error: list[str], exc: Exception
+) -> None:
+    async def fake_stream(*, system_prompt, contents, settings) -> AsyncIterator[str]:
+        for c in chunks_before_error:
+            yield c
+        raise exc
+
+    monkeypatch.setattr(_STREAM_MOD, "_stream_chunks", fake_stream)
+
+
 @pytest.mark.asyncio
 async def test_stream_message_yields_chunks_in_order(monkeypatch, db_session) -> None:
     user = await make_user(db_session, email="th_stream_a@test.com")
@@ -63,6 +74,77 @@ async def test_stream_message_persists_concatenated_text(monkeypatch, db_session
     assert [r.role for r in rows] == [ChatMessageRole.USER, ChatMessageRole.ASSISTANT]
     assert rows[0].content == "hi"
     assert rows[1].content == "ABC"
+
+
+@pytest.mark.asyncio
+async def test_stream_message_persists_user_turn_and_partial_on_mid_stream_error(
+    monkeypatch, db_session
+) -> None:
+    """If Gemini raises mid-stream, the user's question and the partial assistant
+    text both survive so the chat history stays coherent on reload."""
+    user = await make_user(db_session, email="th_stream_c@test.com")
+    chat = await make_th_chat(db_session, user.id)
+    await make_th_agent_prompt(db_session, agent_id="storyteller", prompt="P")
+
+    _patch_stream_then_raise(
+        monkeypatch, ["partial ", "response"], RuntimeError("LLM blew up mid-stream")
+    )
+
+    received: list[str] = []
+    with pytest.raises(RuntimeError, match="LLM blew up"):
+        async for piece in stream_message(db_session, chat.id, user.id, "my question"):
+            received.append(piece)
+
+    assert received == ["partial ", "response"]
+
+    rows = (
+        (
+            await db_session.execute(
+                select(THChatMessage)
+                .where(THChatMessage.chat_id == chat.id)
+                .order_by(THChatMessage.created_at.asc())
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert [r.role for r in rows] == [ChatMessageRole.USER, ChatMessageRole.ASSISTANT]
+    assert rows[0].content == "my question"
+    assert rows[1].content == "partial response"
+
+
+@pytest.mark.asyncio
+async def test_stream_message_persists_user_turn_when_stream_fails_before_any_chunk(
+    monkeypatch, db_session
+) -> None:
+    """No assistant chunks collected: only the user turn is saved, never an empty
+    assistant row."""
+    user = await make_user(db_session, email="th_stream_d@test.com")
+    chat = await make_th_chat(db_session, user.id)
+    await make_th_agent_prompt(db_session, agent_id="storyteller", prompt="P")
+
+    _patch_stream_then_raise(monkeypatch, [], RuntimeError("LLM unreachable"))
+
+    received: list[str] = []
+    with pytest.raises(RuntimeError):
+        async for piece in stream_message(db_session, chat.id, user.id, "question"):
+            received.append(piece)
+
+    assert received == []
+
+    rows = (
+        (
+            await db_session.execute(
+                select(THChatMessage)
+                .where(THChatMessage.chat_id == chat.id)
+                .order_by(THChatMessage.created_at.asc())
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert [r.role for r in rows] == [ChatMessageRole.USER]
+    assert rows[0].content == "question"
 
 
 @pytest.mark.asyncio
