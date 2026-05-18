@@ -158,4 +158,11 @@ async def stream_chat_message(
                 logger.exception("SSE streaming failed for chat %s", chat_id)
                 yield _sse("error", {"message": "Streaming failed. Please try again."})
 
-    return StreamingResponse(_generator(), media_type="text/event-stream")
+    return StreamingResponse(
+        _generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )

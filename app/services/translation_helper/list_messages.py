@@ -10,12 +10,20 @@ async def list_messages(
     *,
     limit: int | None = None,
 ) -> list[THChatMessage]:
+    if limit is None:
+        stmt = (
+            select(THChatMessage)
+            .where(THChatMessage.chat_id == chat_id)
+            .order_by(THChatMessage.created_at.asc())
+        )
+        result = await db.execute(stmt)
+        return list(result.scalars().all())
+
     stmt = (
         select(THChatMessage)
         .where(THChatMessage.chat_id == chat_id)
-        .order_by(THChatMessage.created_at.asc())
+        .order_by(THChatMessage.created_at.desc())
+        .limit(limit)
     )
-    if limit is not None:
-        stmt = stmt.limit(limit)
     result = await db.execute(stmt)
-    return list(result.scalars().all())
+    return list(reversed(result.scalars().all()))
