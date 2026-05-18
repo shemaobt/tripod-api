@@ -31,6 +31,7 @@ from app.api.organizations import router as organizations_router
 from app.api.pericopes import router as pericopes_router
 from app.api.phases import router as phases_router
 from app.api.places import router as places_router
+from app.api.project_health import router as project_health_router
 from app.api.projects import router as projects_router
 from app.api.rag import router as rag_router
 from app.api.roles import router as roles_router
@@ -42,6 +43,7 @@ from app.core.database import AsyncSessionLocal, close_db, init_db
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import setup_logging
 from app.core.qdrant import close_qdrant, init_qdrant
+from app.core.rate_limit import limiter
 from app.services.bhsa import loader
 from app.services.meaning_map.seed_books import seed_books
 from app.services.translation_helper.seed_agent_prompts import seed_agent_prompts
@@ -84,6 +86,12 @@ def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title="Tripod Backend", version="0.1.0", lifespan=lifespan)
 
+    app.state.limiter = limiter
+    from slowapi import _rate_limit_exceeded_handler
+    from slowapi.errors import RateLimitExceeded
+
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origin_list,
@@ -111,6 +119,11 @@ def create_app() -> FastAPI:
     app.include_router(books_router, prefix="/api/books", tags=["books"])
     app.include_router(pericopes_router, prefix="/api/pericopes", tags=["pericopes"])
     app.include_router(meaning_maps_router, prefix="/api/meaning-maps", tags=["meaning-maps"])
+    app.include_router(
+        project_health_router,
+        prefix="/api/project-health",
+        tags=["project-health"],
+    )
     app.include_router(
         translation_helper_router,
         prefix="/api/translation-helper",
