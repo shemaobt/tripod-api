@@ -8,6 +8,7 @@ from sqlalchemy import select
 from app.core.exceptions import AuthenticationError, ConflictError
 from app.db.models.project_health import PHInterview, PHInterviewStatus, PHReport
 from app.services.project_health import (
+    MIN_TEAM_TURNS,
     complete_interview,
     create_interview,
     decode_interview_token,
@@ -104,7 +105,7 @@ async def test_complete_blocked_when_coverage_incomplete(
 
     payload = exc_info.value.payload
     assert payload.completion_ready is False
-    assert payload.minimum_team_turns == 10
+    assert payload.minimum_team_turns == MIN_TEAM_TURNS
     assert "respondent_name" in payload.missing_opening_fields
     assert "local_leadership" in payload.missing_domains
 

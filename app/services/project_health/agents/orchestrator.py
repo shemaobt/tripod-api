@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from typing import Any
 
 from app.db.models.project_health import PHLanguage
@@ -152,7 +153,6 @@ async def orchestrate_turn(
 
 
 async def score_interview(evidence: list[dict[str, Any]]) -> list[DomainScore]:
-    import json
 
     raw = await call_agent(
         system_prompt=scoring_prompt(),
@@ -205,7 +205,6 @@ async def generate_team_report(
     coverage: CoverageState,
     interview_context: InterviewContext,
 ) -> TeamReport:
-    import json
 
     transcript = "\n".join(
         f"[{i + 1}][{m['role']}] {m['content']}" for i, m in enumerate(messages)
@@ -252,7 +251,6 @@ async def generate_admin_report(
     messages: list[dict[str, Any]],
     interview_context: InterviewContext,
 ) -> AdminReport:
-    import json
 
     team_turns = sum(1 for m in messages if m["role"] == "team")
     payload = json.dumps(
