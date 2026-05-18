@@ -85,8 +85,14 @@ class SpeakRequest(BaseModel):
     voice_name: str | None = Field(default=None, max_length=80)
 
 
+class Timepoint(BaseModel):
+    mark: str
+    time_sec: float
+
+
 class SpeakResponse(BaseModel):
     audio_base64: str
     mime_type: str = "audio/mpeg"
     etag: str
     cached: bool = False
+    timepoints: list[Timepoint] = Field(default_factory=list)
