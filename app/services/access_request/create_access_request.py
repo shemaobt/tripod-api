@@ -1,9 +1,13 @@
+from datetime import UTC, datetime
+
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError
 from app.db.models.auth import AccessRequest
+from app.services.access_request._default_roles import default_role_for
 from app.services.authorization.get_app_by_key import get_app_by_key
+from app.services.authorization.grant_app_role import grant_app_role
 
 
 async def create_access_request(
@@ -37,6 +41,17 @@ async def create_access_request(
         app_id=app.id,
         note=note,
     )
+
+    if app.auto_approve:
+        request.status = "approved"
+        request.reviewed_at = datetime.now(UTC)
+        request.review_reason = "auto-approved"
+        db.add(request)
+        await grant_app_role(db, user_id, app.app_key, default_role_for(app.app_key), commit=False)
+        await db.commit()
+        await db.refresh(request)
+        return request
+
     db.add(request)
     await db.commit()
     await db.refresh(request)

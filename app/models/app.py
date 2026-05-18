@@ -13,6 +13,7 @@ class AppCreate(BaseModel):
     android_url: str | None = None
     platform: str | None = "web"
     is_active: bool | None = True
+    auto_approve: bool | None = False
 
 
 class AppUpdate(BaseModel):
@@ -24,6 +25,7 @@ class AppUpdate(BaseModel):
     android_url: str | None = None
     platform: str | None = None
     is_active: bool | None = None
+    auto_approve: bool | None = None
 
 
 class AppResponse(BaseModel):
@@ -37,6 +39,7 @@ class AppResponse(BaseModel):
     android_url: str | None
     platform: str
     is_active: bool
+    auto_approve: bool
     created_at: datetime
 
     model_config = {"from_attributes": True}

@@ -53,6 +53,7 @@ async def create_app(
         android_url=payload.android_url,
         platform=payload.platform or "web",
         is_active=payload.is_active if payload.is_active is not None else True,
+        auto_approve=payload.auto_approve if payload.auto_approve is not None else False,
     )
     return AppResponse.model_validate(app)
 
@@ -72,7 +73,7 @@ async def update_app(
     app_id: str,
     payload: AppUpdate,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_platform_admin),
+    actor: User = Depends(require_platform_admin),
 ) -> AppResponse:
     app = await app_service.update_app(
         db,
@@ -85,6 +86,8 @@ async def update_app(
         android_url=payload.android_url,
         platform=payload.platform,
         is_active=payload.is_active,
+        auto_approve=payload.auto_approve,
+        actor=actor,
     )
     return AppResponse.model_validate(app)
 
