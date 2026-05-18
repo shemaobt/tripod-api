@@ -13,27 +13,32 @@ from app.services.translation_helper.detect_language import detect_language_code
 
 logger = logging.getLogger(__name__)
 
-# Locale → ElevenLabs voice. `voice_id` is the public default voice; `language_code`
-# is the ISO 639-1 code passed to the multilingual model so the same voice can speak
-# any supported language. Refine voice_id per locale by editing this map.
+# Locale → ElevenLabs voice. Multilingual model speaks any supported language with
+# any voice; per-locale entries pick gender/accent. Default is Sarah, the same
+# multilingual voice the project_health interview facilitator uses
+# (app/services/project_health/voice/voice_map.py) and confirmed accessible on
+# this account. The v2 redesigned default voices (Aria, Sarah-MAC, Lily, etc.)
+# are NOT available here — stick to v1-library IDs.
+DEFAULT_VOICE_ID = "EXAVITQu4vr4xnSDxMaL"  # Sarah — warm multilingual female
+
 VOICE_MAP: dict[str, dict[str, str]] = {
-    "en-US": {"voice_id": "EXAVITQu4vr4xnSDxMAC", "language_code": "en"},
-    "en-GB": {"voice_id": "pFZP5JQG7iQjIQuC4Bku", "language_code": "en"},
-    "es-ES": {"voice_id": "XrExE9yKIg1WjnnlVkGX", "language_code": "es"},
-    "es-MX": {"voice_id": "TX3LPaxmHKxFdv7VOQHJ", "language_code": "es"},
-    "fr-FR": {"voice_id": "XB0fDUnXU5powFXDhCwa", "language_code": "fr"},
-    "pt-BR": {"voice_id": "cgSgspJ2msm6clMCkdW9", "language_code": "pt"},
-    "de-DE": {"voice_id": "9BWtsMINqrJLrRacOk9x", "language_code": "de"},
-    "it-IT": {"voice_id": "FGY2WhTYpPnrIDTdsKH5", "language_code": "it"},
-    "ja-JP": {"voice_id": "cgSgspJ2msm6clMCkdW9", "language_code": "ja"},
-    "ko-KR": {"voice_id": "cgSgspJ2msm6clMCkdW9", "language_code": "ko"},
-    "zh-CN": {"voice_id": "EXAVITQu4vr4xnSDxMAC", "language_code": "zh"},
-    "hi-IN": {"voice_id": "9BWtsMINqrJLrRacOk9x", "language_code": "hi"},
-    "ar-SA": {"voice_id": "9BWtsMINqrJLrRacOk9x", "language_code": "ar"},
-    "ru-RU": {"voice_id": "EXAVITQu4vr4xnSDxMAC", "language_code": "ru"},
-    "nl-NL": {"voice_id": "FGY2WhTYpPnrIDTdsKH5", "language_code": "nl"},
-    "sv-SE": {"voice_id": "XB0fDUnXU5powFXDhCwa", "language_code": "sv"},
-    "da-DK": {"voice_id": "XB0fDUnXU5powFXDhCwa", "language_code": "da"},
+    "en-US": {"voice_id": "21m00Tcm4TlvDq8ikWAM", "language_code": "en"},  # Rachel
+    "en-GB": {"voice_id": "ThT5KcBeYPX3keUQqHPh", "language_code": "en"},  # Dorothy
+    "es-ES": {"voice_id": DEFAULT_VOICE_ID, "language_code": "es"},
+    "es-MX": {"voice_id": "pNInz6obpgDQGcFmaJgB", "language_code": "es"},  # Adam
+    "fr-FR": {"voice_id": DEFAULT_VOICE_ID, "language_code": "fr"},
+    "pt-BR": {"voice_id": DEFAULT_VOICE_ID, "language_code": "pt"},
+    "de-DE": {"voice_id": DEFAULT_VOICE_ID, "language_code": "de"},
+    "it-IT": {"voice_id": DEFAULT_VOICE_ID, "language_code": "it"},
+    "ja-JP": {"voice_id": DEFAULT_VOICE_ID, "language_code": "ja"},
+    "ko-KR": {"voice_id": DEFAULT_VOICE_ID, "language_code": "ko"},
+    "zh-CN": {"voice_id": DEFAULT_VOICE_ID, "language_code": "zh"},
+    "hi-IN": {"voice_id": DEFAULT_VOICE_ID, "language_code": "hi"},
+    "ar-SA": {"voice_id": DEFAULT_VOICE_ID, "language_code": "ar"},
+    "ru-RU": {"voice_id": DEFAULT_VOICE_ID, "language_code": "ru"},
+    "nl-NL": {"voice_id": DEFAULT_VOICE_ID, "language_code": "nl"},
+    "sv-SE": {"voice_id": DEFAULT_VOICE_ID, "language_code": "sv"},
+    "da-DK": {"voice_id": DEFAULT_VOICE_ID, "language_code": "da"},
 }
 
 DEFAULT_LOCALE = "en-US"
