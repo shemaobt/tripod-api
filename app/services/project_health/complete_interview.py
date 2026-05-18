@@ -104,7 +104,9 @@ async def complete_interview(db: AsyncSession, interview_id: str) -> tuple[str, 
     interview.completed_at = datetime.now(UTC)
     try:
         await db.commit()
-    except IntegrityError:
+    except IntegrityError as exc:
+        if "uq_ph_reports_interview_id" not in str(getattr(exc, "orig", exc)):
+            raise
         await db.rollback()
         existing = await _fetch_existing_report(db, interview.id)
         if existing is None:
