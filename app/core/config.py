@@ -29,6 +29,12 @@ class Settings(BaseSettings):
     rag_chunk_overlap: int = 200
     rag_top_k: int = 5
 
+    elevenlabs_api_key: str = ""
+    elevenlabs_base_url: str = "https://api.elevenlabs.io"
+    elevenlabs_tts_model: str = "eleven_multilingual_v2"
+    elevenlabs_stt_model: str = "scribe_v2"
+    elevenlabs_output_format: str = "mp3_44100_128"
+
     gcs_bucket_name: str = ""
     bhsa_data_path: str = ""
 

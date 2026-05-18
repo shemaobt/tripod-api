@@ -28,7 +28,6 @@ dependencies = [
     "structlog-gcp>=0.5.0",
     "langgraph>=1.0.10",
     "google-cloud-storage>=2.18.0",
-    "google-cloud-texttospeech>=2.36.0",
     "inngest>=0.4.22",
     "langdetect>=1.0.9",
     "slowapi>=0.1.9",

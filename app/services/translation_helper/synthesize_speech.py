@@ -1,37 +1,42 @@
 from __future__ import annotations
 
-import asyncio
+import base64
 import logging
 import re
-from xml.sax.saxutils import escape as xml_escape
 
-from google.cloud import texttospeech_v1beta1 as texttospeech
+import httpx
 
+from app.core.config import Settings, get_settings
 from app.core.exceptions import ValidationError
 from app.services.translation_helper.audio_cache import CachedAudio, audio_cache
 from app.services.translation_helper.detect_language import detect_language_code
 
 logger = logging.getLogger(__name__)
 
+# Locale → ElevenLabs voice. `voice_id` is the public default voice; `language_code`
+# is the ISO 639-1 code passed to the multilingual model so the same voice can speak
+# any supported language. Refine voice_id per locale by editing this map.
 VOICE_MAP: dict[str, dict[str, str]] = {
-    "en-US": {"language_code": "en-US", "name": "en-US-Studio-O", "gender": "FEMALE"},
-    "en-GB": {"language_code": "en-GB", "name": "en-GB-Studio-C", "gender": "FEMALE"},
-    "es-ES": {"language_code": "es-ES", "name": "es-ES-Studio-C", "gender": "FEMALE"},
-    "es-MX": {"language_code": "es-US", "name": "es-US-Studio-B", "gender": "MALE"},
-    "fr-FR": {"language_code": "fr-FR", "name": "fr-FR-Studio-A", "gender": "FEMALE"},
-    "pt-BR": {"language_code": "pt-BR", "name": "pt-BR-Neural2-C", "gender": "FEMALE"},
-    "de-DE": {"language_code": "de-DE", "name": "de-DE-Neural2-C", "gender": "FEMALE"},
-    "it-IT": {"language_code": "it-IT", "name": "it-IT-Neural2-A", "gender": "FEMALE"},
-    "ja-JP": {"language_code": "ja-JP", "name": "ja-JP-Neural2-B", "gender": "FEMALE"},
-    "ko-KR": {"language_code": "ko-KR", "name": "ko-KR-Neural2-B", "gender": "FEMALE"},
-    "zh-CN": {"language_code": "cmn-CN", "name": "cmn-CN-Wavenet-A", "gender": "FEMALE"},
-    "hi-IN": {"language_code": "hi-IN", "name": "hi-IN-Neural2-A", "gender": "FEMALE"},
-    "ar-SA": {"language_code": "ar-XA", "name": "ar-XA-Wavenet-A", "gender": "FEMALE"},
-    "ru-RU": {"language_code": "ru-RU", "name": "ru-RU-Wavenet-C", "gender": "FEMALE"},
-    "nl-NL": {"language_code": "nl-NL", "name": "nl-NL-Wavenet-A", "gender": "FEMALE"},
-    "sv-SE": {"language_code": "sv-SE", "name": "sv-SE-Wavenet-A", "gender": "FEMALE"},
-    "da-DK": {"language_code": "da-DK", "name": "da-DK-Wavenet-A", "gender": "FEMALE"},
+    "en-US": {"voice_id": "EXAVITQu4vr4xnSDxMAC", "language_code": "en"},
+    "en-GB": {"voice_id": "pFZP5JQG7iQjIQuC4Bku", "language_code": "en"},
+    "es-ES": {"voice_id": "XrExE9yKIg1WjnnlVkGX", "language_code": "es"},
+    "es-MX": {"voice_id": "TX3LPaxmHKxFdv7VOQHJ", "language_code": "es"},
+    "fr-FR": {"voice_id": "XB0fDUnXU5powFXDhCwa", "language_code": "fr"},
+    "pt-BR": {"voice_id": "cgSgspJ2msm6clMCkdW9", "language_code": "pt"},
+    "de-DE": {"voice_id": "9BWtsMINqrJLrRacOk9x", "language_code": "de"},
+    "it-IT": {"voice_id": "FGY2WhTYpPnrIDTdsKH5", "language_code": "it"},
+    "ja-JP": {"voice_id": "cgSgspJ2msm6clMCkdW9", "language_code": "ja"},
+    "ko-KR": {"voice_id": "cgSgspJ2msm6clMCkdW9", "language_code": "ko"},
+    "zh-CN": {"voice_id": "EXAVITQu4vr4xnSDxMAC", "language_code": "zh"},
+    "hi-IN": {"voice_id": "9BWtsMINqrJLrRacOk9x", "language_code": "hi"},
+    "ar-SA": {"voice_id": "9BWtsMINqrJLrRacOk9x", "language_code": "ar"},
+    "ru-RU": {"voice_id": "EXAVITQu4vr4xnSDxMAC", "language_code": "ru"},
+    "nl-NL": {"voice_id": "FGY2WhTYpPnrIDTdsKH5", "language_code": "nl"},
+    "sv-SE": {"voice_id": "XB0fDUnXU5powFXDhCwa", "language_code": "sv"},
+    "da-DK": {"voice_id": "XB0fDUnXU5powFXDhCwa", "language_code": "da"},
 }
+
+DEFAULT_LOCALE = "en-US"
 
 
 _SENTENCE_RE = re.compile(r"[^.!?]*[.!?]+|[^.!?]+\Z", re.DOTALL)
@@ -48,43 +53,72 @@ def split_sentences(text: str) -> list[str]:
     return out
 
 
-def build_ssml(text: str) -> tuple[str, list[str]]:
-    """Wrap text in SSML with a <mark name="sN"/> before each sentence.
+def _resolve_voice(language_code: str, voice_id_override: str | None) -> dict[str, str]:
+    config = VOICE_MAP.get(language_code) or VOICE_MAP[DEFAULT_LOCALE]
+    if voice_id_override:
+        return {"voice_id": voice_id_override, "language_code": config["language_code"]}
+    return config
 
-    Returns (ssml_string, [mark_names_in_order]).
+
+def aggregate_sentence_marks(
+    text: str,
+    alignment_chars: list[str],
+    alignment_starts: list[float],
+) -> list[tuple[str, float]]:
+    """Fold ElevenLabs character-level alignment into the sentence-mark shape
+    consumed by the UI karaoke highlight (`s0`, `s1`, …).
+
+    For each sentence from `split_sentences(text)`, find the first synthesized
+    character whose case-folded value matches the sentence's first non-blank
+    char, advancing a cursor so later sentences cannot match earlier positions.
+    Falls back to a proportional time when matching cannot find an anchor.
     """
     sentences = split_sentences(text)
-    parts = ["<speak>"]
-    mark_names: list[str] = []
+    if not sentences:
+        return []
+    n = min(len(alignment_chars), len(alignment_starts))
+    if n == 0:
+        return [(f"s{i}", 0.0) for i in range(len(sentences))]
+
+    marks: list[tuple[str, float]] = []
+    cursor = 0
+    total = float(alignment_starts[n - 1])
+
     for idx, sentence in enumerate(sentences):
-        name = f"s{idx}"
-        mark_names.append(name)
-        parts.append(f'<mark name="{name}"/>')
-        parts.append(xml_escape(sentence))
-        parts.append(" ")
-    parts.append("</speak>")
-    return "".join(parts), mark_names
+        stripped = sentence.lstrip()
+        if not stripped:
+            marks.append((f"s{idx}", 0.0))
+            continue
+        target = stripped[0].casefold()
+
+        found: int | None = None
+        for j in range(cursor, n):
+            ch = alignment_chars[j]
+            if not ch.strip():
+                continue
+            if ch.casefold() == target:
+                found = j
+                break
+
+        if found is None:
+            time = total * (idx / len(sentences))
+        else:
+            time = float(alignment_starts[found])
+            cursor = found + 1
+
+        marks.append((f"s{idx}", time))
+
+    return marks
 
 
-_client_singleton: texttospeech.TextToSpeechAsyncClient | None = None
+_DEFAULT_CLIENT: httpx.AsyncClient | None = None
 
 
-def _make_client() -> texttospeech.TextToSpeechAsyncClient:
-    global _client_singleton
-    if _client_singleton is None:
-        _client_singleton = texttospeech.TextToSpeechAsyncClient()
-    return _client_singleton
-
-
-def _resolve_voice(language_code: str, voice_name: str | None) -> dict[str, str]:
-    config = VOICE_MAP.get(language_code) or VOICE_MAP["en-US"]
-    if voice_name:
-        return {
-            "language_code": config["language_code"],
-            "name": voice_name,
-            "gender": config["gender"],
-        }
-    return config
+def _make_client() -> httpx.AsyncClient:
+    global _DEFAULT_CLIENT
+    if _DEFAULT_CLIENT is None:
+        _DEFAULT_CLIENT = httpx.AsyncClient(timeout=httpx.Timeout(60.0, connect=10.0))
+    return _DEFAULT_CLIENT
 
 
 async def synthesize_speech(
@@ -92,9 +126,14 @@ async def synthesize_speech(
     *,
     language_code: str | None = None,
     voice_name: str | None = None,
-    client: texttospeech.TextToSpeechAsyncClient | None = None,
+    client: httpx.AsyncClient | None = None,
+    settings: Settings | None = None,
 ) -> tuple[CachedAudio, bool]:
-    """Return (cached audio entry, cached?) tuple."""
+    """Synthesize MP3 speech via ElevenLabs and return (cached entry, cached?).
+
+    `voice_name` is passed through as an explicit ElevenLabs `voice_id` override
+    when provided, preserving the existing public signature.
+    """
     if not text or not text.strip():
         raise ValidationError("text must not be empty")
 
@@ -106,37 +145,43 @@ async def synthesize_speech(
     if cached is not None:
         return cached, True
 
-    voice_cfg = _resolve_voice(language_code, voice_name)
-    gender_enum = getattr(
-        texttospeech.SsmlVoiceGender, voice_cfg["gender"], texttospeech.SsmlVoiceGender.NEUTRAL
-    )
+    cfg = settings or get_settings()
+    if not cfg.elevenlabs_api_key:
+        raise ValidationError("ELEVENLABS_API_KEY is not configured")
 
-    ssml, _mark_names = build_ssml(text)
-    tts_client = client or _make_client()
-    request = texttospeech.SynthesizeSpeechRequest(
-        input=texttospeech.SynthesisInput(ssml=ssml),
-        voice=texttospeech.VoiceSelectionParams(
-            language_code=voice_cfg["language_code"],
-            name=voice_cfg["name"],
-            ssml_gender=gender_enum,
-        ),
-        audio_config=texttospeech.AudioConfig(
-            audio_encoding=texttospeech.AudioEncoding.MP3,
-            sample_rate_hertz=24000,
-            speaking_rate=1.0,
-            pitch=0.0,
-        ),
-        enable_time_pointing=[
-            texttospeech.SynthesizeSpeechRequest.TimepointType.SSML_MARK,
-        ],
-    )
-    response = await tts_client.synthesize_speech(request=request)
-    audio_bytes = bytes(response.audio_content) if response.audio_content else b""
-    if not audio_bytes:
+    voice_cfg = _resolve_voice(language_code, voice_name)
+    body = {
+        "text": text,
+        "model_id": cfg.elevenlabs_tts_model,
+        "language_code": voice_cfg["language_code"],
+        "output_format": cfg.elevenlabs_output_format,
+    }
+    url = f"{cfg.elevenlabs_base_url}/v1/text-to-speech/{voice_cfg['voice_id']}/with-timestamps"
+    headers = {
+        "xi-api-key": cfg.elevenlabs_api_key,
+        "accept": "application/json",
+    }
+
+    http = client or _make_client()
+    response = await http.post(url, json=body, headers=headers)
+    if response.status_code >= 400:
+        logger.warning(
+            "ElevenLabs TTS failed: status=%s body=%s",
+            response.status_code,
+            response.text[:500],
+        )
+        raise ValidationError(f"TTS request failed with status {response.status_code}")
+
+    payload = response.json()
+    audio_b64 = payload.get("audio_base64") or ""
+    if not audio_b64:
         raise ValidationError("TTS returned empty audio content")
-    timepoints: list[tuple[str, float]] = [
-        (tp.mark_name, float(tp.time_seconds)) for tp in getattr(response, "timepoints", [])
-    ]
+    audio_bytes = base64.b64decode(audio_b64)
+
+    alignment = payload.get("normalized_alignment") or payload.get("alignment") or {}
+    chars = alignment.get("characters") or []
+    starts = alignment.get("character_start_times_seconds") or []
+    timepoints = aggregate_sentence_marks(text, chars, starts)
+
     entry = audio_cache.put(cache_key, audio_bytes, mime_type="audio/mpeg", timepoints=timepoints)
-    await asyncio.sleep(0)
     return entry, False
