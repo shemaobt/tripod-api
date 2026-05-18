@@ -182,3 +182,37 @@ async def test_stream_chat_message_error_event_does_not_leak_exception(monkeypat
     assert "Streaming failed" in decoded
     assert secret not in decoded
     assert "RuntimeError" not in decoded
+
+
+@pytest.mark.asyncio
+async def test_stream_chat_message_sets_anti_buffering_headers(monkeypatch) -> None:
+    """Without these headers, nginx and other intermediaries buffer SSE responses,
+    which collapses the streaming UX into a single delayed burst."""
+
+    async def empty(*args, **kwargs):
+        yield "chunk"
+
+    fake_service = SimpleNamespace(stream_message=empty)
+    monkeypatch.setattr(chats_router, "th_service", fake_service)
+
+    class _FakeSession:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a):
+            return False
+
+    monkeypatch.setattr(chats_router, "AsyncSessionLocal", lambda: _FakeSession())
+
+    fake_user = SimpleNamespace(id="user-1")
+    payload = SimpleNamespace(content="hi", agent_id=None)
+
+    response = await chats_router.stream_chat_message(
+        chat_id="chat-1",
+        payload=payload,
+        user=fake_user,
+    )
+
+    assert response.headers.get("x-accel-buffering") == "no"
+    assert response.headers.get("cache-control") == "no-cache"
+    assert response.media_type == "text/event-stream"
