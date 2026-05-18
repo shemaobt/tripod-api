@@ -112,3 +112,35 @@ async def test_list_messages_ordered_asc(db_session) -> None:
     msgs = await list_messages(db_session, chat.id)
     assert [m.id for m in msgs] == [m1.id, m2.id]
     assert [m.content for m in msgs] == ["first", "second"]
+
+
+@pytest.mark.asyncio
+async def test_list_messages_with_limit_returns_most_recent_in_chronological_order(
+    db_session,
+) -> None:
+    """Limit means 'tail N' — the newest messages, still oldest-to-newest in the
+    returned list — so the UI can render the most recent context without
+    silently dropping the latest turns."""
+    user = await make_user(db_session, email="th_g@test.com")
+    chat = await make_th_chat(db_session, user.id)
+    await make_th_message(db_session, chat.id, content="m1")
+    await make_th_message(db_session, chat.id, role=ChatMessageRole.ASSISTANT, content="m2")
+    await make_th_message(db_session, chat.id, content="m3")
+    await make_th_message(db_session, chat.id, role=ChatMessageRole.ASSISTANT, content="m4")
+    await make_th_message(db_session, chat.id, content="m5")
+
+    last_two = await list_messages(db_session, chat.id, limit=2)
+    assert [m.content for m in last_two] == ["m4", "m5"]
+
+    last_three = await list_messages(db_session, chat.id, limit=3)
+    assert [m.content for m in last_three] == ["m3", "m4", "m5"]
+
+
+@pytest.mark.asyncio
+async def test_list_messages_limit_larger_than_count_returns_all(db_session) -> None:
+    user = await make_user(db_session, email="th_h@test.com")
+    chat = await make_th_chat(db_session, user.id)
+    await make_th_message(db_session, chat.id, content="only")
+
+    msgs = await list_messages(db_session, chat.id, limit=50)
+    assert [m.content for m in msgs] == ["only"]
