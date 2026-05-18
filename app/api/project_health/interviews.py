@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.project_health._deps import interview_token_dep
 from app.core.database import get_db
+from app.core.rate_limit import limiter
 from app.models.project_health import (
     InterviewCompleteResponse,
     InterviewCreate,
@@ -26,7 +27,9 @@ router = APIRouter()
     response_model=InterviewCreateResponse,
     status_code=status.HTTP_201_CREATED,
 )
+@limiter.limit("10/minute")
 async def create_interview_endpoint(
+    request: Request,
     payload: InterviewCreate,
     db: AsyncSession = Depends(get_db),
 ) -> InterviewCreateResponse:
@@ -73,7 +76,9 @@ async def get_interview_endpoint(
     response_model=InterviewMessageResponse,
     dependencies=[interview_token_dep],
 )
+@limiter.limit("60/minute")
 async def post_message_endpoint(
+    request: Request,
     interview_id: str,
     payload: MessageIn,
     db: AsyncSession = Depends(get_db),
