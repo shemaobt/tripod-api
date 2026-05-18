@@ -4,6 +4,7 @@ from app.services.project_health.get_admin_report import get_admin_report
 from app.services.project_health.get_interview import get_interview_or_404
 from app.services.project_health.get_team_report import get_team_report
 from app.services.project_health.interview_rules import (
+    MAX_TEAM_TURNS_HARD,
     MIN_TEAM_TURNS,
     can_complete_interview,
     create_initial_coverage_state,
@@ -27,6 +28,7 @@ from app.services.project_health.post_message import post_message
 __all__ = [
     "INTERVIEW_TOKEN_AUDIENCE",
     "INTERVIEW_TOKEN_TTL",
+    "MAX_TEAM_TURNS_HARD",
     "MIN_TEAM_TURNS",
     "InterviewTokenClaims",
     "can_complete_interview",

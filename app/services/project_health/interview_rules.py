@@ -5,6 +5,7 @@ from typing import Any
 from app.models.project_health import DOMAIN_KEYS, OPENING_FIELD_KEYS, CoverageState
 
 MIN_TEAM_TURNS = 10
+MAX_TEAM_TURNS_HARD = 100
 
 
 def create_initial_opening_field_state() -> dict[str, bool]:

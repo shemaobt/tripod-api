@@ -10,6 +10,7 @@ from app.db.models.project_health import PHInterviewStatus
 from app.models.project_health import CoverageState, MessageOut
 from app.services.project_health.agents.orchestrator import orchestrate_turn
 from app.services.project_health.get_interview import get_interview_or_404
+from app.services.project_health.interview_rules import MAX_TEAM_TURNS_HARD
 
 
 async def post_message(
@@ -24,6 +25,15 @@ async def post_message(
     interview = await get_interview_or_404(db, interview_id, for_update=True)
     if interview.status != PHInterviewStatus.IN_PROGRESS:
         raise ConflictError("Interview is no longer active")
+
+    team_turn_count = sum(
+        1 for m in (interview.messages or []) if m.get("role") == "team"
+    )
+    if team_turn_count >= MAX_TEAM_TURNS_HARD:
+        raise ConflictError(
+            f"Interview has reached its maximum length of {MAX_TEAM_TURNS_HARD} "
+            "team turns. Please finish the interview to generate the report."
+        )
 
     team_turn = MessageOut(
         role="team",
