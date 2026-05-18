@@ -31,9 +31,7 @@ async def get_admin_report(
     if report_row is None:
         raise NotFoundError("Report not found")
 
-    interview_stmt = select(PHInterview).where(
-        PHInterview.id == report_row.interview_id
-    )
+    interview_stmt = select(PHInterview).where(PHInterview.id == report_row.interview_id)
     interview_row = (await db.execute(interview_stmt)).scalar_one_or_none()
     if interview_row is None:
         raise NotFoundError("Interview not found")

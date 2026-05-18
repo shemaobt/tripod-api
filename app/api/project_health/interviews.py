@@ -83,12 +83,8 @@ async def post_message_endpoint(
     payload: MessageIn,
     db: AsyncSession = Depends(get_db),
 ) -> InterviewMessageResponse:
-    facilitator_message, coverage = await ph_service.post_message(
-        db, interview_id, payload.content
-    )
-    return InterviewMessageResponse(
-        facilitator_message=facilitator_message, coverage=coverage
-    )
+    facilitator_message, coverage = await ph_service.post_message(db, interview_id, payload.content)
+    return InterviewMessageResponse(facilitator_message=facilitator_message, coverage=coverage)
 
 
 @router.post(

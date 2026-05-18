@@ -115,9 +115,7 @@ async def check_guardrails(proposed_response: str) -> dict[str, Any]:
         temperature=0.2,
         max_output_tokens=600,
     )
-    return safe_parse_json(
-        raw, {"approved": True, "violations": [], "suggested_fix": ""}
-    )
+    return safe_parse_json(raw, {"approved": True, "violations": [], "suggested_fix": ""})
 
 
 async def orchestrate_turn(
@@ -145,9 +143,7 @@ async def orchestrate_turn(
             f"{coverage_hint}\n\nIMPORTANT: Your previous response was flagged for: "
             f"{violations}. Fix: {fix}. Try again."
         )
-        response = await generate_facilitator_response(
-            messages, language, adjusted_hint
-        )
+        response = await generate_facilitator_response(messages, language, adjusted_hint)
 
     return response, coverage, updated_evidence
 
@@ -182,9 +178,7 @@ async def score_interview(evidence: list[dict[str, Any]]) -> list[DomainScore]:
 async def extract_interview_context(
     messages: list[dict[str, Any]],
 ) -> InterviewContext:
-    transcript = "\n".join(
-        f"[{i + 1}][{m['role']}] {m['content']}" for i, m in enumerate(messages)
-    )
+    transcript = "\n".join(f"[{i + 1}][{m['role']}] {m['content']}" for i, m in enumerate(messages))
     raw = await call_agent(
         system_prompt=interview_context_prompt(),
         user_content=f"Interview transcript:\n{transcript}",
@@ -206,9 +200,7 @@ async def generate_team_report(
     interview_context: InterviewContext,
 ) -> TeamReport:
 
-    transcript = "\n".join(
-        f"[{i + 1}][{m['role']}] {m['content']}" for i, m in enumerate(messages)
-    )
+    transcript = "\n".join(f"[{i + 1}][{m['role']}] {m['content']}" for i, m in enumerate(messages))
     payload = json.dumps(
         {
             "coverage": coverage.model_dump(),
@@ -284,9 +276,7 @@ async def generate_admin_report(
     quality_raw = parsed.get("interview_quality") or fallback["interview_quality"]
     quality = InterviewQuality.model_validate(quality_raw)
     highlights = [
-        EvidenceItem.model_validate(item)
-        for item in evidence
-        if item.get("sentiment") != "neutral"
+        EvidenceItem.model_validate(item) for item in evidence if item.get("sentiment") != "neutral"
     ]
     overall = parsed.get("overall_sustainability_index", 3)
     risks_raw = parsed.get("top_risks") or []

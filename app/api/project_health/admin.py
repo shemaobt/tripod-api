@@ -45,6 +45,4 @@ async def invite_admin_endpoint(
     db: AsyncSession = Depends(get_db),
     actor: User = Depends(get_current_user),
 ) -> AdminInviteResponse:
-    return await ph_service.invite_admin(
-        db, email=str(payload.email), invited_by_user_id=actor.id
-    )
+    return await ph_service.invite_admin(db, email=str(payload.email), invited_by_user_id=actor.id)

@@ -37,9 +37,7 @@ _ALL_OPENING_FIELDS = (
     )
 )
 @pytest.mark.asyncio
-async def test_concurrent_complete_returns_same_report(
-    db_session, test_engine, ph_app, stub_llm
-):
+async def test_concurrent_complete_returns_same_report(db_session, test_engine, ph_app, stub_llm):
     """Two concurrent POST /complete on the same interview must both return
     the same report_id (idempotent), and exactly one PHReport row exists."""
     interview, *_ = await create_interview(
@@ -77,8 +75,8 @@ async def test_concurrent_complete_returns_same_report(
 
     async with session_factory() as session:
         reports = (
-            await session.execute(
-                select(PHReport).where(PHReport.interview_id == interview_id)
-            )
-        ).scalars().all()
+            (await session.execute(select(PHReport).where(PHReport.interview_id == interview_id)))
+            .scalars()
+            .all()
+        )
         assert len(reports) == 1

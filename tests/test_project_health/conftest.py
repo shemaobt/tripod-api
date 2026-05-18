@@ -92,9 +92,7 @@ def stub_llm(monkeypatch):
                 ]
             )
         if "Guardrail agent" in prompt:
-            return json.dumps(
-                {"approved": True, "violations": [], "suggested_fix": ""}
-            )
+            return json.dumps({"approved": True, "violations": [], "suggested_fix": ""})
         if "extract interview context" in prompt:
             return json.dumps(
                 {

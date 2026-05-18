@@ -26,9 +26,7 @@ async def post_message(
     if interview.status != PHInterviewStatus.IN_PROGRESS:
         raise ConflictError("Interview is no longer active")
 
-    team_turn_count = sum(
-        1 for m in (interview.messages or []) if m.get("role") == "team"
-    )
+    team_turn_count = sum(1 for m in (interview.messages or []) if m.get("role") == "team")
     if team_turn_count >= MAX_TEAM_TURNS_HARD:
         raise ConflictError(
             f"Interview has reached its maximum length of {MAX_TEAM_TURNS_HARD} "

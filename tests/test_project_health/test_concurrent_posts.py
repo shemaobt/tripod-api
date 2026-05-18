@@ -51,13 +51,9 @@ async def test_concurrent_posts_both_persist(db_session, test_engine, ph_app, st
 
     async with session_factory() as session:
         refreshed = (
-            await session.execute(
-                select(PHInterview).where(PHInterview.id == interview_id)
-            )
+            await session.execute(select(PHInterview).where(PHInterview.id == interview_id))
         ).scalar_one()
-        team_messages = [
-            m for m in refreshed.messages if m.get("role") == "team"
-        ]
+        team_messages = [m for m in refreshed.messages if m.get("role") == "team"]
         contents = {m["content"] for m in team_messages}
 
     assert len(team_messages) == 2, f"Expected 2 team turns, got {team_messages}"

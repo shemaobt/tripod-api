@@ -51,15 +51,12 @@ BLOCKED_MESSAGES = {
         "lebih lengkap sebelum menyiapkan laporan."
     ),
     "sw": (
-        "Tafadhali endeleeni kidogo zaidi ili tupate picha kamili ya mradi kabla "
-        "ya kuandaa ripoti."
+        "Tafadhali endeleeni kidogo zaidi ili tupate picha kamili ya mradi kabla ya kuandaa ripoti."
     ),
 }
 
 
-async def complete_interview(
-    db: AsyncSession, interview_id: str
-) -> tuple[str, TeamReport]:
+async def complete_interview(db: AsyncSession, interview_id: str) -> tuple[str, TeamReport]:
     """Generate team + admin reports and persist them. Idempotent: returns the
     existing report if one was previously generated for this interview."""
     interview = await get_interview_or_404(db, interview_id)
@@ -78,14 +75,10 @@ async def complete_interview(
         return existing.id, team_report
 
     coverage = normalize_coverage_state(interview.coverage_state)
-    team_turn_count = sum(
-        1 for m in (interview.messages or []) if m.get("role") == "team"
-    )
+    team_turn_count = sum(1 for m in (interview.messages or []) if m.get("role") == "team")
     if not can_complete_interview(coverage, team_turn_count):
         blocked = InterviewCompleteBlockedResponse(
-            error=BLOCKED_MESSAGES.get(
-                interview.language.value, BLOCKED_MESSAGES["en"]
-            ),
+            error=BLOCKED_MESSAGES.get(interview.language.value, BLOCKED_MESSAGES["en"]),
             completion_ready=False,
             minimum_team_turns=MIN_TEAM_TURNS,
             team_turn_count=team_turn_count,
@@ -121,9 +114,7 @@ async def complete_interview(
     return report.id, team_report
 
 
-async def _fetch_existing_report(
-    db: AsyncSession, interview_id: str
-) -> PHReport | None:
+async def _fetch_existing_report(db: AsyncSession, interview_id: str) -> PHReport | None:
     stmt = select(PHReport).where(PHReport.interview_id == interview_id)
     result = await db.execute(stmt)
     return result.scalar_one_or_none()

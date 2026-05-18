@@ -37,9 +37,7 @@ def normalize_coverage_state(coverage: dict[str, Any] | None) -> CoverageState:
         for field in coverage.get("missing_opening_fields") or []
         if field in OPENING_FIELD_KEYS
     }
-    derived_missing = {
-        field for field in OPENING_FIELD_KEYS if not opening_fields.get(field)
-    }
+    derived_missing = {field for field in OPENING_FIELD_KEYS if not opening_fields.get(field)}
     missing = [
         field
         for field in OPENING_FIELD_KEYS
@@ -48,8 +46,7 @@ def normalize_coverage_state(coverage: dict[str, Any] | None) -> CoverageState:
 
     return CoverageState(
         domains_touched=coverage.get("domains_touched") or base.domains_touched,
-        domains_with_evidence=coverage.get("domains_with_evidence")
-        or base.domains_with_evidence,
+        domains_with_evidence=coverage.get("domains_with_evidence") or base.domains_with_evidence,
         suggested_next_domain=coverage.get("suggested_next_domain"),
         interview_phase=coverage.get("interview_phase") or base.interview_phase,
         turn_count=int(coverage.get("turn_count") or 0),
@@ -69,11 +66,7 @@ def get_missing_domains(coverage: CoverageState) -> list[str]:
 
 
 def get_missing_opening_fields(coverage: CoverageState) -> list[str]:
-    return [
-        field
-        for field in OPENING_FIELD_KEYS
-        if not coverage.opening_fields.get(field)
-    ]
+    return [field for field in OPENING_FIELD_KEYS if not coverage.opening_fields.get(field)]
 
 
 def can_complete_interview(coverage: CoverageState, team_turn_count: int) -> bool:

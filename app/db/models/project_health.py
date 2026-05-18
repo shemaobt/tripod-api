@@ -47,13 +47,9 @@ _INTERVIEW_STATUS_TYPE = Enum(
 
 class PHInterview(Base):
     __tablename__ = "ph_interviews"
-    __table_args__ = (
-        Index("ix_ph_interviews_status_created", "status", "created_at"),
-    )
+    __table_args__ = (Index("ix_ph_interviews_status_created", "status", "created_at"),)
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     project_name: Mapped[str] = mapped_column(String(200))
     team_name: Mapped[str] = mapped_column(String(200))
     language: Mapped[PHLanguage] = mapped_column(_LANGUAGE_TYPE)
@@ -63,12 +59,8 @@ class PHInterview(Base):
     messages: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
     coverage_state: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     evidence: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
-    completed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class PHReport(Base):
@@ -78,14 +70,8 @@ class PHReport(Base):
         Index("ix_ph_reports_interview_id", "interview_id"),
     )
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
-    interview_id: Mapped[str] = mapped_column(
-        ForeignKey("ph_interviews.id", ondelete="CASCADE")
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    interview_id: Mapped[str] = mapped_column(ForeignKey("ph_interviews.id", ondelete="CASCADE"))
     team_report: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     admin_report: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

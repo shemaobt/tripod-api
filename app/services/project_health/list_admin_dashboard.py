@@ -11,9 +11,7 @@ async def list_admin_dashboard(
 ) -> tuple[list[PHInterview], list[PHReport]]:
     """Return recent interviews (in_progress first, then most-recent completed) and
     the matching reports list for the dashboard view."""
-    interviews_stmt = (
-        select(PHInterview).order_by(PHInterview.created_at.desc()).limit(limit)
-    )
+    interviews_stmt = select(PHInterview).order_by(PHInterview.created_at.desc()).limit(limit)
     interviews_result = await db.execute(interviews_stmt)
     interviews = list(interviews_result.scalars().all())
 

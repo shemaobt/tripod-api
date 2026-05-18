@@ -10,9 +10,7 @@ from app.services.project_health.agents import orchestrator
 
 
 @pytest.mark.asyncio
-async def test_post_message_handles_malformed_llm_json(
-    db_session, ph_app, monkeypatch
-):
+async def test_post_message_handles_malformed_llm_json(db_session, ph_app, monkeypatch):
     """When Gemini returns invalid JSON, safe_parse_json falls back to the
     default and the interview should still progress (facilitator reply,
     coverage state retained) rather than crashing."""

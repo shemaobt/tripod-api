@@ -115,9 +115,7 @@ REQUIRED_OPENING_DETAILS = """
 
 
 def _domain_list(language: PHLanguage) -> str:
-    return "\n".join(
-        f"- {key}: {labels[language]}" for key, labels in DOMAIN_LABELS.items()
-    )
+    return "\n".join(f"- {key}: {labels[language]}" for key, labels in DOMAIN_LABELS.items())
 
 
 def facilitator_system_prompt(language: PHLanguage, coverage_hints: str) -> str:

@@ -33,9 +33,7 @@ def encode_interview_token(
         "iat": now,
         "exp": expires_at,
     }
-    token = str(
-        jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
-    )
+    token = str(jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm))
     return token, expires_at
 
 

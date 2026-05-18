@@ -18,9 +18,7 @@ from app.services.project_health.complete_interview import InterviewIncompleteEr
 
 
 @pytest.mark.asyncio
-async def test_create_interview_returns_token_and_first_message(
-    db_session, ph_app, language_en
-):
+async def test_create_interview_returns_token_and_first_message(db_session, ph_app, language_en):
     interview, token, expires_at, first_message, coverage = await create_interview(
         db_session,
         project_name="Andean OBT",
@@ -47,9 +45,7 @@ async def test_decode_rejects_invalid_token(db_session, ph_app):
 
 
 @pytest.mark.asyncio
-async def test_post_message_appends_turns(
-    db_session, ph_app, language_en, stub_llm
-):
+async def test_post_message_appends_turns(db_session, ph_app, language_en, stub_llm):
     interview, _, _, _, _ = await create_interview(
         db_session,
         project_name="Andean OBT",
@@ -64,18 +60,14 @@ async def test_post_message_appends_turns(
     assert facilitator_msg.role == "facilitator"
     assert facilitator_msg.content
     refreshed = (
-        await db_session.execute(
-            select(PHInterview).where(PHInterview.id == interview.id)
-        )
+        await db_session.execute(select(PHInterview).where(PHInterview.id == interview.id))
     ).scalar_one()
     roles = [m["role"] for m in refreshed.messages]
     assert roles == ["facilitator", "team", "facilitator"]
 
 
 @pytest.mark.asyncio
-async def test_post_message_rejects_completed_interview(
-    db_session, ph_app, language_en
-):
+async def test_post_message_rejects_completed_interview(db_session, ph_app, language_en):
     interview, _, _, _, _ = await create_interview(
         db_session,
         project_name="X",
@@ -90,9 +82,7 @@ async def test_post_message_rejects_completed_interview(
 
 
 @pytest.mark.asyncio
-async def test_complete_blocked_when_coverage_incomplete(
-    db_session, ph_app, language_en
-):
+async def test_complete_blocked_when_coverage_incomplete(db_session, ph_app, language_en):
     interview, _, _, _, _ = await create_interview(
         db_session,
         project_name="X",
@@ -111,9 +101,7 @@ async def test_complete_blocked_when_coverage_incomplete(
 
 
 @pytest.mark.asyncio
-async def test_complete_writes_report_and_flips_status(
-    db_session, ph_app, language_en, stub_llm
-):
+async def test_complete_writes_report_and_flips_status(db_session, ph_app, language_en, stub_llm):
     interview, _, _, _, _ = await create_interview(
         db_session,
         project_name="X",
@@ -158,25 +146,19 @@ async def test_complete_writes_report_and_flips_status(
     assert report_id
     assert team_report.summary == "summary"
     refreshed = (
-        await db_session.execute(
-            select(PHInterview).where(PHInterview.id == interview.id)
-        )
+        await db_session.execute(select(PHInterview).where(PHInterview.id == interview.id))
     ).scalar_one()
     assert refreshed.status == PHInterviewStatus.COMPLETED
     assert refreshed.completed_at is not None
 
     report = (
-        await db_session.execute(
-            select(PHReport).where(PHReport.interview_id == interview.id)
-        )
+        await db_session.execute(select(PHReport).where(PHReport.interview_id == interview.id))
     ).scalar_one()
     assert report.id == report_id
 
 
 @pytest.mark.asyncio
-async def test_complete_idempotent_when_report_exists(
-    db_session, ph_app, language_en, stub_llm
-):
+async def test_complete_idempotent_when_report_exists(db_session, ph_app, language_en, stub_llm):
     interview, _, _, _, _ = await create_interview(
         db_session,
         project_name="X",
