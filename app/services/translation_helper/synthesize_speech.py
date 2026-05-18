@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
+from xml.sax.saxutils import escape as xml_escape
 
-from google.cloud import texttospeech
+from google.cloud import texttospeech_v1beta1 as texttospeech
 
 from app.core.exceptions import ValidationError
 from app.services.translation_helper.audio_cache import CachedAudio, audio_cache
@@ -30,6 +32,38 @@ VOICE_MAP: dict[str, dict[str, str]] = {
     "sv-SE": {"language_code": "sv-SE", "name": "sv-SE-Wavenet-A", "gender": "FEMALE"},
     "da-DK": {"language_code": "da-DK", "name": "da-DK-Wavenet-A", "gender": "FEMALE"},
 }
+
+
+_SENTENCE_RE = re.compile(r"[^.!?]*[.!?]+|[^.!?]+\Z", re.DOTALL)
+
+
+def split_sentences(text: str) -> list[str]:
+    """Split text into sentences. Mirrors the JS splitter in the UI so the
+    backend's mark order matches the frontend's sentence index."""
+    out: list[str] = []
+    for match in _SENTENCE_RE.finditer(text):
+        chunk = match.group(0).strip()
+        if chunk:
+            out.append(chunk)
+    return out
+
+
+def build_ssml(text: str) -> tuple[str, list[str]]:
+    """Wrap text in SSML with a <mark name="sN"/> before each sentence.
+
+    Returns (ssml_string, [mark_names_in_order]).
+    """
+    sentences = split_sentences(text)
+    parts = ["<speak>"]
+    mark_names: list[str] = []
+    for idx, sentence in enumerate(sentences):
+        name = f"s{idx}"
+        mark_names.append(name)
+        parts.append(f'<mark name="{name}"/>')
+        parts.append(xml_escape(sentence))
+        parts.append(" ")
+    parts.append("</speak>")
+    return "".join(parts), mark_names
 
 
 _client_singleton: texttospeech.TextToSpeechAsyncClient | None = None
@@ -77,9 +111,10 @@ async def synthesize_speech(
         texttospeech.SsmlVoiceGender, voice_cfg["gender"], texttospeech.SsmlVoiceGender.NEUTRAL
     )
 
+    ssml, _mark_names = build_ssml(text)
     tts_client = client or _make_client()
     request = texttospeech.SynthesizeSpeechRequest(
-        input=texttospeech.SynthesisInput(text=text),
+        input=texttospeech.SynthesisInput(ssml=ssml),
         voice=texttospeech.VoiceSelectionParams(
             language_code=voice_cfg["language_code"],
             name=voice_cfg["name"],
@@ -91,11 +126,19 @@ async def synthesize_speech(
             speaking_rate=1.0,
             pitch=0.0,
         ),
+        enable_time_pointing=[
+            texttospeech.SynthesizeSpeechRequest.TimepointType.SSML_MARK,
+        ],
     )
     response = await tts_client.synthesize_speech(request=request)
     audio_bytes = bytes(response.audio_content) if response.audio_content else b""
     if not audio_bytes:
         raise ValidationError("TTS returned empty audio content")
-    entry = audio_cache.put(cache_key, audio_bytes, mime_type="audio/mpeg")
+    timepoints: list[tuple[str, float]] = [
+        (tp.mark_name, float(tp.time_seconds)) for tp in getattr(response, "timepoints", [])
+    ]
+    entry = audio_cache.put(
+        cache_key, audio_bytes, mime_type="audio/mpeg", timepoints=timepoints
+    )
     await asyncio.sleep(0)
     return entry, False

@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import time
 from collections import OrderedDict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from threading import Lock
 
 
@@ -13,6 +13,7 @@ class CachedAudio:
     mime_type: str
     etag: str
     created_at: float
+    timepoints: list[tuple[str, float]] = field(default_factory=list)
 
 
 class AudioCache:
@@ -44,12 +45,19 @@ class AudioCache:
             self._entries.move_to_end(key)
             return entry
 
-    def put(self, key: str, audio: bytes, mime_type: str) -> CachedAudio:
+    def put(
+        self,
+        key: str,
+        audio: bytes,
+        mime_type: str,
+        timepoints: list[tuple[str, float]] | None = None,
+    ) -> CachedAudio:
         entry = CachedAudio(
             audio=audio,
             mime_type=mime_type,
             etag=self.make_etag(audio),
             created_at=time.time(),
+            timepoints=list(timepoints) if timepoints else [],
         )
         with self._lock:
             self._entries[key] = entry
