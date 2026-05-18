@@ -89,7 +89,7 @@ def create_app() -> FastAPI:
     app.state.limiter = limiter
     from slowapi import _rate_limit_exceeded_handler
     from slowapi.errors import RateLimitExceeded
-    from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
+    from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
