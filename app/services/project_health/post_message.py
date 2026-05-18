@@ -15,8 +15,13 @@ from app.services.project_health.get_interview import get_interview_or_404
 async def post_message(
     db: AsyncSession, interview_id: str, content: str
 ) -> tuple[MessageOut, CoverageState]:
-    """Append a team turn, run orchestration, persist facilitator reply + state."""
-    interview = await get_interview_or_404(db, interview_id)
+    """Append a team turn, run orchestration, persist facilitator reply + state.
+
+    Holds a `SELECT ... FOR UPDATE` row lock on the interview for the duration
+    of orchestration so concurrent POSTs serialize behind the same row instead
+    of stepping on each other's JSON-column writes.
+    """
+    interview = await get_interview_or_404(db, interview_id, for_update=True)
     if interview.status != PHInterviewStatus.IN_PROGRESS:
         raise ConflictError("Interview is no longer active")
 
