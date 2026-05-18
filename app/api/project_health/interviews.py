@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Body, Depends, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,7 +30,7 @@ router = APIRouter()
 @limiter.limit("10/minute")
 async def create_interview_endpoint(
     request: Request,
-    payload: InterviewCreate,
+    payload: InterviewCreate = Body(...),
     db: AsyncSession = Depends(get_db),
 ) -> InterviewCreateResponse:
     interview, token, expires_at, first_message, coverage = await ph_service.create_interview(
@@ -80,7 +80,7 @@ async def get_interview_endpoint(
 async def post_message_endpoint(
     request: Request,
     interview_id: str,
-    payload: MessageIn,
+    payload: MessageIn = Body(...),
     db: AsyncSession = Depends(get_db),
 ) -> InterviewMessageResponse:
     facilitator_message, coverage = await ph_service.post_message(db, interview_id, payload.content)
