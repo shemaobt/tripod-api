@@ -89,8 +89,7 @@ def _audio_response(
     return SimpleNamespace(
         audio_content=audio,
         timepoints=[
-            SimpleNamespace(mark_name=name, time_seconds=ts)
-            for name, ts in (timepoints or [])
+            SimpleNamespace(mark_name=name, time_seconds=ts) for name, ts in (timepoints or [])
         ],
     )
 
@@ -227,9 +226,7 @@ def test_build_ssml_escapes_xml_special_chars() -> None:
     ssml, _ = build_ssml("Tom & Jerry said <hi> to her.")
     assert "&amp;" in ssml
     assert "&lt;hi&gt;" in ssml
-    assert "<hi>" not in ssml.replace("<mark", "").replace("<speak", "").replace(
-        "</speak", ""
-    )
+    assert "<hi>" not in ssml.replace("<mark", "").replace("<speak", "").replace("</speak", "")
 
 
 def test_build_ssml_no_marks_for_empty_text() -> None:
@@ -263,9 +260,7 @@ async def test_synthesize_speech_returns_timepoints_from_tts() -> None:
 @pytest.mark.asyncio
 async def test_synthesize_speech_sends_ssml_with_marks() -> None:
     audio_cache.clear()
-    fake_client = SimpleNamespace(
-        synthesize_speech=AsyncMock(return_value=_audio_response(b"MP3"))
-    )
+    fake_client = SimpleNamespace(synthesize_speech=AsyncMock(return_value=_audio_response(b"MP3")))
     await synthesize_speech("Hi. There.", language_code="en-US", client=fake_client)
     request = fake_client.synthesize_speech.await_args.kwargs["request"]
     assert request.input.ssml.startswith("<speak>")
