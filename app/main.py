@@ -31,6 +31,7 @@ from app.api.organizations import router as organizations_router
 from app.api.pericopes import router as pericopes_router
 from app.api.phases import router as phases_router
 from app.api.places import router as places_router
+from app.api.project_health import router as project_health_router
 from app.api.projects import router as projects_router
 from app.api.rag import router as rag_router
 from app.api.roles import router as roles_router
@@ -111,6 +112,11 @@ def create_app() -> FastAPI:
     app.include_router(books_router, prefix="/api/books", tags=["books"])
     app.include_router(pericopes_router, prefix="/api/pericopes", tags=["pericopes"])
     app.include_router(meaning_maps_router, prefix="/api/meaning-maps", tags=["meaning-maps"])
+    app.include_router(
+        project_health_router,
+        prefix="/api/project-health",
+        tags=["project-health"],
+    )
     app.include_router(
         translation_helper_router,
         prefix="/api/translation-helper",
