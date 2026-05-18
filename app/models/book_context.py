@@ -1,9 +1,16 @@
 from datetime import datetime
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field
 
 from app.db.models.book_context import BCDStatus
+
+
+class EntryProvenance(StrEnum):
+    AI = "ai"
+    AI_EDITED = "ai_edited"
+    HUMAN = "human"
 
 
 class VerseRef(BaseModel):
@@ -37,6 +44,7 @@ class BCDParticipantEntry(BaseModel):
     what_audience_knows_at_entry: str = ""
     arc: list[ArcEntry] = Field(default_factory=list)
     status_at_end: str = ""
+    provenance: EntryProvenance = EntryProvenance.AI
 
 
 class BCDDiscourseThread(BaseModel):
@@ -48,6 +56,7 @@ class BCDDiscourseThread(BaseModel):
     question: str
     status_by_episode: list[EpisodeStatus] = Field(default_factory=list)
     is_resolved_at_entry: bool | None = None
+    provenance: EntryProvenance = EntryProvenance.AI
 
 
 class BCDPlace(BaseModel):
@@ -61,6 +70,7 @@ class BCDPlace(BaseModel):
     meaning_and_function: str = ""
     appears_in: list[VerseRef] = Field(default_factory=list)
     appearance_count: int = 0
+    provenance: EntryProvenance = EntryProvenance.AI
 
 
 class BCDObject(BaseModel):
@@ -73,6 +83,7 @@ class BCDObject(BaseModel):
     what_it_is: str = ""
     meaning_across_scenes: str = ""
     appears_in: list[VerseRef] = Field(default_factory=list)
+    provenance: EntryProvenance = EntryProvenance.AI
 
 
 class BCDInstitution(BaseModel):
@@ -85,6 +96,7 @@ class BCDInstitution(BaseModel):
     what_it_is: str = ""
     role_in_book: str = ""
     appears_in: list[VerseRef] = Field(default_factory=list)
+    provenance: EntryProvenance = EntryProvenance.AI
 
 
 class BCDCreateRequest(BaseModel):
@@ -171,10 +183,13 @@ class BCDListResponse(BaseModel):
 
 
 class ChapterOutline(BaseModel):
+    model_config = {"extra": "allow"}
+
     chapter: int
     title: str
     summary: str
     key_events: list[str] = Field(default_factory=list)
+    provenance: EntryProvenance = EntryProvenance.AI
 
 
 class StructuralOutline(BaseModel):

@@ -4,6 +4,7 @@ from app.models.book_context import ArcEntry as ArcEntrySchema
 from app.models.book_context import BCDInstitution as InstitutionSchema
 from app.models.book_context import BCDObject as ObjectSchema
 from app.models.book_context import BCDPlace as PlaceSchema
+from app.models.book_context import EntryProvenance
 from app.models.book_context import EpisodeStatus as EpisodeStatusSchema
 from app.models.book_context import GenreContext as GenreContextSchema
 from app.models.book_context import MaintenanceNotes as MaintenanceNotesSchema
@@ -25,6 +26,7 @@ class ParticipantSchema(BaseModel):
     what_audience_knows_at_entry: str = ""
     arc: list[ArcEntrySchema] = Field(default_factory=list)
     status_at_end: str = ""
+    provenance: EntryProvenance = EntryProvenance.AI
 
 
 class ParticipantRegisterSchema(BaseModel):
@@ -37,6 +39,7 @@ class DiscourseThreadSchema(BaseModel):
     resolved_at: VerseRefSchema | None = None
     question: str
     status_by_episode: list[EpisodeStatusSchema] = Field(default_factory=list)
+    provenance: EntryProvenance = EntryProvenance.AI
 
 
 class DiscourseThreadsSchema(BaseModel):
