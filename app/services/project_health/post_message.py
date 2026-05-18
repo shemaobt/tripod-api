@@ -12,6 +12,33 @@ from app.services.project_health.agents.orchestrator import orchestrate_turn
 from app.services.project_health.get_interview import get_interview_or_404
 from app.services.project_health.interview_rules import MAX_TEAM_TURNS_HARD
 
+MAX_TEAM_TURNS_MESSAGES: dict[str, str] = {
+    "en": (
+        f"This interview has reached its maximum length of {MAX_TEAM_TURNS_HARD} "
+        "team turns. Please finish the interview to receive your report."
+    ),
+    "pt": (
+        f"Esta entrevista atingiu o tamanho máximo de {MAX_TEAM_TURNS_HARD} "
+        "turnos da equipe. Por favor, finalize a entrevista para receber seu relatório."
+    ),
+    "es": (
+        f"Esta entrevista ha alcanzado su duración máxima de {MAX_TEAM_TURNS_HARD} "
+        "turnos del equipo. Por favor, finalice la entrevista para recibir su informe."
+    ),
+    "fr": (
+        f"Cet entretien a atteint sa durée maximale de {MAX_TEAM_TURNS_HARD} "
+        "tours d'équipe. Veuillez terminer l'entretien pour recevoir votre rapport."
+    ),
+    "id": (
+        f"Wawancara ini telah mencapai panjang maksimum {MAX_TEAM_TURNS_HARD} "
+        "giliran tim. Silakan akhiri wawancara untuk menerima laporan Anda."
+    ),
+    "sw": (
+        f"Mahojiano haya yamefikia urefu wa juu wa zamu {MAX_TEAM_TURNS_HARD} "
+        "za timu. Tafadhali maliza mahojiano ili kupokea ripoti yako."
+    ),
+}
+
 
 async def post_message(
     db: AsyncSession, interview_id: str, content: str
@@ -29,8 +56,7 @@ async def post_message(
     team_turn_count = sum(1 for m in (interview.messages or []) if m.get("role") == "team")
     if team_turn_count >= MAX_TEAM_TURNS_HARD:
         raise ConflictError(
-            f"Interview has reached its maximum length of {MAX_TEAM_TURNS_HARD} "
-            "team turns. Please finish the interview to generate the report."
+            MAX_TEAM_TURNS_MESSAGES.get(interview.language.value, MAX_TEAM_TURNS_MESSAGES["en"])
         )
 
     team_turn = MessageOut(
