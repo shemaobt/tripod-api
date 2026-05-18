@@ -33,6 +33,12 @@ from app.db.models.project import (
     ProjectOrganizationAccess,
     ProjectUserAccess,
 )
+from app.db.models.project_health import (
+    PHInterview,
+    PHInterviewStatus,
+    PHLanguage,
+    PHReport,
+)
 from app.db.models.translation_helper import (
     AgentId,
     ChatMessageRole,
@@ -63,6 +69,10 @@ __all__ = [
     "Organization",
     "OrganizationMember",
     "Pericope",
+    "PHInterview",
+    "PHInterviewStatus",
+    "PHLanguage",
+    "PHReport",
     "Permission",
     "Phase",
     "PhaseDependency",
