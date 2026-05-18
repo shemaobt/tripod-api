@@ -24,9 +24,7 @@ def _patch_stream(monkeypatch, chunks: list[str]) -> None:
     monkeypatch.setattr(_STREAM_MOD, "_stream_chunks", fake_stream)
 
 
-def _patch_stream_then_raise(
-    monkeypatch, chunks_before_error: list[str], exc: Exception
-) -> None:
+def _patch_stream_then_raise(monkeypatch, chunks_before_error: list[str], exc: Exception) -> None:
     async def fake_stream(*, system_prompt, contents, settings) -> AsyncIterator[str]:
         for c in chunks_before_error:
             yield c

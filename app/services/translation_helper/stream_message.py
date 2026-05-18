@@ -101,6 +101,4 @@ async def stream_message(
                         chat.title = _fallback_title(content)
                 await db.commit()
         except Exception as e:
-            logger.warning(
-                "Failed to persist assistant turn for chat %s: %s", chat.id, e
-            )
+            logger.warning("Failed to persist assistant turn for chat %s: %s", chat.id, e)
