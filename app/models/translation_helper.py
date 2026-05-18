@@ -72,15 +72,11 @@ class AgentInfoResponse(BaseModel):
     id: AgentId
     name: str
     description: str
-    short: str
-    icon: str
-    starters: list[str]
     prompt_version: int | None = None
 
 
 class TranscribeResponse(BaseModel):
     text: str
-    duration_sec: float | None = None
 
 
 class SpeakRequest(BaseModel):
