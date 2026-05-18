@@ -13,6 +13,4 @@ async def assign_role(
     role_key: str,
 ) -> UserAppRole:
     await assert_can_manage_roles(db, actor_user, app_key)
-    return await grant_app_role(
-        db, target_user_id, app_key, role_key, granted_by=actor_user.id
-    )
+    return await grant_app_role(db, target_user_id, app_key, role_key, granted_by=actor_user.id)

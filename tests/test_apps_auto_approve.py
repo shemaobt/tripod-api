@@ -25,9 +25,7 @@ async def test_create_app_defaults_auto_approve_to_false(db_session) -> None:
 
 @pytest.mark.asyncio
 async def test_create_app_can_set_auto_approve_true(db_session) -> None:
-    new_app = await create_app(
-        db_session, app_key="new-app", name="New App", auto_approve=True
-    )
+    new_app = await create_app(db_session, app_key="new-app", name="New App", auto_approve=True)
     assert new_app.auto_approve is True
 
 
@@ -83,8 +81,10 @@ async def test_create_access_request_idempotent_returns_existing_when_auto_appro
     assert first.id == second.id
 
     role_rows = (
-        await db_session.execute(select(UserAppRole).where(UserAppRole.user_id == user.id))
-    ).scalars().all()
+        (await db_session.execute(select(UserAppRole).where(UserAppRole.user_id == user.id)))
+        .scalars()
+        .all()
+    )
     assert len(role_rows) == 1
 
 
@@ -105,10 +105,10 @@ async def test_update_app_turning_auto_approve_on_retroactively_approves_pending
     await update_app(db_session, th_app.id, auto_approve=True, actor=admin)
 
     pending_rows = (
-        await db_session.execute(
-            select(AccessRequest).where(AccessRequest.app_id == th_app.id)
-        )
-    ).scalars().all()
+        (await db_session.execute(select(AccessRequest).where(AccessRequest.app_id == th_app.id)))
+        .scalars()
+        .all()
+    )
     statuses = {r.status for r in pending_rows}
     assert statuses == {"approved"}
     for r in pending_rows:

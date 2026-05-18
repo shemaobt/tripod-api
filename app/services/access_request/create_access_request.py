@@ -47,9 +47,7 @@ async def create_access_request(
         request.reviewed_at = datetime.now(UTC)
         request.review_reason = "auto-approved"
         db.add(request)
-        await grant_app_role(
-            db, user_id, app.app_key, default_role_for(app.app_key), commit=False
-        )
+        await grant_app_role(db, user_id, app.app_key, default_role_for(app.app_key), commit=False)
         await db.commit()
         await db.refresh(request)
         return request
