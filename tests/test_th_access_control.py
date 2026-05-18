@@ -65,9 +65,7 @@ async def test_review_approve_grants_user_role_for_translation_helper(db_session
     admin = await make_user(db_session, email="th_admin@test.com", is_platform_admin=True)
     access_request = await make_access_request(db_session, requester.id, th_app.id)
 
-    reviewed = await review_access_request(
-        db_session, admin, access_request.id, status="approved"
-    )
+    reviewed = await review_access_request(db_session, admin, access_request.id, status="approved")
     assert reviewed.status == "approved"
 
     granted_roles = await list_roles(db_session, requester.id, "translation-helper")
@@ -78,9 +76,7 @@ async def test_review_approve_grants_user_role_for_translation_helper(db_session
 async def test_review_approve_grants_analyst_role_for_meaning_map(db_session) -> None:
     """Mirror of the TH test — confirms the legacy meaning-map flow is unbroken."""
     mm_app = (
-        await db_session.execute(
-            select(App).where(App.app_key == "meaning-map-generator")
-        )
+        await db_session.execute(select(App).where(App.app_key == "meaning-map-generator"))
     ).scalar_one()
     await make_role(db_session, mm_app.id, role_key="analyst", label="Analyst", is_system=True)
 
@@ -88,9 +84,7 @@ async def test_review_approve_grants_analyst_role_for_meaning_map(db_session) ->
     admin = await make_user(db_session, email="mm_admin@test.com", is_platform_admin=True)
     access_request = await make_access_request(db_session, requester.id, mm_app.id)
 
-    reviewed = await review_access_request(
-        db_session, admin, access_request.id, status="approved"
-    )
+    reviewed = await review_access_request(db_session, admin, access_request.id, status="approved")
     assert reviewed.status == "approved"
 
     granted_roles = await list_roles(db_session, requester.id, "meaning-map-generator")
