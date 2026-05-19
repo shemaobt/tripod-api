@@ -17,6 +17,7 @@ from app.services.project_health.get_interview import get_interview_or_404
 from app.services.project_health.interview_rules import (
     MIN_TEAM_TURNS,
     can_complete_interview,
+    can_force_complete_interview,
     get_missing_domains,
     get_missing_opening_fields,
     normalize_coverage_state,
@@ -56,9 +57,17 @@ BLOCKED_MESSAGES = {
 }
 
 
-async def complete_interview(db: AsyncSession, interview_id: str) -> tuple[str, TeamReport]:
+async def complete_interview(
+    db: AsyncSession, interview_id: str, *, force: bool = False
+) -> tuple[str, TeamReport]:
     """Generate team + admin reports and persist them. Idempotent: returns the
-    existing report if one was previously generated for this interview."""
+    existing report if one was previously generated for this interview.
+
+    If ``force`` is True, the looser ``can_force_complete_interview`` gate is
+    used and the generated team report is annotated with ``partial_coverage``
+    plus the list of missing domains. Intended for admin rescue of interviews
+    that stalled before reaching full domain breadth.
+    """
     interview = await get_interview_or_404(db, interview_id)
     if interview.status == PHInterviewStatus.COMPLETED:
         existing = await _fetch_existing_report(db, interview_id)
@@ -76,7 +85,12 @@ async def complete_interview(db: AsyncSession, interview_id: str) -> tuple[str, 
 
     coverage = normalize_coverage_state(interview.coverage_state)
     team_turn_count = sum(1 for m in (interview.messages or []) if m.get("role") == "team")
-    if not can_complete_interview(coverage, team_turn_count):
+    gate_ok = (
+        can_force_complete_interview(coverage, team_turn_count)
+        if force
+        else can_complete_interview(coverage, team_turn_count)
+    )
+    if not gate_ok:
         blocked = InterviewCompleteBlockedResponse(
             error=BLOCKED_MESSAGES.get(interview.language.value, BLOCKED_MESSAGES["en"]),
             completion_ready=False,
@@ -87,12 +101,17 @@ async def complete_interview(db: AsyncSession, interview_id: str) -> tuple[str, 
         )
         raise InterviewIncompleteError(blocked)
 
+    missing_domains = get_missing_domains(coverage)
     team_report, admin_report = await generate_reports(
         messages=interview.messages or [],
         evidence=interview.evidence or [],
         language=interview.language,
         coverage=coverage,
     )
+    if force and missing_domains:
+        team_report = team_report.model_copy(
+            update={"partial_coverage": True, "missing_domains": missing_domains}
+        )
 
     report = PHReport(
         interview_id=interview.id,

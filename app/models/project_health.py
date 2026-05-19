@@ -82,6 +82,8 @@ class TeamReport(BaseModel):
     growth_areas: list[str] = Field(default_factory=list)
     next_steps: list[str] = Field(default_factory=list)
     closing: str = ""
+    partial_coverage: bool = False
+    missing_domains: list[str] = Field(default_factory=list)
 
 
 class AdminReport(BaseModel):
