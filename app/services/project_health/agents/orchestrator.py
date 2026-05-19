@@ -103,7 +103,7 @@ async def generate_facilitator_response(
         contents=contents,
         model=QUALITY_MODEL,
         temperature=0.6,
-        max_output_tokens=500,
+        max_output_tokens=1500,
     )
 
 
