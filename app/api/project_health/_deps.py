@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import Depends, Header
 
 from app.core.access_control import require_app_access, require_role
+from app.core.auth_middleware import require_platform_admin
 from app.core.exceptions import AuthenticationError, AuthorizationError
 from app.services.project_health.interview_token import (
     InterviewTokenClaims,
@@ -12,6 +13,7 @@ from app.services.project_health.interview_token import (
 PH_APP_KEY = "project-health"
 ph_access = require_app_access(PH_APP_KEY)
 ph_admin = require_role(PH_APP_KEY, "admin")
+ph_platform_admin = Depends(require_platform_admin)
 
 
 def _extract_bearer_token(authorization: str | None) -> str:
