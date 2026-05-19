@@ -103,6 +103,7 @@ async def complete_interview(
 
     missing_domains = get_missing_domains(coverage)
     team_report, admin_report = await generate_reports(
+        db=db,
         messages=interview.messages or [],
         evidence=interview.evidence or [],
         language=interview.language,

@@ -4,6 +4,8 @@ import asyncio
 import json
 from typing import Any
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.db.models.project_health import PHLanguage
 from app.models.project_health import (
     DOMAIN_KEYS,
@@ -40,11 +42,11 @@ def _transcript(messages: list[dict[str, Any]]) -> str:
 
 
 async def plan_coverage(
-    messages: list[dict[str, Any]], language: PHLanguage
+    db: AsyncSession, messages: list[dict[str, Any]], language: PHLanguage
 ) -> tuple[CoverageState, str]:
     transcript = _transcript(messages)
     raw = await call_agent(
-        system_prompt=coverage_planner_prompt(language),
+        system_prompt=await coverage_planner_prompt(db, language),
         user_content=f"Interview transcript so far:\n{transcript}",
         model=FAST_MODEL,
         temperature=0.4,
@@ -64,7 +66,9 @@ async def plan_coverage(
 
 
 async def extract_evidence(
-    messages: list[dict[str, Any]], existing: list[dict[str, Any]]
+    db: AsyncSession,
+    messages: list[dict[str, Any]],
+    existing: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     last_idx = len(messages) - 1
     context_start = max(0, last_idx - 3)
@@ -74,7 +78,7 @@ async def extract_evidence(
         for i, m in enumerate(context_messages)
     )
     raw = await call_agent(
-        system_prompt=evidence_mapper_prompt(),
+        system_prompt=await evidence_mapper_prompt(db),
         user_content=(
             f"Recent conversation context:\n{transcript}\n\n"
             f"Existing evidence count: {len(existing)}\n"
@@ -91,9 +95,12 @@ async def extract_evidence(
 
 
 async def generate_facilitator_response(
-    messages: list[dict[str, Any]], language: PHLanguage, coverage_hint: str
+    db: AsyncSession,
+    messages: list[dict[str, Any]],
+    language: PHLanguage,
+    coverage_hint: str,
 ) -> str:
-    system_prompt = facilitator_system_prompt(language, coverage_hint)
+    system_prompt = await facilitator_system_prompt(db, language, coverage_hint)
     contents: list[dict[str, Any]] = []
     for msg in messages:
         role = "model" if msg["role"] == "facilitator" else "user"
@@ -107,9 +114,9 @@ async def generate_facilitator_response(
     )
 
 
-async def check_guardrails(proposed_response: str) -> dict[str, Any]:
+async def check_guardrails(db: AsyncSession, proposed_response: str) -> dict[str, Any]:
     raw = await call_agent(
-        system_prompt=guardrail_prompt(),
+        system_prompt=await guardrail_prompt(db),
         user_content=f'Proposed facilitator response:\n"{proposed_response}"',
         model=FAST_MODEL,
         temperature=0.2,
@@ -119,23 +126,24 @@ async def check_guardrails(proposed_response: str) -> dict[str, Any]:
 
 
 async def orchestrate_turn(
+    db: AsyncSession,
     messages: list[dict[str, Any]],
     evidence: list[dict[str, Any]],
     language: PHLanguage,
 ) -> tuple[str, CoverageState, list[dict[str, Any]]]:
     if len(messages) > 1:
         coverage_pair, updated_evidence = await asyncio.gather(
-            plan_coverage(messages, language),
-            extract_evidence(messages, evidence),
+            plan_coverage(db, messages, language),
+            extract_evidence(db, messages, evidence),
         )
     else:
-        coverage_pair = await plan_coverage(messages, language)
+        coverage_pair = await plan_coverage(db, messages, language)
         updated_evidence = evidence
 
     coverage, coverage_hint = coverage_pair
 
-    response = await generate_facilitator_response(messages, language, coverage_hint)
-    guardrail = await check_guardrails(response)
+    response = await generate_facilitator_response(db, messages, language, coverage_hint)
+    guardrail = await check_guardrails(db, response)
     if not guardrail.get("approved", True):
         violations = ", ".join(guardrail.get("violations", []) or [])
         fix = guardrail.get("suggested_fix", "")
@@ -143,15 +151,14 @@ async def orchestrate_turn(
             f"{coverage_hint}\n\nIMPORTANT: Your previous response was flagged for: "
             f"{violations}. Fix: {fix}. Try again."
         )
-        response = await generate_facilitator_response(messages, language, adjusted_hint)
+        response = await generate_facilitator_response(db, messages, language, adjusted_hint)
 
     return response, coverage, updated_evidence
 
 
-async def score_interview(evidence: list[dict[str, Any]]) -> list[DomainScore]:
-
+async def score_interview(db: AsyncSession, evidence: list[dict[str, Any]]) -> list[DomainScore]:
     raw = await call_agent(
-        system_prompt=scoring_prompt(),
+        system_prompt=await scoring_prompt(db),
         user_content=f"Evidence items:\n{json.dumps(evidence, indent=2)}",
         model=QUALITY_MODEL,
         temperature=0.4,
@@ -176,11 +183,12 @@ async def score_interview(evidence: list[dict[str, Any]]) -> list[DomainScore]:
 
 
 async def extract_interview_context(
+    db: AsyncSession,
     messages: list[dict[str, Any]],
 ) -> InterviewContext:
     transcript = "\n".join(f"[{i + 1}][{m['role']}] {m['content']}" for i, m in enumerate(messages))
     raw = await call_agent(
-        system_prompt=interview_context_prompt(),
+        system_prompt=await interview_context_prompt(db),
         user_content=f"Interview transcript:\n{transcript}",
         model=FAST_MODEL,
         temperature=0.1,
@@ -192,6 +200,7 @@ async def extract_interview_context(
 
 async def generate_team_report(
     *,
+    db: AsyncSession,
     messages: list[dict[str, Any]],
     evidence: list[dict[str, Any]],
     scores: list[DomainScore],
@@ -211,7 +220,7 @@ async def generate_team_report(
         indent=2,
     )
     raw = await call_agent(
-        system_prompt=team_report_prompt(language),
+        system_prompt=await team_report_prompt(db, language),
         user_content=(
             f"Project conversation transcript:\n{transcript}\n\n"
             f"Structured interview data:\n{payload}"
@@ -237,6 +246,7 @@ async def generate_team_report(
 
 async def generate_admin_report(
     *,
+    db: AsyncSession,
     evidence: list[dict[str, Any]],
     scores: list[DomainScore],
     coverage: CoverageState,
@@ -256,7 +266,7 @@ async def generate_admin_report(
         indent=2,
     )
     raw = await call_agent(
-        system_prompt=admin_report_prompt(),
+        system_prompt=await admin_report_prompt(db),
         user_content=f"Scoring and evidence data:\n{payload}",
         model=QUALITY_MODEL,
         temperature=0.4,
@@ -294,15 +304,17 @@ async def generate_admin_report(
 
 async def generate_reports(
     *,
+    db: AsyncSession,
     messages: list[dict[str, Any]],
     evidence: list[dict[str, Any]],
     language: PHLanguage,
     coverage: CoverageState,
 ) -> tuple[TeamReport, AdminReport]:
-    scores = await score_interview(evidence)
-    interview_context = await extract_interview_context(messages)
+    scores = await score_interview(db, evidence)
+    interview_context = await extract_interview_context(db, messages)
     team_report, admin_report = await asyncio.gather(
         generate_team_report(
+            db=db,
             messages=messages,
             evidence=evidence,
             scores=scores,
@@ -311,6 +323,7 @@ async def generate_reports(
             interview_context=interview_context,
         ),
         generate_admin_report(
+            db=db,
             evidence=evidence,
             scores=scores,
             coverage=coverage,

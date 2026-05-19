@@ -67,7 +67,7 @@ async def post_message(
     messages = [*(interview.messages or []), team_turn.model_dump()]
 
     response, coverage, updated_evidence = await orchestrate_turn(
-        messages, interview.evidence or [], interview.language
+        db, messages, interview.evidence or [], interview.language
     )
 
     facilitator_turn = MessageOut(

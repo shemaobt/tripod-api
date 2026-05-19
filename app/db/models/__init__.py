@@ -34,6 +34,7 @@ from app.db.models.project import (
     ProjectUserAccess,
 )
 from app.db.models.project_health import (
+    PHAgentPrompt,
     PHInterview,
     PHInterviewStatus,
     PHLanguage,
@@ -68,6 +69,7 @@ __all__ = [
     "OC_Subcategory",
     "Organization",
     "OrganizationMember",
+    "PHAgentPrompt",
     "PHInterview",
     "PHInterviewStatus",
     "PHLanguage",
