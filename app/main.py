@@ -46,6 +46,7 @@ from app.core.qdrant import close_qdrant, init_qdrant
 from app.core.rate_limit import limiter
 from app.services.bhsa import loader
 from app.services.meaning_map.seed_books import seed_books
+from app.services.project_health.prompts.seed_prompts import seed_default_prompts
 from app.services.translation_helper.seed_agent_prompts import seed_agent_prompts
 
 
@@ -71,6 +72,12 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         if seeded_prompts:
             print(
                 f"[STARTUP] Seeded {seeded_prompts} translation-helper agent prompts.",
+                flush=True,
+            )
+        seeded_ph_prompts = await seed_default_prompts(db)
+        if seeded_ph_prompts:
+            print(
+                f"[STARTUP] Seeded {seeded_ph_prompts} project-health agent prompts.",
                 flush=True,
             )
     await init_qdrant()
