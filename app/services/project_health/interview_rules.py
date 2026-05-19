@@ -75,3 +75,11 @@ def can_complete_interview(coverage: CoverageState, team_turn_count: int) -> boo
         and not get_missing_opening_fields(coverage)
         and not get_missing_domains(coverage)
     )
+
+
+def can_force_complete_interview(coverage: CoverageState, team_turn_count: int) -> bool:
+    """Looser gate used by the admin force-complete path. Requires the minimum
+    number of team turns and all opening fields, but tolerates missing domain
+    coverage so an admin can rescue interviews that stalled before reaching
+    full breadth."""
+    return team_turn_count >= MIN_TEAM_TURNS and not get_missing_opening_fields(coverage)
