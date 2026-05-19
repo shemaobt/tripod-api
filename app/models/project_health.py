@@ -198,3 +198,26 @@ class AdminInviteResponse(BaseModel):
     pre_approved_role: str
     access_request_id: str | None = None
     granted: bool
+
+
+class AgentPromptResponse(BaseModel):
+    id: str
+    prompt_key: str
+    name: str
+    description: str
+    template: str
+    placeholders: list[str]
+    version: int
+    updated_by: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class AgentPromptListResponse(BaseModel):
+    prompts: list[AgentPromptResponse]
+
+
+class AgentPromptUpdateRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    description: str | None = None
+    template: str | None = None
