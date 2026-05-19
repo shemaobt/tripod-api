@@ -1,5 +1,9 @@
 from app.services.project_health.complete_interview import complete_interview
 from app.services.project_health.create_interview import create_interview
+from app.services.project_health.delete_interview import delete_interview
+from app.services.project_health.get_admin_interview_detail import (
+    get_admin_interview_detail,
+)
 from app.services.project_health.get_admin_report import get_admin_report
 from app.services.project_health.get_interview import get_interview_or_404
 from app.services.project_health.get_team_report import get_team_report
@@ -39,7 +43,9 @@ __all__ = [
     "create_initial_opening_field_state",
     "create_interview",
     "decode_interview_token",
+    "delete_interview",
     "encode_interview_token",
+    "get_admin_interview_detail",
     "get_admin_report",
     "get_covered_domains",
     "get_interview_or_404",

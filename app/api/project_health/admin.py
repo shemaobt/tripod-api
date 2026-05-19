@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Response, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.project_health._deps import ph_admin
+from app.api.project_health._deps import ph_admin, ph_platform_admin
 from app.core.auth_middleware import get_current_user
 from app.core.database import get_db
 from app.db.models.auth import User
@@ -13,7 +13,9 @@ from app.models.project_health import (
     AdminInviteRequest,
     AdminInviteResponse,
     InterviewCompleteResponse,
+    InterviewDetailResponse,
     InterviewSummary,
+    MessageOut,
     ReportSummary,
 )
 from app.services import project_health_service as ph_service
@@ -68,3 +70,40 @@ async def admin_force_complete_interview_endpoint(
             content=exc.payload.model_dump(),
         )
     return InterviewCompleteResponse(report_id=report_id, team_report=team_report)
+
+
+@router.get(
+    "/admin/interviews/{interview_id}",
+    response_model=InterviewDetailResponse,
+    dependencies=[ph_admin],
+)
+async def admin_get_interview_endpoint(
+    interview_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> InterviewDetailResponse:
+    interview = await ph_service.get_admin_interview_detail(db, interview_id)
+    coverage = ph_service.normalize_coverage_state(interview.coverage_state)
+    return InterviewDetailResponse(
+        id=interview.id,
+        project_name=interview.project_name,
+        team_name=interview.team_name,
+        language=interview.language,
+        status=interview.status,
+        messages=[MessageOut.model_validate(m) for m in interview.messages or []],
+        coverage=coverage,
+        created_at=interview.created_at,
+        completed_at=interview.completed_at,
+    )
+
+
+@router.delete(
+    "/admin/interviews/{interview_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[ph_platform_admin],
+)
+async def admin_delete_interview_endpoint(
+    interview_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    await ph_service.delete_interview(db, interview_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
