@@ -4,11 +4,10 @@ from app.models.book_context import ArcEntry as ArcEntrySchema
 from app.models.book_context import BCDInstitution as InstitutionSchema
 from app.models.book_context import BCDObject as ObjectSchema
 from app.models.book_context import BCDPlace as PlaceSchema
-from app.models.book_context import EntryProvenance
+from app.models.book_context import EntryProvenance, ParticipantType
 from app.models.book_context import EpisodeStatus as EpisodeStatusSchema
 from app.models.book_context import GenreContext as GenreContextSchema
 from app.models.book_context import MaintenanceNotes as MaintenanceNotesSchema
-from app.models.book_context import ParticipantType
 from app.models.book_context import StructuralOutline as StructuralOutlineSchema  # noqa: F401
 from app.models.book_context import VerseRef as VerseRefSchema
 
