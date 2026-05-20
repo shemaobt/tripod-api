@@ -13,3 +13,4 @@ test.db
 scripts/seed_initial_users.py
 scripts/grant-secret-access.sh
 gcs-signing-key.json
+.worktrees/
