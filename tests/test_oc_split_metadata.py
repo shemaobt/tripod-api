@@ -1,20 +1,20 @@
-"""Tests for parent → child metadata propagation in the /split flow.
-
-Asserts the field-propagation contract documented in the client repo's
-`docs/recording-split-semantics.md`. See ENG-64.
-"""
+"""Tests for parent → child metadata propagation in the /split flow (ENG-64)."""
 
 from datetime import UTC, datetime
 
+import inngest
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.enums import CleaningStatus, SplittingStatus, UploadStatus
+from app.core.enums import CleaningStatus, OCRecordingEvent, SplittingStatus, UploadStatus
 from app.db.models.oc_genre import OC_Genre, OC_Subcategory
 from app.db.models.oc_recording import OC_Recording
 from app.db.models.oc_storyteller import OC_Storyteller
 from app.inngest.audio_splitting import persist_split_segments
 from app.inngest.schemas import SegmentResult, SplitRequestedPayload, SplitSegmentData
+from app.models.oc_recording import SplitSegment
+from app.services.oral_collector import split_service
+from app.services.oral_collector.split_service import request_split
 from tests.baker import make_language, make_project, make_user
 
 pytest.importorskip("app.inngest")
@@ -374,6 +374,62 @@ async def test_persist_split_segments_keeps_nulls_as_nulls_when_parent_has_no_me
     assert child.secondary_genre_id is None
     assert child.secondary_subcategory_id is None
     assert child.secondary_register_id is None
+
+
+@pytest.mark.asyncio
+async def test_request_split_snapshots_parent_metadata_into_payload(
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user = await make_user(db_session)
+    lang = await make_language(db_session)
+    project = await make_project(db_session, lang.id)
+    pg, ps, sg, ss = await _seed_two_genres(db_session)
+    storyteller = await _seed_storyteller(db_session, project.id)
+    parent = await _seed_parent_with_full_metadata(
+        db_session,
+        user_id=user.id,
+        project_id=project.id,
+        primary_genre_id=pg.id,
+        primary_subcategory_id=ps.id,
+        primary_register_id="formal",
+        secondary_genre_id=sg.id,
+        secondary_subcategory_id=ss.id,
+        secondary_register_id="casual",
+        storyteller_id=storyteller.id,
+        description="An old story about the river",
+    )
+
+    captured: list[inngest.Event] = []
+
+    async def fake_send(event: inngest.Event) -> list[str]:
+        captured.append(event)
+        return []
+
+    monkeypatch.setattr(split_service.inngest_client, "send", fake_send)
+
+    result = await request_split(
+        db_session,
+        parent.id,
+        [
+            SplitSegment(start_seconds=0.0, end_seconds=10.0),
+            SplitSegment(start_seconds=10.0, end_seconds=20.0),
+        ],
+        user.id,
+    )
+
+    assert result.id == parent.id
+    assert result.splitting_status == SplittingStatus.SPLITTING
+
+    assert len(captured) == 1
+    event = captured[0]
+    assert event.name == OCRecordingEvent.SPLIT_REQUESTED
+    assert event.data["recording_id"] == parent.id
+    assert event.data["description"] == "An old story about the river"
+    assert event.data["storyteller_id"] == storyteller.id
+    assert event.data["secondary_genre_id"] == sg.id
+    assert event.data["secondary_subcategory_id"] == ss.id
+    assert event.data["secondary_register_id"] == "casual"
 
 
 def test_split_requested_payload_round_trips_inherited_metadata_fields() -> None:
