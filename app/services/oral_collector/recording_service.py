@@ -320,6 +320,7 @@ async def confirm_upload(
     recording_id: str,
     *,
     md5_hash: str | None = None,
+    crc32c: str | None = None,
 ) -> OC_Recording:
     recording = await get_recording(db, recording_id)
 
@@ -336,6 +337,7 @@ async def confirm_upload(
         expected_blob_path=blob_path,
         expected_size_bytes=recording.file_size_bytes,
         expected_md5_hash=md5_hash,
+        expected_crc32c=crc32c,
     )
     await inngest_client.send(
         inngest.Event(name=OCRecordingEvent.UPLOAD_CONFIRMED, data=payload.model_dump())
