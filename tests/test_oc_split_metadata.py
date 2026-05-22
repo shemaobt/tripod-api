@@ -407,5 +407,3 @@ def test_split_requested_payload_round_trips_inherited_metadata_fields() -> None
     assert rehydrated.secondary_genre_id == "sg-1"
     assert rehydrated.secondary_subcategory_id == "ss-1"
     assert rehydrated.secondary_register_id == "sr-1"
-
-

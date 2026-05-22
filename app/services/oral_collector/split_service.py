@@ -172,5 +172,3 @@ async def get_split_status(db: AsyncSession, recording_id: str) -> tuple[OC_Reco
         segment_ids = list(result.scalars().all())
 
     return recording, segment_ids
-
-
