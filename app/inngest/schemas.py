@@ -25,10 +25,12 @@ class SplitSegmentData(BaseModel):
 
 
 class SplitRequestedPayload(BaseModel):
-    """Snapshot of the parent recording at split-request time. Inngest retries
-    replay the event, so consumers MUST treat these values as authoritative and
-    not refetch the parent — that would make retries non-idempotent.
-    See `docs/recording-split-semantics.md` in the client repo (ENG-64).
+    """Snapshot of the parent recording at split-request time. Consumers MUST
+    treat these values as authoritative and not refetch the parent — both
+    because Inngest replays the event on retry (refetching would be
+    non-idempotent), and because the snapshot is frozen at request time so
+    any updates to the parent between request and persist are intentionally
+    not reflected in child segments (ENG-64).
     """
 
     recording_id: str

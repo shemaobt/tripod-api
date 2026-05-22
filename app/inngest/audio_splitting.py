@@ -41,8 +41,8 @@ async def persist_split_segments(
 ) -> list[str]:
     new_ids: list[str] = []
     total_segments = len(segment_results)
-    # Parent → child field propagation contract lives in
-    # `docs/recording-split-semantics.md` in the client repo (ENG-64).
+    # Fields below are snapshotted from the payload (frozen at request time).
+    # Do NOT refetch the parent here — see SplitRequestedPayload docstring.
     for seg in segment_results:
         source_seg = payload.segments[seg.index]
         new_recording = OC_Recording(
