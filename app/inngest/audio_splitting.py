@@ -41,6 +41,8 @@ async def persist_split_segments(
 ) -> list[str]:
     new_ids: list[str] = []
     total_segments = len(segment_results)
+    # Parent → child field propagation contract lives in
+    # `docs/recording-split-semantics.md` in the client repo (ENG-64).
     for seg in segment_results:
         source_seg = payload.segments[seg.index]
         new_recording = OC_Recording(
@@ -49,8 +51,13 @@ async def persist_split_segments(
             genre_id=source_seg.genre_id,
             subcategory_id=source_seg.subcategory_id,
             register_id=source_seg.register_id,
+            secondary_genre_id=payload.secondary_genre_id,
+            secondary_subcategory_id=payload.secondary_subcategory_id,
+            secondary_register_id=payload.secondary_register_id,
             user_id=payload.user_id,
+            storyteller_id=payload.storyteller_id,
             title=f"{payload.title} (segment {seg.index + 1})",
+            description=payload.description,
             duration_seconds=seg.duration_seconds,
             file_size_bytes=seg.file_size_bytes,
             format=payload.format,

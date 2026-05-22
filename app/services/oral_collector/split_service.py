@@ -1,24 +1,18 @@
 import asyncio
 import logging
-import tempfile
-import uuid
-from datetime import UTC, datetime
 from pathlib import Path
 
 import inngest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.enums import CleaningStatus, OCRecordingEvent, SplittingStatus, UploadStatus
+from app.core.enums import OCRecordingEvent, SplittingStatus, UploadStatus
 from app.core.exceptions import NotFoundError, ValidationError
 from app.core.inngest_client import inngest_client
 from app.db.models.oc_recording import OC_Recording
 from app.inngest.schemas import SplitRequestedPayload, SplitSegmentData
 from app.models.oc_recording import SplitSegment
-from app.services.oral_collector.gcs_utils import content_type_for_format, upload_gcs_blob
 from app.services.oral_collector.recording_service import (
-    FORMAT_EXTENSIONS,
-    _gcs_blob_path,
     check_recording_access,
     get_recording,
 )
@@ -104,6 +98,11 @@ async def request_split(
         format=recording.format,
         title=recording.title or "Recording",
         recorded_at=recording.recorded_at.isoformat(),
+        description=recording.description,
+        storyteller_id=recording.storyteller_id,
+        secondary_genre_id=recording.secondary_genre_id,
+        secondary_subcategory_id=recording.secondary_subcategory_id,
+        secondary_register_id=recording.secondary_register_id,
     )
     await inngest_client.send(
         inngest.Event(name=OCRecordingEvent.SPLIT_REQUESTED, data=payload.model_dump())
@@ -175,68 +174,3 @@ async def get_split_status(db: AsyncSession, recording_id: str) -> tuple[OC_Reco
     return recording, segment_ids
 
 
-async def split_recording(
-    db: AsyncSession,
-    recording_id: str,
-    segments: list[SplitSegment],
-    user_id: str,
-) -> list[str]:
-    recording = await get_recording(db, recording_id)
-    await check_recording_access(db, recording, user_id)
-
-    if not recording.gcs_url:
-        raise NotFoundError("Recording has no uploaded audio file")
-
-    audio_data = await _download_audio(recording.gcs_url)
-    fmt = recording.format.lower()
-    ext = FORMAT_EXTENSIONS.get(fmt, f".{fmt}")
-
-    new_ids: list[str] = []
-
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        tmp = Path(tmp_dir)
-        input_file = tmp / f"original{ext}"
-        input_file.write_bytes(audio_data)
-
-        for i, seg in enumerate(segments):
-            new_id = str(uuid.uuid4())
-            output_file = tmp / f"segment_{i}{ext}"
-
-            await _ffmpeg_split_segment(input_file, output_file, seg.start_seconds, seg.end_seconds)
-
-            segment_bytes = output_file.read_bytes()
-            blob_path = _gcs_blob_path(recording.project_id, recording.genre_id, new_id, fmt)
-            content_type = content_type_for_format(fmt)
-            gcs_url = await upload_gcs_blob(blob_path, segment_bytes, content_type)
-
-            duration = seg.end_seconds - seg.start_seconds
-            new_recording = OC_Recording(
-                id=new_id,
-                project_id=recording.project_id,
-                genre_id=recording.genre_id,
-                subcategory_id=recording.subcategory_id,
-                user_id=recording.user_id,
-                title=f"{recording.title or 'Recording'} (segment {i + 1})",
-                duration_seconds=duration,
-                file_size_bytes=len(segment_bytes),
-                format=recording.format,
-                gcs_url=gcs_url,
-                upload_status=UploadStatus.VERIFIED,
-                cleaning_status=CleaningStatus.NONE,
-                splitting_status=SplittingStatus.NONE,
-                split_from_id=recording_id,
-                recorded_at=recording.recorded_at,
-                uploaded_at=datetime.now(UTC),
-            )
-            db.add(new_recording)
-            new_ids.append(new_id)
-
-        await db.commit()
-
-    logger.info(
-        "Split recording %s into %d segments: %s",
-        recording_id,
-        len(new_ids),
-        new_ids,
-    )
-    return new_ids

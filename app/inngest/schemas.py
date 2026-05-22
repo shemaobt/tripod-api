@@ -25,6 +25,12 @@ class SplitSegmentData(BaseModel):
 
 
 class SplitRequestedPayload(BaseModel):
+    """Snapshot of the parent recording at split-request time. Inngest retries
+    replay the event, so consumers MUST treat these values as authoritative and
+    not refetch the parent — that would make retries non-idempotent.
+    See `docs/recording-split-semantics.md` in the client repo (ENG-64).
+    """
+
     recording_id: str
     user_id: str
     segments: list[SplitSegmentData]
@@ -32,6 +38,11 @@ class SplitRequestedPayload(BaseModel):
     format: str
     title: str
     recorded_at: str
+    description: str | None = None
+    storyteller_id: str | None = None
+    secondary_genre_id: str | None = None
+    secondary_subcategory_id: str | None = None
+    secondary_register_id: str | None = None
 
 
 class BlobVerificationResult(BaseModel):
