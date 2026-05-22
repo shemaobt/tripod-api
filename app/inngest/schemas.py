@@ -26,6 +26,14 @@ class SplitSegmentData(BaseModel):
 
 
 class SplitRequestedPayload(BaseModel):
+    """Snapshot of the parent recording at split-request time. Consumers MUST
+    treat these values as authoritative and not refetch the parent — both
+    because Inngest replays the event on retry (refetching would be
+    non-idempotent), and because the snapshot is frozen at request time so
+    any updates to the parent between request and persist are intentionally
+    not reflected in child segments (ENG-64).
+    """
+
     recording_id: str
     user_id: str
     segments: list[SplitSegmentData]
@@ -33,6 +41,11 @@ class SplitRequestedPayload(BaseModel):
     format: str
     title: str
     recorded_at: str
+    description: str | None = None
+    storyteller_id: str | None = None
+    secondary_genre_id: str | None = None
+    secondary_subcategory_id: str | None = None
+    secondary_register_id: str | None = None
 
 
 class BlobVerificationResult(BaseModel):
