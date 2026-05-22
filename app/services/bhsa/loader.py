@@ -68,7 +68,7 @@ def _download_from_gcs(bucket_name: str) -> None:
     global _message
 
     try:
-        from google.cloud import storage  # type: ignore[attr-defined]
+        from google.cloud import storage
     except ImportError:
         logger.warning("google-cloud-storage not installed, skipping GCS")
         return
