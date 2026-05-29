@@ -32,7 +32,6 @@ from app.models.oc_recording import (
     RecordingUpdate,
     ResumableUploadUrlResponse,
     UploadUrlResponse,
-    secondary_equals_primary,
 )
 from app.services.oral_collector.constants import GCS_OC_BUCKET, GCS_OC_PROJECT
 from app.services.oral_collector.gcs_utils import GCS_PUBLIC_BASE, content_type_for_format
@@ -43,6 +42,31 @@ _gcs_client = None
 _signing_credentials = None
 
 RESUMABLE_CHUNK_SIZE = 8 * 1024 * 1024
+
+
+def secondary_equals_primary(
+    *,
+    primary_register_id: str | None,
+    primary_genre_id: str | None,
+    primary_subcategory_id: str | None,
+    secondary_register_id: str | None,
+    secondary_genre_id: str | None,
+    secondary_subcategory_id: str | None,
+) -> bool:
+    # ENG-72 rule: a recording's secondary classification is forbidden only when
+    # its full (register, genre, subcategory) triple is identical to the primary
+    # triple. A fully-null secondary never counts as identical.
+    if (
+        secondary_register_id is None
+        and secondary_genre_id is None
+        and secondary_subcategory_id is None
+    ):
+        return False
+    return (
+        primary_register_id == secondary_register_id
+        and primary_genre_id == secondary_genre_id
+        and primary_subcategory_id == secondary_subcategory_id
+    )
 
 
 def _get_gcs_client():  # type: ignore[no-untyped-def]
@@ -148,6 +172,15 @@ async def check_recording_access(db: AsyncSession, recording: OC_Recording, user
 
 
 async def create_recording(db: AsyncSession, data: RecordingCreate, user_id: str) -> OC_Recording:
+    if secondary_equals_primary(
+        primary_register_id=data.register_id,
+        primary_genre_id=data.genre_id,
+        primary_subcategory_id=data.subcategory_id,
+        secondary_register_id=data.secondary_register_id,
+        secondary_genre_id=data.secondary_genre_id,
+        secondary_subcategory_id=data.secondary_subcategory_id,
+    ):
+        raise GenreConflictError
 
     if data.title:
         stmt = select(OC_Recording).where(

@@ -1,38 +1,8 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 from app.core.enums import CleaningStatus, SplittingStatus
-
-_SECONDARY_TRIPLE_ERROR = (
-    "secondary classification must differ from the primary in at least one of "
-    "register, genre, or subcategory"
-)
-
-
-def secondary_equals_primary(
-    *,
-    primary_register_id: str | None,
-    primary_genre_id: str | None,
-    primary_subcategory_id: str | None,
-    secondary_register_id: str | None,
-    secondary_genre_id: str | None,
-    secondary_subcategory_id: str | None,
-) -> bool:
-    # Returns True only when the full (register, genre, subcategory) triple of
-    # the secondary is identical to the primary AND any secondary field is set.
-    # (Fully-null secondary never counts as identical.)
-    if (
-        secondary_register_id is None
-        and secondary_genre_id is None
-        and secondary_subcategory_id is None
-    ):
-        return False
-    return (
-        primary_register_id == secondary_register_id
-        and primary_genre_id == secondary_genre_id
-        and primary_subcategory_id == secondary_subcategory_id
-    )
 
 
 class RecordingCreate(BaseModel):
@@ -51,19 +21,6 @@ class RecordingCreate(BaseModel):
     format: str = Field(min_length=1, max_length=20)
     recorded_at: datetime
 
-    @model_validator(mode="after")
-    def _check_secondary_triple_not_identical(self) -> "RecordingCreate":
-        if secondary_equals_primary(
-            primary_register_id=self.register_id,
-            primary_genre_id=self.genre_id,
-            primary_subcategory_id=self.subcategory_id,
-            secondary_register_id=self.secondary_register_id,
-            secondary_genre_id=self.secondary_genre_id,
-            secondary_subcategory_id=self.secondary_subcategory_id,
-        ):
-            raise ValueError(_SECONDARY_TRIPLE_ERROR)
-        return self
-
 
 class RecordingUpdate(BaseModel):
     title: str | None = Field(default=None, max_length=500)
@@ -78,22 +35,6 @@ class RecordingUpdate(BaseModel):
     duration_seconds: float | None = Field(default=None, ge=0)
     file_size_bytes: int | None = Field(default=None, ge=0)
     cleaning_status: CleaningStatus | None = None
-
-    @model_validator(mode="after")
-    def _check_secondary_triple_not_identical(self) -> "RecordingUpdate":
-        # Patch-only check: catches the case where the request itself contains
-        # all six fields and they form an identical triple. The service layer
-        # does the comprehensive merge with the existing recording.
-        if secondary_equals_primary(
-            primary_register_id=self.register_id,
-            primary_genre_id=self.genre_id,
-            primary_subcategory_id=self.subcategory_id,
-            secondary_register_id=self.secondary_register_id,
-            secondary_genre_id=self.secondary_genre_id,
-            secondary_subcategory_id=self.secondary_subcategory_id,
-        ):
-            raise ValueError(_SECONDARY_TRIPLE_ERROR)
-        return self
 
 
 class RecordingResponse(BaseModel):

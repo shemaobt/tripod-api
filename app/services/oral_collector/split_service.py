@@ -11,10 +11,11 @@ from app.core.exceptions import NotFoundError, ValidationError
 from app.core.inngest_client import inngest_client
 from app.db.models.oc_recording import OC_Recording
 from app.inngest.schemas import SplitRequestedPayload, SplitSegmentData
-from app.models.oc_recording import SplitSegment, secondary_equals_primary
+from app.models.oc_recording import SplitSegment
 from app.services.oral_collector.recording_service import (
     check_recording_access,
     get_recording,
+    secondary_equals_primary,
 )
 
 logger = logging.getLogger(__name__)
