@@ -497,7 +497,27 @@ async def test_create_recording_with_secondary_classification(
     assert rec.secondary_register_id == "consultative"
 
 
-def test_recording_create_rejects_secondary_equal_to_primary() -> None:
+def test_recording_create_allows_secondary_with_only_genre_matching_primary() -> None:
+    # ENG-72: single-field overlap is no longer forbidden; only the full triple
+    # being identical is rejected. Primary subcategory and register differ from
+    # secondary (only secondary genre matches primary).
+    rec = RecordingCreate(
+        project_id="p",
+        genre_id="g1",
+        subcategory_id="s1",
+        register_id="formal",
+        secondary_genre_id="g1",
+        secondary_subcategory_id="s2",
+        secondary_register_id="ceremonial",
+        duration_seconds=1.0,
+        file_size_bytes=1,
+        format="m4a",
+        recorded_at=datetime.now(UTC),
+    )
+    assert rec.secondary_genre_id == "g1"
+
+
+def test_recording_create_rejects_identical_secondary_triple() -> None:
     from pydantic import ValidationError as PydanticValidationError
 
     with pytest.raises(PydanticValidationError):
@@ -505,7 +525,10 @@ def test_recording_create_rejects_secondary_equal_to_primary() -> None:
             project_id="p",
             genre_id="g1",
             subcategory_id="s1",
+            register_id="formal",
             secondary_genre_id="g1",
+            secondary_subcategory_id="s1",
+            secondary_register_id="formal",
             duration_seconds=1.0,
             file_size_bytes=1,
             format="m4a",
@@ -513,21 +536,84 @@ def test_recording_create_rejects_secondary_equal_to_primary() -> None:
         )
 
 
+def test_recording_update_allows_single_field_overlap_in_patch() -> None:
+    # ENG-72: the model-level validator on RecordingUpdate now only fires when
+    # the patch itself is enough to form an identical triple — single-field
+    # overlap is allowed.
+    upd = RecordingUpdate(
+        genre_id="g1",
+        subcategory_id="s1",
+        register_id="formal",
+        secondary_genre_id="g1",
+        secondary_subcategory_id="s2",
+        secondary_register_id="formal",
+    )
+    assert upd.secondary_genre_id == "g1"
+
+
+def test_recording_update_rejects_identical_secondary_triple_in_patch() -> None:
+    from pydantic import ValidationError as PydanticValidationError
+
+    with pytest.raises(PydanticValidationError):
+        RecordingUpdate(
+            genre_id="g1",
+            subcategory_id="s1",
+            register_id="formal",
+            secondary_genre_id="g1",
+            secondary_subcategory_id="s1",
+            secondary_register_id="formal",
+        )
+
+
 @pytest.mark.asyncio
-async def test_update_recording_rejects_secondary_equal_to_primary(
+async def test_update_recording_allows_single_field_overlap_when_merged_triple_differs(
     db_session: AsyncSession,
 ) -> None:
+    # The service-layer check merges the patch with the existing recording.
+    # Existing primary=(formal, genre, sub), patch sets secondary_genre_id only.
+    # Effective secondary triple is (None, genre, None); effective primary is
+    # (formal, genre, sub) — sub differs, register differs → allowed.
     rs = _import_service()
     user = await make_user(db_session)
     project_id = await _seed_project(db_session)
     genre, sub = await _seed_genre(db_session)
     rec = await _seed_recording(db_session, user.id, project_id, genre.id, sub.id)
+    rec.register_id = "formal"
+    await db_session.commit()
+    await db_session.refresh(rec)
+
+    updated = await rs.update_recording(
+        db_session,
+        rec.id,
+        RecordingUpdate(secondary_genre_id=genre.id),
+    )
+    assert updated.secondary_genre_id == genre.id
+
+
+@pytest.mark.asyncio
+async def test_update_recording_rejects_when_merged_triple_collapses_to_identical(
+    db_session: AsyncSession,
+) -> None:
+    # The patch + existing recording merge to form an identical triple — must
+    # raise GenreConflictError.
+    rs = _import_service()
+    user = await make_user(db_session)
+    project_id = await _seed_project(db_session)
+    genre, sub = await _seed_genre(db_session)
+    rec = await _seed_recording(db_session, user.id, project_id, genre.id, sub.id)
+    rec.register_id = "formal"
+    await db_session.commit()
+    await db_session.refresh(rec)
 
     with pytest.raises(GenreConflictError):
         await rs.update_recording(
             db_session,
             rec.id,
-            RecordingUpdate(secondary_genre_id=genre.id),
+            RecordingUpdate(
+                secondary_genre_id=genre.id,
+                secondary_subcategory_id=sub.id,
+                secondary_register_id="formal",
+            ),
         )
 
 
