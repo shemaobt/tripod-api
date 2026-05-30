@@ -3,9 +3,10 @@ from datetime import UTC, datetime
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.enums import CleaningStatus, UploadStatus
+from app.core.enums import CleaningStatus, SplittingStatus, UploadStatus
 from app.core.exceptions import (
     AuthorizationError,
+    ConflictError,
     GenreConflictError,
     InvalidCleaningStatusError,
     NotFoundError,
@@ -568,3 +569,324 @@ async def test_list_recordings_filter_by_user_and_storyteller(
 
     by_st = await rs.list_recordings(db_session, project_id, storyteller_id=st_b.id)
     assert {r.id for r in by_st} == {rec_b.id}
+
+
+@pytest.mark.asyncio
+async def test_create_recording_rejects_duplicate_title(db_session: AsyncSession) -> None:
+    rs = _import_service()
+    user = await make_user(db_session)
+    project_id = await _seed_project(db_session)
+    genre, sub = await _seed_genre(db_session)
+
+    def _data(title: str) -> RecordingCreate:
+        return RecordingCreate(
+            project_id=project_id,
+            genre_id=genre.id,
+            subcategory_id=sub.id,
+            title=title,
+            duration_seconds=10.0,
+            file_size_bytes=1024,
+            format="m4a",
+            recorded_at=datetime.now(UTC),
+        )
+
+    await rs.create_recording(db_session, _data("Genesis 1"), user.id)
+
+    with pytest.raises(ConflictError):
+        await rs.create_recording(db_session, _data("Genesis 1"), user.id)
+
+
+@pytest.mark.asyncio
+async def test_create_recording_normalizes_and_rejects_trimmed_duplicate(
+    db_session: AsyncSession,
+) -> None:
+    rs = _import_service()
+    user = await make_user(db_session)
+    project_id = await _seed_project(db_session)
+    genre, sub = await _seed_genre(db_session)
+
+    def _data(title: str) -> RecordingCreate:
+        return RecordingCreate(
+            project_id=project_id,
+            genre_id=genre.id,
+            subcategory_id=sub.id,
+            title=title,
+            duration_seconds=10.0,
+            file_size_bytes=1024,
+            format="m4a",
+            recorded_at=datetime.now(UTC),
+        )
+
+    created = await rs.create_recording(db_session, _data("  Exodus  "), user.id)
+    assert created.title == "Exodus"
+
+    with pytest.raises(ConflictError):
+        await rs.create_recording(db_session, _data("Exodus"), user.id)
+
+
+@pytest.mark.asyncio
+async def test_create_recording_title_match_is_case_sensitive(db_session: AsyncSession) -> None:
+    rs = _import_service()
+    user = await make_user(db_session)
+    project_id = await _seed_project(db_session)
+    genre, sub = await _seed_genre(db_session)
+
+    def _data(title: str) -> RecordingCreate:
+        return RecordingCreate(
+            project_id=project_id,
+            genre_id=genre.id,
+            subcategory_id=sub.id,
+            title=title,
+            duration_seconds=10.0,
+            file_size_bytes=1024,
+            format="m4a",
+            recorded_at=datetime.now(UTC),
+        )
+
+    await rs.create_recording(db_session, _data("Psalm"), user.id)
+
+    with pytest.raises(ConflictError):
+        await rs.create_recording(db_session, _data("Psalm"), user.id)
+
+    lowercase = await rs.create_recording(db_session, _data("psalm"), user.id)
+    assert lowercase.title == "psalm"
+
+
+@pytest.mark.asyncio
+async def test_create_recording_blank_titles_do_not_collide(db_session: AsyncSession) -> None:
+    rs = _import_service()
+    user = await make_user(db_session)
+    project_id = await _seed_project(db_session)
+    genre, sub = await _seed_genre(db_session)
+
+    def _data(title: str) -> RecordingCreate:
+        return RecordingCreate(
+            project_id=project_id,
+            genre_id=genre.id,
+            subcategory_id=sub.id,
+            title=title,
+            duration_seconds=10.0,
+            file_size_bytes=1024,
+            format="m4a",
+            recorded_at=datetime.now(UTC),
+        )
+
+    first = await rs.create_recording(db_session, _data("   "), user.id)
+    second = await rs.create_recording(db_session, _data(""), user.id)
+
+    assert first.id != second.id
+    assert first.title is None
+    assert second.title is None
+
+
+@pytest.mark.asyncio
+async def test_create_recording_ignores_split_children_for_uniqueness(
+    db_session: AsyncSession,
+) -> None:
+    rs = _import_service()
+    user = await make_user(db_session)
+    project_id = await _seed_project(db_session)
+    genre, sub = await _seed_genre(db_session)
+
+    split_child = OC_Recording(
+        project_id=project_id,
+        genre_id=genre.id,
+        subcategory_id=sub.id,
+        user_id=user.id,
+        title="Ruth",
+        split_from_id="parent-recording-id",
+        duration_seconds=5.0,
+        file_size_bytes=512,
+        format="m4a",
+        recorded_at=datetime.now(UTC),
+    )
+    db_session.add(split_child)
+    await db_session.commit()
+
+    data = RecordingCreate(
+        project_id=project_id,
+        genre_id=genre.id,
+        subcategory_id=sub.id,
+        title="Ruth",
+        duration_seconds=10.0,
+        file_size_bytes=1024,
+        format="m4a",
+        recorded_at=datetime.now(UTC),
+    )
+    created = await rs.create_recording(db_session, data, user.id)
+
+    assert created.id != split_child.id
+    assert created.title == "Ruth"
+
+
+@pytest.mark.asyncio
+async def test_update_recording_rejects_duplicate_title(db_session: AsyncSession) -> None:
+    rs = _import_service()
+    user = await make_user(db_session)
+    project_id = await _seed_project(db_session)
+    genre, sub = await _seed_genre(db_session)
+
+    await _seed_recording(db_session, user.id, project_id, genre.id, sub.id)
+    other = OC_Recording(
+        project_id=project_id,
+        genre_id=genre.id,
+        subcategory_id=sub.id,
+        user_id=user.id,
+        title="Another Story",
+        duration_seconds=5.0,
+        file_size_bytes=512,
+        format="m4a",
+        recorded_at=datetime.now(UTC),
+    )
+    db_session.add(other)
+    await db_session.commit()
+    await db_session.refresh(other)
+
+    with pytest.raises(ConflictError):
+        await rs.update_recording(db_session, other.id, RecordingUpdate(title="test recording"))
+
+
+@pytest.mark.asyncio
+async def test_update_recording_keep_own_title_succeeds(db_session: AsyncSession) -> None:
+    rs = _import_service()
+    user = await make_user(db_session)
+    project_id = await _seed_project(db_session)
+    genre, sub = await _seed_genre(db_session)
+
+    rec = await _seed_recording(db_session, user.id, project_id, genre.id, sub.id)
+    updated = await rs.update_recording(db_session, rec.id, RecordingUpdate(title="test recording"))
+
+    assert updated.id == rec.id
+    assert updated.title == "test recording"
+
+
+@pytest.mark.asyncio
+async def test_update_recording_trims_title(db_session: AsyncSession) -> None:
+    rs = _import_service()
+    user = await make_user(db_session)
+    project_id = await _seed_project(db_session)
+    genre, sub = await _seed_genre(db_session)
+
+    rec = await _seed_recording(db_session, user.id, project_id, genre.id, sub.id)
+    updated = await rs.update_recording(
+        db_session, rec.id, RecordingUpdate(title="  Trimmed Title  ")
+    )
+
+    assert updated.title == "Trimmed Title"
+
+
+@pytest.mark.asyncio
+async def test_list_recordings_filter_by_title(db_session: AsyncSession) -> None:
+    rs = _import_service()
+    user = await make_user(db_session)
+    project_id = await _seed_project(db_session)
+    genre, sub = await _seed_genre(db_session)
+
+    for title in ("Alpha", "Beta"):
+        db_session.add(
+            OC_Recording(
+                project_id=project_id,
+                genre_id=genre.id,
+                subcategory_id=sub.id,
+                user_id=user.id,
+                title=title,
+                duration_seconds=5.0,
+                file_size_bytes=512,
+                format="m4a",
+                upload_status=UploadStatus.UPLOADED,
+                recorded_at=datetime.now(UTC),
+            )
+        )
+    await db_session.commit()
+
+    matched = await rs.list_recordings(db_session, project_id, title="Alpha")
+    assert [r.title for r in matched] == ["Alpha"]
+
+    trimmed = await rs.list_recordings(db_session, project_id, title="  Alpha  ")
+    assert [r.title for r in trimmed] == ["Alpha"]
+
+    missing = await rs.list_recordings(db_session, project_id, title="Gamma")
+    assert missing == []
+
+
+@pytest.mark.asyncio
+async def test_create_recording_duplicate_title_allowed_across_projects(
+    db_session: AsyncSession,
+) -> None:
+    rs = _import_service()
+    user = await make_user(db_session)
+    project_a = await _seed_project(db_session)
+    lang_b = await make_language(db_session, name="Other", code="oth")
+    project_b = await make_project(db_session, lang_b.id, name="Other Project")
+    genre, sub = await _seed_genre(db_session)
+
+    def _data(project_id: str) -> RecordingCreate:
+        return RecordingCreate(
+            project_id=project_id,
+            genre_id=genre.id,
+            subcategory_id=sub.id,
+            title="Shared Title",
+            duration_seconds=10.0,
+            file_size_bytes=1024,
+            format="m4a",
+            recorded_at=datetime.now(UTC),
+        )
+
+    in_a = await rs.create_recording(db_session, _data(project_a), user.id)
+    in_b = await rs.create_recording(db_session, _data(project_b.id), user.id)
+
+    assert in_a.id != in_b.id
+    assert in_a.title == in_b.title == "Shared Title"
+
+
+@pytest.mark.asyncio
+async def test_create_recording_allowed_when_title_held_by_archived_split_parent(
+    db_session: AsyncSession,
+) -> None:
+    rs = _import_service()
+    user = await make_user(db_session)
+    project_id = await _seed_project(db_session)
+    genre, sub = await _seed_genre(db_session)
+
+    archived_parent = OC_Recording(
+        project_id=project_id,
+        genre_id=genre.id,
+        subcategory_id=sub.id,
+        user_id=user.id,
+        title="Genesis 1",
+        splitting_status=SplittingStatus.ARCHIVED_AFTER_SPLIT,
+        duration_seconds=20.0,
+        file_size_bytes=2048,
+        format="m4a",
+        recorded_at=datetime.now(UTC),
+    )
+    db_session.add(archived_parent)
+    await db_session.commit()
+
+    data = RecordingCreate(
+        project_id=project_id,
+        genre_id=genre.id,
+        subcategory_id=sub.id,
+        title="Genesis 1",
+        duration_seconds=10.0,
+        file_size_bytes=1024,
+        format="m4a",
+        recorded_at=datetime.now(UTC),
+    )
+    created = await rs.create_recording(db_session, data, user.id)
+
+    assert created.id != archived_parent.id
+    assert created.title == "Genesis 1"
+
+
+@pytest.mark.asyncio
+async def test_update_recording_blank_title_clears_to_null(db_session: AsyncSession) -> None:
+    rs = _import_service()
+    user = await make_user(db_session)
+    project_id = await _seed_project(db_session)
+    genre, sub = await _seed_genre(db_session)
+
+    rec = await _seed_recording(db_session, user.id, project_id, genre.id, sub.id)
+    updated = await rs.update_recording(db_session, rec.id, RecordingUpdate(title="   "))
+
+    assert updated.title is None
