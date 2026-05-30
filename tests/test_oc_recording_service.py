@@ -501,8 +501,6 @@ async def test_create_recording_with_secondary_classification(
 async def test_create_recording_allows_secondary_with_only_genre_matching_primary(
     db_session: AsyncSession,
 ) -> None:
-    # ENG-72: single-field overlap is no longer forbidden; only the full triple
-    # being identical is rejected.
     rs = _import_service()
     user = await make_user(db_session)
     project_id = await _seed_project(db_session)
@@ -560,10 +558,6 @@ async def test_create_recording_rejects_identical_secondary_triple(
 async def test_update_recording_allows_single_field_overlap_when_merged_triple_differs(
     db_session: AsyncSession,
 ) -> None:
-    # The service-layer check merges the patch with the existing recording.
-    # Existing primary=(formal, genre, sub), patch sets secondary_genre_id only.
-    # Effective secondary triple is (None, genre, None); effective primary is
-    # (formal, genre, sub) — sub differs, register differs → allowed.
     rs = _import_service()
     user = await make_user(db_session)
     project_id = await _seed_project(db_session)
@@ -585,8 +579,6 @@ async def test_update_recording_allows_single_field_overlap_when_merged_triple_d
 async def test_update_recording_rejects_when_merged_triple_collapses_to_identical(
     db_session: AsyncSession,
 ) -> None:
-    # The patch + existing recording merge to form an identical triple — must
-    # raise GenreConflictError.
     rs = _import_service()
     user = await make_user(db_session)
     project_id = await _seed_project(db_session)

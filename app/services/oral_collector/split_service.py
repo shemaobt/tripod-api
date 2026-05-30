@@ -7,7 +7,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import OCRecordingEvent, SplittingStatus, UploadStatus
-from app.core.exceptions import NotFoundError, ValidationError
+from app.core.exceptions import (
+    NotFoundError,
+    SegmentClassificationConflictError,
+    ValidationError,
+)
 from app.core.inngest_client import inngest_client
 from app.db.models.oc_recording import OC_Recording
 from app.inngest.schemas import SplitRequestedPayload, SplitSegmentData
@@ -77,11 +81,6 @@ async def request_split(
             f"Current status: {recording.upload_status}"
         )
 
-    # ENG-72 defense in depth: a segment inherits the parent's secondary triple
-    # unchanged. If its effective primary triple (override-overlaid-on-inherit)
-    # equals the parent's secondary triple, the resulting child row would have
-    # primary == secondary, which the per-row rule forbids. The UI is expected
-    # to block this earlier; this check guards direct API callers.
     for index, seg in enumerate(segments):
         effective_genre = seg.genre_id or recording.genre_id
         effective_sub = seg.subcategory_id or recording.subcategory_id
@@ -96,10 +95,7 @@ async def request_split(
             secondary_genre_id=recording.secondary_genre_id,
             secondary_subcategory_id=recording.secondary_subcategory_id,
         ):
-            raise ValidationError(
-                f"Segment {index} effective primary triple matches the parent "
-                "recording's secondary triple — primary and secondary cannot be identical."
-            )
+            raise SegmentClassificationConflictError(index)
 
     recording.splitting_status = SplittingStatus.SPLITTING
     await db.commit()

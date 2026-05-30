@@ -437,11 +437,7 @@ async def test_request_split_rejects_segment_whose_effective_triple_matches_pare
     db_session: AsyncSession,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    # ENG-72: a segment's effective primary triple (override-overlaid-on-inherit)
-    # must not collapse onto the parent's secondary triple. Here parent secondary
-    # is (ceremonial, secondary_genre, secondary_sub) and the segment overrides
-    # genre+subcategory+register to that exact triple → must raise.
-    from app.core.exceptions import ValidationError
+    from app.core.exceptions import SegmentClassificationConflictError
 
     user = await make_user(db_session)
     lang = await make_language(db_session)
@@ -469,7 +465,7 @@ async def test_request_split_rejects_segment_whose_effective_triple_matches_pare
 
     monkeypatch.setattr(split_service.inngest_client, "send", fake_send)
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(SegmentClassificationConflictError):
         await request_split(
             db_session,
             parent.id,
@@ -493,9 +489,6 @@ async def test_request_split_allows_segment_with_single_field_overlap_with_paren
     db_session: AsyncSession,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    # Override register to match parent.secondary.register, but leave genre and
-    # subcategory as inherit (parent.primary). Effective triple differs from
-    # parent.secondary on genre and subcategory → allowed.
     user = await make_user(db_session)
     lang = await make_language(db_session)
     project = await make_project(db_session, lang.id)

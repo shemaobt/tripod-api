@@ -53,14 +53,12 @@ def secondary_equals_primary(
     secondary_genre_id: str | None,
     secondary_subcategory_id: str | None,
 ) -> bool:
-    # ENG-72 rule: a recording's secondary classification is forbidden only when
-    # its full (register, genre, subcategory) triple is identical to the primary
-    # triple. A fully-null secondary never counts as identical.
-    if (
-        secondary_register_id is None
-        and secondary_genre_id is None
-        and secondary_subcategory_id is None
-    ):
+    has_any_secondary = (
+        secondary_register_id is not None
+        or secondary_genre_id is not None
+        or secondary_subcategory_id is not None
+    )
+    if not has_any_secondary:
         return False
     return (
         primary_register_id == secondary_register_id
