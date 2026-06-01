@@ -5,6 +5,7 @@ import google.auth
 import google.auth.transport.requests
 import inngest
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import (
@@ -200,7 +201,11 @@ async def create_recording(db: AsyncSession, data: RecordingCreate, user_id: str
         recorded_at=data.recorded_at,
     )
     db.add(recording)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise ConflictError(f"A recording titled '{title}' already exists in this project") from exc
     await db.refresh(recording)
     return recording
 
@@ -231,7 +236,11 @@ async def update_recording(
         update_fields["title"] = normalized_title
     for field, value in update_fields.items():
         setattr(recording, field, value)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise ConflictError("A recording with this title already exists in this project") from exc
     await db.refresh(recording)
     return recording
 

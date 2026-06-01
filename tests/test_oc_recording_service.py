@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 
 import pytest
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import CleaningStatus, SplittingStatus, UploadStatus
@@ -56,13 +57,14 @@ async def _seed_recording(
     *,
     upload_status: str = UploadStatus.LOCAL,
     file_size_bytes: int = 1024,
+    title: str | None = "test recording",
 ) -> OC_Recording:
     rec = OC_Recording(
         project_id=project_id,
         genre_id=genre_id,
         subcategory_id=subcategory_id,
         user_id=user_id,
-        title="test recording",
+        title=title,
         duration_seconds=10.0,
         file_size_bytes=file_size_bytes,
         format="m4a",
@@ -258,6 +260,7 @@ async def test_list_recordings(db_session: AsyncSession) -> None:
         genre.id,
         sub.id,
         upload_status=UploadStatus.VERIFIED,
+        title="Second recording",
     )
 
     recordings = await rs.list_recordings(db_session, project_id)
@@ -286,6 +289,7 @@ async def test_list_recordings_filter_by_status(db_session: AsyncSession) -> Non
         genre.id,
         sub.id,
         upload_status=UploadStatus.LOCAL,
+        title="Second recording",
     )
 
     uploaded = await rs.list_recordings(db_session, project_id, upload_status=UploadStatus.UPLOADED)
@@ -559,6 +563,7 @@ async def test_list_recordings_filter_by_user_and_storyteller(
         genre.id,
         sub.id,
         upload_status=UploadStatus.UPLOADED,
+        title="User B recording",
     )
     rec_a.storyteller_id = st_a.id
     rec_b.storyteller_id = st_b.id
@@ -890,3 +895,89 @@ async def test_update_recording_blank_title_clears_to_null(db_session: AsyncSess
     updated = await rs.update_recording(db_session, rec.id, RecordingUpdate(title="   "))
 
     assert updated.title is None
+
+
+@pytest.mark.asyncio
+async def test_duplicate_title_rejected_at_db_level(db_session: AsyncSession) -> None:
+    user = await make_user(db_session)
+    project_id = await _seed_project(db_session)
+    genre, sub = await _seed_genre(db_session)
+
+    await _seed_recording(db_session, user.id, project_id, genre.id, sub.id, title="Genesis 1")
+
+    with pytest.raises(IntegrityError):
+        await _seed_recording(db_session, user.id, project_id, genre.id, sub.id, title="Genesis 1")
+
+
+@pytest.mark.asyncio
+async def test_db_unique_index_exempts_split_children(db_session: AsyncSession) -> None:
+    user = await make_user(db_session)
+    project_id = await _seed_project(db_session)
+    genre, sub = await _seed_genre(db_session)
+
+    await _seed_recording(db_session, user.id, project_id, genre.id, sub.id, title="Genesis 1")
+    split_child = OC_Recording(
+        project_id=project_id,
+        genre_id=genre.id,
+        subcategory_id=sub.id,
+        user_id=user.id,
+        title="Genesis 1",
+        split_from_id="parent-id",
+        duration_seconds=5.0,
+        file_size_bytes=512,
+        format="m4a",
+        recorded_at=datetime.now(UTC),
+    )
+    db_session.add(split_child)
+    await db_session.commit()
+
+    assert split_child.id is not None
+
+
+@pytest.mark.asyncio
+async def test_db_unique_index_exempts_archived_split_parent(
+    db_session: AsyncSession,
+) -> None:
+    user = await make_user(db_session)
+    project_id = await _seed_project(db_session)
+    genre, sub = await _seed_genre(db_session)
+
+    await _seed_recording(
+        db_session,
+        user.id,
+        project_id,
+        genre.id,
+        sub.id,
+        title="Genesis 1",
+        upload_status=UploadStatus.UPLOADED,
+    )
+    archived_parent = OC_Recording(
+        project_id=project_id,
+        genre_id=genre.id,
+        subcategory_id=sub.id,
+        user_id=user.id,
+        title="Genesis 1",
+        splitting_status=SplittingStatus.ARCHIVED_AFTER_SPLIT,
+        duration_seconds=5.0,
+        file_size_bytes=512,
+        format="m4a",
+        recorded_at=datetime.now(UTC),
+    )
+    db_session.add(archived_parent)
+    await db_session.commit()
+
+    assert archived_parent.id is not None
+
+
+@pytest.mark.asyncio
+async def test_db_unique_index_allows_repeated_null_titles(
+    db_session: AsyncSession,
+) -> None:
+    user = await make_user(db_session)
+    project_id = await _seed_project(db_session)
+    genre, sub = await _seed_genre(db_session)
+
+    first = await _seed_recording(db_session, user.id, project_id, genre.id, sub.id, title=None)
+    second = await _seed_recording(db_session, user.id, project_id, genre.id, sub.id, title=None)
+
+    assert first.id != second.id
