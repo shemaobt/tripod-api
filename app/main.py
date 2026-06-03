@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.access_requests import router as access_requests_router
+from app.api.annotation_studio import router as annotation_studio_router
 from app.api.apps import router as apps_router
 from app.api.auth import router as auth_router
 from app.api.bhsa import router as bhsa_router
@@ -129,6 +130,9 @@ def create_app() -> FastAPI:
     app.include_router(books_router, prefix="/api/books", tags=["books"])
     app.include_router(pericopes_router, prefix="/api/pericopes", tags=["pericopes"])
     app.include_router(meaning_maps_router, prefix="/api/meaning-maps", tags=["meaning-maps"])
+    app.include_router(
+        annotation_studio_router, prefix="/api/annotation-studio", tags=["annotation-studio"]
+    )
     app.include_router(
         project_health_router,
         prefix="/api/project-health",
