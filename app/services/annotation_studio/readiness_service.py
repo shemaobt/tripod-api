@@ -5,6 +5,7 @@ from collections import Counter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.as_enums import AsPairSide
 from app.core.as_enums import AsSortDimension as SortDimension
 from app.core.as_enums import AsSortRound as SortRound
 from app.core.as_enums import AsUploadStatus as UploadStatus
@@ -12,6 +13,10 @@ from app.db.models.as_tier_a import AsTierARecording, AsTierAWord
 from app.db.models.as_tier_b import AsTierBPair, AsTierBRecording
 from app.db.models.as_tier_c import AsTierCClip, AsTierCSortAssignment
 from app.services.annotation_studio.export_plan import MIN_INSTANCES_PER_WORD
+
+# A Tier B pair is "ready" once both sides have at least this many stored takes
+# (mirrors the frontend TIER_B.repsPerSide and Tier A's MIN_INSTANCES_PER_WORD).
+REPS_PER_SIDE = 5
 
 
 async def compute_readiness(db: AsyncSession, language_id: str) -> dict:
@@ -38,7 +43,7 @@ async def compute_readiness(db: AsyncSession, language_id: str) -> dict:
     )
     b_recs = (
         await db.execute(
-            select(AsTierBRecording.id)
+            select(AsTierBRecording.pair_id, AsTierBRecording.side)
             .join(AsTierBPair, AsTierBRecording.pair_id == AsTierBPair.id)
             .where(
                 AsTierBPair.language_id == language_id,
@@ -46,6 +51,13 @@ async def compute_readiness(db: AsyncSession, language_id: str) -> dict:
             )
         )
     ).all()
+    per_pair_side = Counter((pair_id, side) for pair_id, side in b_recs)
+    pairs_ready = sum(
+        1
+        for pid in pairs
+        if per_pair_side[(pid, AsPairSide.A.value)] >= REPS_PER_SIDE
+        and per_pair_side[(pid, AsPairSide.B.value)] >= REPS_PER_SIDE
+    )
 
     clips = (
         await db.execute(
@@ -80,7 +92,11 @@ async def compute_readiness(db: AsyncSession, language_id: str) -> dict:
             "instances": sum(per_word.values()),
             "min_instances": MIN_INSTANCES_PER_WORD,
         },
-        "tier_b": {"pairs": len(pairs), "recordings": len(b_recs)},
+        "tier_b": {
+            "pairs": len(pairs),
+            "pairs_ready": pairs_ready,
+            "recordings": len(b_recs),
+        },
         "tier_c": {
             "clips": len(clips),
             "onset_sorted": onset_sorted,
