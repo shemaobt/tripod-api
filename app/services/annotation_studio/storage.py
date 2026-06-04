@@ -8,6 +8,8 @@ keys from ``naming.py``, used verbatim as object names in the dedicated bucket.
 
 from __future__ import annotations
 
+import contextlib
+
 import google.auth
 import google.auth.transport.requests
 
@@ -50,7 +52,9 @@ def _blob(key: str):  # type: ignore[no-untyped-def]
     return bucket.blob(key)
 
 
-def presign_put(key: str, content_type: str, ttl_s: int = SIGNED_PUT_EXPIRY_SECONDS) -> PresignedUpload:
+def presign_put(
+    key: str, content_type: str, ttl_s: int = SIGNED_PUT_EXPIRY_SECONDS
+) -> PresignedUpload:
     """Mint a v4 signed PUT URL the browser uploads the recording to directly."""
     from datetime import timedelta
 
@@ -77,7 +81,7 @@ def presign_get(key: str, ttl_s: int = SIGNED_GET_EXPIRY_SECONDS) -> str:
     from datetime import timedelta
 
     sa_email, access_token = _get_signing_info()
-    return _blob(key).generate_signed_url(
+    return _blob(key).generate_signed_url(  # type: ignore[no-any-return]
         version="v4",
         expiration=timedelta(seconds=ttl_s),
         method="GET",
@@ -87,7 +91,7 @@ def presign_get(key: str, ttl_s: int = SIGNED_GET_EXPIRY_SECONDS) -> str:
 
 
 def get_bytes(key: str) -> bytes:
-    return _blob(key).download_as_bytes()
+    return _blob(key).download_as_bytes()  # type: ignore[no-any-return]
 
 
 def put_object(key: str, data: bytes, content_type: str) -> int:
@@ -97,12 +101,10 @@ def put_object(key: str, data: bytes, content_type: str) -> int:
 
 
 def exists(key: str) -> bool:
-    return _blob(key).exists()
+    return _blob(key).exists()  # type: ignore[no-any-return]
 
 
 def delete(key: str) -> None:
-    try:
+    # Deleting a never-uploaded key (status still pending) is not an error.
+    with contextlib.suppress(Exception):
         _blob(key).delete()
-    except Exception:
-        # Deleting a never-uploaded key (status still pending) is not an error.
-        pass

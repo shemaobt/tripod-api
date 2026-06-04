@@ -58,7 +58,9 @@ async def create_speaker(
         )
     ).scalar_one()
     for seq in range(count + 1, count + 51):
-        speaker = AsSpeaker(language_id=language_id, label=f"speaker{seq}", display_name=display_name)
+        speaker = AsSpeaker(
+            language_id=language_id, label=f"speaker{seq}", display_name=display_name
+        )
         db.add(speaker)
         try:
             await db.commit()

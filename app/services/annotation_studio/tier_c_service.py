@@ -136,7 +136,7 @@ async def _assignments(
             AsTierCSortAssignment.round == SortRound(sort_round).value,
         )
     )
-    return list(rows.all())
+    return [(assignment, clip) for assignment, clip in rows.all()]
 
 
 async def list_assignments(

@@ -34,9 +34,7 @@ class AsTierCClip(Base):
 
 class AsTierCSortAssignment(Base):
     __tablename__ = "as_tier_c_sort_assignments"
-    __table_args__ = (
-        UniqueConstraint("clip_id", "dimension", "round", name="uq_as_tier_c_sort"),
-    )
+    __table_args__ = (UniqueConstraint("clip_id", "dimension", "round", name="uq_as_tier_c_sort"),)
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     clip_id: Mapped[str] = mapped_column(

@@ -25,7 +25,9 @@ async def list_pairs(language_id: str, db: Db, _: CurrentUser) -> list[PairRespo
     response_model=PairResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def create_pair(language_id: str, payload: PairCreate, db: Db, _: CurrentUser) -> PairResponse:
+async def create_pair(
+    language_id: str, payload: PairCreate, db: Db, _: CurrentUser
+) -> PairResponse:
     pair = await tier_b_service.create_pair(
         db,
         language_id,

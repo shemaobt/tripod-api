@@ -10,8 +10,12 @@ from app.core.exceptions import NotFoundError
 T = TypeVar("T")
 
 
-async def get_or_404(db: AsyncSession, model: type[T], entity_id: str, label: str = "Resource") -> T:
-    obj = (await db.execute(select(model).where(model.id == entity_id))).scalar_one_or_none()
+async def get_or_404(
+    db: AsyncSession, model: type[T], entity_id: str, label: str = "Resource"
+) -> T:
+    stmt = select(model).where(model.id == entity_id)  # type: ignore[attr-defined]
+    result = await db.execute(stmt)
+    obj = result.scalar_one_or_none()
     if obj is None:
         raise NotFoundError(f"{label} not found")
-    return obj
+    return obj  # type: ignore[return-value]

@@ -27,9 +27,7 @@ async def list_clips(language_id: str, db: Db, _: CurrentUser) -> list[ClipRespo
     response_model=ClipTicket,
     status_code=status.HTTP_201_CREATED,
 )
-async def create_clip(
-    language_id: str, payload: ClipCreate, db: Db, _: CurrentUser
-) -> ClipTicket:
+async def create_clip(language_id: str, payload: ClipCreate, db: Db, _: CurrentUser) -> ClipTicket:
     clip, presigned = await tier_c_service.create_clip(
         db,
         language_id,

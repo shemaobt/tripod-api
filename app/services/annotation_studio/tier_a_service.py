@@ -44,7 +44,9 @@ def _clean_emblem(emblem: str | None) -> str | None:
 
 async def list_words(db: AsyncSession, language_id: str) -> list[AsTierAWord]:
     rows = await db.execute(
-        select(AsTierAWord).where(AsTierAWord.language_id == language_id).order_by(AsTierAWord.label)
+        select(AsTierAWord)
+        .where(AsTierAWord.language_id == language_id)
+        .order_by(AsTierAWord.label)
     )
     return list(rows.scalars().all())
 
@@ -60,12 +62,16 @@ async def create_word(
     emblem = _clean_emblem(emblem)
     count = (
         await db.execute(
-            select(func.count()).select_from(AsTierAWord).where(AsTierAWord.language_id == language_id)
+            select(func.count())
+            .select_from(AsTierAWord)
+            .where(AsTierAWord.language_id == language_id)
         )
     ).scalar_one()
     # auto-id with NO separator so the {word}_{speaker}_{rep} filename stays unambiguous
     for seq in range(count + 1, count + 51):
-        word = AsTierAWord(language_id=language_id, label=f"word{seq:03d}", gloss=gloss, emblem=emblem)
+        word = AsTierAWord(
+            language_id=language_id, label=f"word{seq:03d}", gloss=gloss, emblem=emblem
+        )
         db.add(word)
         try:
             await db.commit()

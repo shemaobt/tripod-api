@@ -32,7 +32,7 @@ class UploadTicket(BaseModel):
     expires_in: int
 
     @classmethod
-    def from_presigned(cls, presigned: PresignedUpload) -> "UploadTicket":
+    def from_presigned(cls, presigned: PresignedUpload) -> UploadTicket:
         return cls(
             storage_key=presigned.storage_key,
             upload_url=presigned.url,

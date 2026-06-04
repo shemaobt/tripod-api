@@ -23,6 +23,7 @@ from app.services.annotation_studio import storage
 from app.services.annotation_studio.common import get_or_404
 from app.services.annotation_studio.export_plan import (
     ExportInputs,
+    ExportPlan,
     SortAssignmentInput,
     TierARecordingInput,
     TierBPairInput,
@@ -40,7 +41,7 @@ def _csv_text(header: list[str], rows: list[tuple]) -> str:
     return buffer.getvalue()
 
 
-def _config_hint(root: str, plan) -> dict:
+def _config_hint(root: str, plan: ExportPlan) -> dict:
     hint: dict[str, str] = {"output_dir": "./results_layerwise_annotated/"}
     if plan.tier_a_rows:
         hint["tier_a_dir"] = f"{root}/tier_a_words"
@@ -57,7 +58,13 @@ def _config_hint(root: str, plan) -> dict:
     return hint
 
 
-def _assemble_zip(code, plan, a_map, b_map, c_map) -> bytes:
+def _assemble_zip(
+    code: str,
+    plan: ExportPlan,
+    a_map: dict[str, str],
+    b_map: dict[str, str],
+    c_map: dict[str, tuple[str, str]],
+) -> bytes:
     root = f"{code}_export"
     out = io.BytesIO()
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -86,12 +93,18 @@ def _assemble_zip(code, plan, a_map, b_map, c_map) -> bytes:
         for clip_id in sorted(plan.included_tier_c_clip_ids):
             filename, key = c_map[clip_id]
             zf.writestr(f"{root}/tier_c_clips/{filename}", storage.get_bytes(key))
-        manifest = {**plan.manifest, "language_code": code, "notebook_config": _config_hint(root, plan)}
+        manifest = {
+            **plan.manifest,
+            "language_code": code,
+            "notebook_config": _config_hint(root, plan),
+        }
         zf.writestr(f"{root}/manifest.json", json.dumps(manifest, indent=2))
     return out.getvalue()
 
 
-async def _gather(db: AsyncSession, language_id: str):
+async def _gather(
+    db: AsyncSession, language_id: str
+) -> tuple[ExportInputs, dict[str, str], dict[str, str], dict[str, tuple[str, str]]]:
     tier_a_rows = await db.execute(
         select(AsTierARecording, AsTierAWord, AsSpeaker)
         .join(AsTierAWord, AsTierARecording.word_id == AsTierAWord.id)
@@ -106,7 +119,9 @@ async def _gather(db: AsyncSession, language_id: str):
     for rec, word, speaker in tier_a_rows.all():
         # word_label is the researcher-readable gloss when set, else the auto slug (word001);
         # this is both the export <5-instance grouping key and the notebook's grouping label.
-        tier_a.append(TierARecordingInput(rec.export_filename, word.gloss or word.label, speaker.label))
+        tier_a.append(
+            TierARecordingInput(rec.export_filename, word.gloss or word.label, speaker.label)
+        )
         a_map[rec.export_filename] = rec.storage_key
 
     pairs = (
@@ -208,9 +223,7 @@ async def download_url(db: AsyncSession, export_id: str) -> str | None:
     return storage.presign_get(export.bundle_key)
 
 
-async def build_export(
-    db: AsyncSession, language_id: str, created_by: str | None
-) -> AsExport:
+async def build_export(db: AsyncSession, language_id: str, created_by: str | None) -> AsExport:
     language = await get_language_or_404(db, language_id)
     inputs, a_map, b_map, c_map = await _gather(db, language_id)
     plan = build_export_plan(inputs)
@@ -225,9 +238,7 @@ async def build_export(
     await db.refresh(export)
 
     try:
-        data = await run_in_threadpool(
-            _assemble_zip, language.code, plan, a_map, b_map, c_map
-        )
+        data = await run_in_threadpool(_assemble_zip, language.code, plan, a_map, b_map, c_map)
         bundle_key = export_bundle_key(language.code, export.id)
         await run_in_threadpool(storage.put_object, bundle_key, data, "application/zip")
         export.status = ExportStatus.READY.value

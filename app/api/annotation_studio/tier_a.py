@@ -27,7 +27,9 @@ async def list_words(language_id: str, db: Db, _: CurrentUser) -> list[WordRespo
     response_model=WordResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def create_word(language_id: str, payload: WordCreate, db: Db, _: CurrentUser) -> WordResponse:
+async def create_word(
+    language_id: str, payload: WordCreate, db: Db, _: CurrentUser
+) -> WordResponse:
     word = await tier_a_service.create_word(db, language_id, payload.gloss, payload.emblem)
     return WordResponse.model_validate(word)
 
@@ -51,7 +53,7 @@ async def delete_word(word_id: str, db: Db, _: CurrentUser) -> None:
 async def set_reference(
     word_id: str, payload: WordReferenceCreate, db: Db, _: CurrentUser
 ) -> UploadTicket:
-    _, presigned = await tier_a_service.set_reference(db, word_id, payload.upload_format)
+    _word, presigned = await tier_a_service.set_reference(db, word_id, payload.upload_format)
     return UploadTicket.from_presigned(presigned)
 
 

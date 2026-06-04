@@ -20,9 +20,28 @@ LABEL_PATTERN = re.compile(r"^[a-z0-9]+$")
 # for elicited words (matches the common-noun list in annotation_guide.md).
 ALLOWED_EMBLEMS = frozenset(
     {
-        "droplet", "flame", "sun", "moon", "hand", "eye", "user", "baby", "home",
-        "tree", "bird", "fish", "paw", "cloudRain", "wind", "mountain", "route",
-        "bowl", "tag", "heart", "music", "waves",
+        "droplet",
+        "flame",
+        "sun",
+        "moon",
+        "hand",
+        "eye",
+        "user",
+        "baby",
+        "home",
+        "tree",
+        "bird",
+        "fish",
+        "paw",
+        "cloudRain",
+        "wind",
+        "mountain",
+        "route",
+        "bowl",
+        "tag",
+        "heart",
+        "music",
+        "waves",
     }
 )
 
