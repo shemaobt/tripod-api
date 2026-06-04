@@ -2,9 +2,8 @@
 
 Mirrors the oral-collector signed-URL pattern (``recording_service``): a cached
 ``storage.Client`` plus cached ADC credentials refreshed on demand, used to mint
-v4 signed PUT/GET URLs and to read/write bundle bytes. All keys are logical
-(see ``naming.py``); ``_blob`` prepends the ``annotation-studio/`` prefix so the
-shared bucket stays partitioned from oral-collector.
+v4 signed PUT/GET URLs and to read/write bundle bytes. Keys are the logical
+keys from ``naming.py``, used verbatim as object names in the dedicated bucket.
 """
 
 from __future__ import annotations
@@ -14,7 +13,6 @@ import google.auth.transport.requests
 
 from app.models.annotation_studio import PresignedUpload
 from app.services.annotation_studio.constants import (
-    AS_BLOB_PREFIX,
     GCS_AS_BUCKET,
     GCS_AS_PROJECT,
     SIGNED_GET_EXPIRY_SECONDS,
@@ -49,7 +47,7 @@ def _get_signing_info() -> tuple[str, str]:
 def _blob(key: str):  # type: ignore[no-untyped-def]
     client = _get_gcs_client()
     bucket = client.bucket(GCS_AS_BUCKET)
-    return bucket.blob(f"{AS_BLOB_PREFIX}/{key}")
+    return bucket.blob(key)
 
 
 def presign_put(key: str, content_type: str, ttl_s: int = SIGNED_PUT_EXPIRY_SECONDS) -> PresignedUpload:
