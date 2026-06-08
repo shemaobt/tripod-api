@@ -104,6 +104,19 @@ def exists(key: str) -> bool:
     return _blob(key).exists()  # type: ignore[no-any-return]
 
 
+def object_size(key: str) -> int | None:
+    """The stored object's size in bytes, or ``None`` if it can't be determined.
+
+    Fails open (returns ``None``) so a transient metadata error never blocks a
+    legitimate upload from completing.
+    """
+    blob = _blob(key)
+    with contextlib.suppress(Exception):
+        blob.reload()
+        return blob.size  # type: ignore[no-any-return]
+    return None
+
+
 def delete(key: str) -> None:
     # Deleting a never-uploaded key (status still pending) is not an error.
     with contextlib.suppress(Exception):

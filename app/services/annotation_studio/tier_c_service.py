@@ -14,7 +14,7 @@ from app.core.exceptions import ConflictError
 from app.db.models.as_tier_c import AsTierCClip, AsTierCSortAssignment
 from app.models.annotation_studio import PresignedUpload
 from app.services.annotation_studio import storage
-from app.services.annotation_studio.common import get_or_404
+from app.services.annotation_studio.common import enforce_audio_size, get_or_404
 from app.services.annotation_studio.content_types import content_type_for_format
 from app.services.annotation_studio.export_plan import SortAssignmentInput, compute_agreement
 from app.services.annotation_studio.naming import raw_object_key, tier_c_clip_id, tier_c_filename
@@ -74,6 +74,7 @@ async def create_clip(
 
 async def complete_clip(db: AsyncSession, clip_id: str) -> AsTierCClip:
     clip = await get_or_404(db, AsTierCClip, clip_id, "Clip")
+    enforce_audio_size(clip.storage_key)
     clip.upload_status = UploadStatus.STORED.value
     await db.commit()
     await db.refresh(clip)
@@ -82,9 +83,11 @@ async def complete_clip(db: AsyncSession, clip_id: str) -> AsTierCClip:
 
 async def delete_clip(db: AsyncSession, clip_id: str) -> None:
     clip = await get_or_404(db, AsTierCClip, clip_id, "Clip")
-    storage.delete(clip.storage_key)
+    storage_key = clip.storage_key
     await db.delete(clip)
     await db.commit()
+    # Delete storage after the commit so a failed commit can't orphan the row.
+    storage.delete(storage_key)
 
 
 async def upsert_sort(
