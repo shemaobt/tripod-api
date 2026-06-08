@@ -28,9 +28,7 @@ async def compute_readiness(db: AsyncSession, language_id: str) -> dict:
     # ── Tier A ──────────────────────────────────────────────────────────────
     words_total = await _scalar_int(
         db,
-        select(func.count()).select_from(AsTierAWord).where(
-            AsTierAWord.language_id == language_id
-        ),
+        select(func.count()).select_from(AsTierAWord).where(AsTierAWord.language_id == language_id),
     )
     a_instances = await _scalar_int(
         db,
@@ -52,9 +50,7 @@ async def compute_readiness(db: AsyncSession, language_id: str) -> dict:
     # ── Tier B ──────────────────────────────────────────────────────────────
     pairs_total = await _scalar_int(
         db,
-        select(func.count()).select_from(AsTierBPair).where(
-            AsTierBPair.language_id == language_id
-        ),
+        select(func.count()).select_from(AsTierBPair).where(AsTierBPair.language_id == language_id),
     )
     b_recordings = await _scalar_int(
         db,
@@ -84,9 +80,9 @@ async def compute_readiness(db: AsyncSession, language_id: str) -> dict:
     # ── Tier C ──────────────────────────────────────────────────────────────
     clips_total = await _scalar_int(
         db,
-        select(func.count()).select_from(AsTierCClip).where(
-            AsTierCClip.language_id == language_id, AsTierCClip.upload_status == _STORED
-        ),
+        select(func.count())
+        .select_from(AsTierCClip)
+        .where(AsTierCClip.language_id == language_id, AsTierCClip.upload_status == _STORED),
     )
     sorted_rows = await db.execute(
         select(AsTierCSortAssignment.dimension, func.count())

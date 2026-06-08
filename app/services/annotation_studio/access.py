@@ -168,9 +168,7 @@ async def language_id_for_storage_key(db: AsyncSession, key: str) -> str:
         return str(rec_b_lang)
 
     clip_lang = (
-        await db.execute(
-            select(AsTierCClip.language_id).where(AsTierCClip.storage_key == key)
-        )
+        await db.execute(select(AsTierCClip.language_id).where(AsTierCClip.storage_key == key))
     ).scalar_one_or_none()
     if clip_lang is not None:
         return str(clip_lang)

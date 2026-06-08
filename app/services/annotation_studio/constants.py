@@ -17,4 +17,3 @@ SIGNED_GET_EXPIRY_SECONDS = 3600
 # an object larger than this is deleted instead of being marked STORED. Studio
 # audio is short 16 kHz WAV, so 25 MB is generous headroom.
 MAX_AUDIO_BYTES = 25 * 1024 * 1024
-

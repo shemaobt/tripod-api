@@ -77,13 +77,16 @@ async def test_dashboard_lists_only_accessible_languages(client, db_session, sce
     assert {scenario["lang_a"].id, scenario["lang_b"].id} <= {row["id"] for row in res.json()}
 
 
-@pytest.mark.parametrize("method,path_for", [
-    ("get", lambda s: f"{AS}/languages/{s['lang_a'].id}/speakers"),           # path route
-    ("get", lambda s: f"{AS}/languages/{s['lang_a'].id}/tier-a/words"),       # path route
-    ("delete", lambda s: f"{AS}/tier-a/words/{s['word'].id}"),                 # by-id route
-    ("get", lambda s: f"{AS}/audio/url?key={s['rec_key']}"),                   # cross-lang key
-    ("get", lambda s: f"{AS}/languages/{s['lang_a'].id}/members"),             # admin-only
-])
+@pytest.mark.parametrize(
+    "method,path_for",
+    [
+        ("get", lambda s: f"{AS}/languages/{s['lang_a'].id}/speakers"),  # path route
+        ("get", lambda s: f"{AS}/languages/{s['lang_a'].id}/tier-a/words"),  # path route
+        ("delete", lambda s: f"{AS}/tier-a/words/{s['word'].id}"),  # by-id route
+        ("get", lambda s: f"{AS}/audio/url?key={s['rec_key']}"),  # cross-lang key
+        ("get", lambda s: f"{AS}/languages/{s['lang_a'].id}/members"),  # admin-only
+    ],
+)
 async def test_non_member_is_denied_on_foreign_language(
     client, db_session, scenario, method, path_for
 ):

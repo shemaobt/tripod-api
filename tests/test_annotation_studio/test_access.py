@@ -43,9 +43,7 @@ async def test_as_admin_role_bypasses(db_session, as_app):
     lang = await make_language(db_session, code="ddd")
     user = await make_user(db_session, email="asadmin@example.com")
     admin_role = next(
-        r
-        for r in (await _roles_for_app(db_session, as_app.id))
-        if r.role_key == "admin"
+        r for r in (await _roles_for_app(db_session, as_app.id)) if r.role_key == "admin"
     )
     await make_user_app_role(db_session, user.id, as_app.id, admin_role.id)
 
