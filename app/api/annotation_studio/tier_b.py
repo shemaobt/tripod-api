@@ -43,13 +43,9 @@ async def create_pair(
 
 
 @router.patch("/tier-b/pairs/{pair_id}", response_model=PairResponse)
-async def update_pair(
-    pair_id: str, payload: PairUpdate, db: Db, user: CurrentUser
-) -> PairResponse:
+async def update_pair(pair_id: str, payload: PairUpdate, db: Db, user: CurrentUser) -> PairResponse:
     await access.assert_language_access(db, user, await access.language_id_for_pair(db, pair_id))
-    pair = await tier_b_service.update_pair(
-        db, pair_id, payload.word_a_text, payload.word_b_text
-    )
+    pair = await tier_b_service.update_pair(db, pair_id, payload.word_a_text, payload.word_b_text)
     return PairResponse.model_validate(pair)
 
 
