@@ -209,10 +209,12 @@ async def get_export(db: AsyncSession, export_id: str) -> AsExport:
 
 async def delete_export(db: AsyncSession, export_id: str) -> None:
     export = await get_or_404(db, AsExport, export_id, "Export")
-    if export.bundle_key:
-        storage.delete(export.bundle_key)
+    bundle_key = export.bundle_key
     await db.delete(export)
     await db.commit()
+    # Delete the bundle after the commit so a failed commit can't orphan the row.
+    if bundle_key:
+        storage.delete(bundle_key)
 
 
 async def download_url(db: AsyncSession, export_id: str) -> str | None:

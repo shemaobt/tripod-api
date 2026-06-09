@@ -1,5 +1,6 @@
 from app.db.models.as_analysis_result import AsAnalysisResult
 from app.db.models.as_export import AsExport
+from app.db.models.as_language_member import AsLanguageMember
 from app.db.models.as_speaker import AsSpeaker
 from app.db.models.as_tier_a import AsTierARecording, AsTierAWord
 from app.db.models.as_tier_b import AsTierBPair, AsTierBRecording
@@ -60,6 +61,7 @@ __all__ = [
     "App",
     "AsAnalysisResult",
     "AsExport",
+    "AsLanguageMember",
     "AsSpeaker",
     "AsTierARecording",
     "AsTierAWord",

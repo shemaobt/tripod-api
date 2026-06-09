@@ -57,6 +57,19 @@ class AsLanguageSummary(BaseModel):
     readiness: dict
 
 
+class LanguageMemberResponse(BaseModel):
+    """A facilitator granted access to a specific language (admin views)."""
+
+    user_id: str
+    email: str
+    display_name: str | None = None
+    created_at: datetime
+
+
+class LanguageMemberCreate(BaseModel):
+    email: str
+
+
 class SpeakerResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
