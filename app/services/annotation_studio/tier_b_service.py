@@ -13,7 +13,7 @@ from app.core.exceptions import ConflictError
 from app.db.models.as_tier_b import AsTierBPair, AsTierBRecording
 from app.models.annotation_studio import PresignedUpload
 from app.services.annotation_studio import storage
-from app.services.annotation_studio.common import get_or_404
+from app.services.annotation_studio.common import enforce_audio_size, get_or_404
 from app.services.annotation_studio.content_types import content_type_for_format
 from app.services.annotation_studio.naming import raw_object_key, tier_b_filename
 from app.services.language.get_language_or_404 import get_language_or_404
@@ -120,6 +120,7 @@ async def create_recording(
 
 async def complete_recording(db: AsyncSession, recording_id: str) -> AsTierBRecording:
     recording = await get_or_404(db, AsTierBRecording, recording_id, "Recording")
+    enforce_audio_size(recording.storage_key)
     recording.upload_status = UploadStatus.STORED.value
     await db.commit()
     await db.refresh(recording)
@@ -128,6 +129,8 @@ async def complete_recording(db: AsyncSession, recording_id: str) -> AsTierBReco
 
 async def delete_recording(db: AsyncSession, recording_id: str) -> None:
     recording = await get_or_404(db, AsTierBRecording, recording_id, "Recording")
-    storage.delete(recording.storage_key)
+    storage_key = recording.storage_key
     await db.delete(recording)
     await db.commit()
+    # Delete storage after the commit so a failed commit can't orphan the row.
+    storage.delete(storage_key)

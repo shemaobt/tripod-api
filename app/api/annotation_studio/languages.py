@@ -8,6 +8,6 @@ router = APIRouter()
 
 
 @router.get("/languages", response_model=list[AsLanguageSummary])
-async def list_active_languages(db: Db, _: CurrentUser) -> list[AsLanguageSummary]:
-    """Tripod languages that have studio data, each with collection readiness."""
-    return await dashboard_service.list_active_languages(db)
+async def list_active_languages(db: Db, user: CurrentUser) -> list[AsLanguageSummary]:
+    """Tripod languages the user may access that have studio data, with readiness."""
+    return await dashboard_service.list_active_languages(db, user)

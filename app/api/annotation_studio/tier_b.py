@@ -9,13 +9,14 @@ from app.models.annotation_studio import (
     TierBRecordingTicket,
     UploadTicket,
 )
-from app.services.annotation_studio import tier_b_service
+from app.services.annotation_studio import access, tier_b_service
 
 router = APIRouter()
 
 
 @router.get("/languages/{language_id}/tier-b/pairs", response_model=list[PairResponse])
-async def list_pairs(language_id: str, db: Db, _: CurrentUser) -> list[PairResponse]:
+async def list_pairs(language_id: str, db: Db, user: CurrentUser) -> list[PairResponse]:
+    await access.assert_language_access(db, user, language_id)
     pairs = await tier_b_service.list_pairs(db, language_id)
     return [PairResponse.model_validate(p) for p in pairs]
 
@@ -26,8 +27,9 @@ async def list_pairs(language_id: str, db: Db, _: CurrentUser) -> list[PairRespo
     status_code=status.HTTP_201_CREATED,
 )
 async def create_pair(
-    language_id: str, payload: PairCreate, db: Db, _: CurrentUser
+    language_id: str, payload: PairCreate, db: Db, user: CurrentUser
 ) -> PairResponse:
+    await access.assert_language_access(db, user, language_id)
     pair = await tier_b_service.create_pair(
         db,
         language_id,
@@ -40,7 +42,8 @@ async def create_pair(
 
 
 @router.delete("/tier-b/pairs/{pair_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_pair(pair_id: str, db: Db, _: CurrentUser) -> None:
+async def delete_pair(pair_id: str, db: Db, user: CurrentUser) -> None:
+    await access.assert_language_access(db, user, await access.language_id_for_pair(db, pair_id))
     await tier_b_service.delete_pair(db, pair_id)
 
 
@@ -48,7 +51,10 @@ async def delete_pair(pair_id: str, db: Db, _: CurrentUser) -> None:
     "/languages/{language_id}/tier-b/recordings",
     response_model=list[TierBRecordingResponse],
 )
-async def list_recordings(language_id: str, db: Db, _: CurrentUser) -> list[TierBRecordingResponse]:
+async def list_recordings(
+    language_id: str, db: Db, user: CurrentUser
+) -> list[TierBRecordingResponse]:
+    await access.assert_language_access(db, user, language_id)
     recordings = await tier_b_service.list_recordings(db, language_id)
     return [TierBRecordingResponse.model_validate(r) for r in recordings]
 
@@ -59,8 +65,9 @@ async def list_recordings(language_id: str, db: Db, _: CurrentUser) -> list[Tier
     status_code=status.HTTP_201_CREATED,
 )
 async def create_recording(
-    pair_id: str, payload: TierBRecordingCreate, db: Db, _: CurrentUser
+    pair_id: str, payload: TierBRecordingCreate, db: Db, user: CurrentUser
 ) -> TierBRecordingTicket:
+    await access.assert_language_access(db, user, await access.language_id_for_pair(db, pair_id))
     recording, presigned = await tier_b_service.create_recording(
         db, pair_id, payload.side, payload.rep_index, payload.upload_format, payload.duration_ms
     )
@@ -71,11 +78,19 @@ async def create_recording(
 
 
 @router.post("/tier-b/recordings/{recording_id}/complete", response_model=TierBRecordingResponse)
-async def complete_recording(recording_id: str, db: Db, _: CurrentUser) -> TierBRecordingResponse:
+async def complete_recording(
+    recording_id: str, db: Db, user: CurrentUser
+) -> TierBRecordingResponse:
+    await access.assert_language_access(
+        db, user, await access.language_id_for_recording_b(db, recording_id)
+    )
     recording = await tier_b_service.complete_recording(db, recording_id)
     return TierBRecordingResponse.model_validate(recording)
 
 
 @router.delete("/tier-b/recordings/{recording_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_recording(recording_id: str, db: Db, _: CurrentUser) -> None:
+async def delete_recording(recording_id: str, db: Db, user: CurrentUser) -> None:
+    await access.assert_language_access(
+        db, user, await access.language_id_for_recording_b(db, recording_id)
+    )
     await tier_b_service.delete_recording(db, recording_id)
