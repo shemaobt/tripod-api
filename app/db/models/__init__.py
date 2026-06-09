@@ -1,3 +1,10 @@
+from app.db.models.as_analysis_result import AsAnalysisResult
+from app.db.models.as_export import AsExport
+from app.db.models.as_language_member import AsLanguageMember
+from app.db.models.as_speaker import AsSpeaker
+from app.db.models.as_tier_a import AsTierARecording, AsTierAWord
+from app.db.models.as_tier_b import AsTierBPair, AsTierBRecording
+from app.db.models.as_tier_c import AsTierCClip, AsTierCSortAssignment
 from app.db.models.auth import (
     AccessRequest,
     App,
@@ -52,6 +59,16 @@ __all__ = [
     "AccessRequest",
     "AgentId",
     "App",
+    "AsAnalysisResult",
+    "AsExport",
+    "AsLanguageMember",
+    "AsSpeaker",
+    "AsTierARecording",
+    "AsTierAWord",
+    "AsTierBPair",
+    "AsTierBRecording",
+    "AsTierCClip",
+    "AsTierCSortAssignment",
     "BCDApproval",
     "BCDGenerationLog",
     "BCDSectionFeedback",
