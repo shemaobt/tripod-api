@@ -347,9 +347,15 @@ def test_gcs_blob_path_wav() -> None:
 def test_confirm_upload_request_model() -> None:
     req = ConfirmUploadRequest(md5_hash="abc123")
     assert req.md5_hash == "abc123"
+    assert req.crc32c is None
 
     req_none = ConfirmUploadRequest()
     assert req_none.md5_hash is None
+    assert req_none.crc32c is None
+
+    req_crc = ConfirmUploadRequest(crc32c="Nks/tw==")
+    assert req_crc.crc32c == "Nks/tw=="
+    assert req_crc.md5_hash is None
 
 
 def test_resumable_upload_url_request_model() -> None:

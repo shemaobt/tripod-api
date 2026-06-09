@@ -1,6 +1,8 @@
+import asyncio
 import uuid
 
 from fastapi import UploadFile
+from google.cloud import storage
 
 GCS_UPLOADS_BUCKET = "tripod-image-uploads"
 GCS_PROJECT = "gen-lang-client-0886209230"
@@ -10,8 +12,6 @@ MAX_FILE_SIZE = 5 * 1024 * 1024
 
 
 async def upload_image(file: UploadFile, folder: str = "images") -> str:
-    from google.cloud import storage  # type: ignore[attr-defined]
-
     if file.content_type not in ALLOWED_CONTENT_TYPES:
         raise ValueError(f"Unsupported file type: {file.content_type}")
 
@@ -22,11 +22,13 @@ async def upload_image(file: UploadFile, folder: str = "images") -> str:
     ext = _extension_for(file.content_type)
     blob_name = f"{folder}/{uuid.uuid4().hex}{ext}"
 
-    client = storage.Client(project=GCS_PROJECT)
-    bucket = client.bucket(GCS_UPLOADS_BUCKET)
-    blob = bucket.blob(blob_name)
-    blob.upload_from_string(contents, content_type=file.content_type)
+    def _blocking() -> None:
+        client = storage.Client(project=GCS_PROJECT)
+        bucket = client.bucket(GCS_UPLOADS_BUCKET)
+        blob = bucket.blob(blob_name)
+        blob.upload_from_string(contents, content_type=file.content_type)
 
+    await asyncio.to_thread(_blocking)
     return f"https://storage.googleapis.com/{GCS_UPLOADS_BUCKET}/{blob_name}"
 
 

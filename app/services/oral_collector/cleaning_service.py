@@ -1,6 +1,8 @@
+import asyncio
 import logging
 
 import inngest
+from google.cloud import storage
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,13 +28,13 @@ async def _get_recording(db: AsyncSession, recording_id: str) -> OC_Recording:
 
 
 async def _copy_gcs_blob(source_name: str, dest_name: str) -> None:
+    def _blocking() -> None:
+        client = storage.Client(project=GCS_OC_PROJECT)
+        bucket = client.bucket(GCS_OC_BUCKET)
+        source_blob = bucket.blob(source_name)
+        bucket.copy_blob(source_blob, bucket, dest_name)
 
-    from google.cloud import storage  # type: ignore[attr-defined]
-
-    client = storage.Client(project=GCS_OC_PROJECT)
-    bucket = client.bucket(GCS_OC_BUCKET)
-    source_blob = bucket.blob(source_name)
-    bucket.copy_blob(source_blob, bucket, dest_name)
+    await asyncio.to_thread(_blocking)
 
 
 def _blob_name_from_url(gcs_url: str) -> str | None:
