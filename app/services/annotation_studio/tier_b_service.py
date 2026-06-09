@@ -66,6 +66,20 @@ async def create_pair(
     return pair
 
 
+async def update_pair(
+    db: AsyncSession,
+    pair_id: str,
+    word_a_text: str | None,
+    word_b_text: str | None,
+) -> AsTierBPair:
+    pair = await get_or_404(db, AsTierBPair, pair_id, "Pair")
+    pair.word_a_text = _normalize_pair_text(word_a_text)
+    pair.word_b_text = _normalize_pair_text(word_b_text)
+    await db.commit()
+    await db.refresh(pair)
+    return pair
+
+
 async def delete_pair(db: AsyncSession, pair_id: str) -> None:
     pair = await get_or_404(db, AsTierBPair, pair_id, "Pair")
     await db.delete(pair)

@@ -150,6 +150,11 @@ class PairCreate(BaseModel):
     speaker_id: str | None = None
 
 
+class PairUpdate(BaseModel):
+    word_a_text: str | None = None
+    word_b_text: str | None = None
+
+
 class PairResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
