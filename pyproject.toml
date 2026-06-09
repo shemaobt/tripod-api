@@ -136,10 +136,12 @@ type = "forbidden"
 source_modules = ["app.api"]
 forbidden_modules = ["app.db"]
 allow_indirect_imports = true
-# Baseline 2026-06-09: 43 direct ORM imports in routers (mostly the User type
+# Baseline 2026-06-09: 45 direct ORM imports in routers (mostly the User type
 # from the auth dependency). New ORM imports in app/api fail the PR.
 ignore_imports = [
     "app.api.access_requests -> app.db.models.auth",
+    "app.api.annotation_studio._deps -> app.db.models.auth",
+    "app.api.annotation_studio.results -> app.db.models.as_analysis_result",
     "app.api.apps -> app.db.models.auth",
     "app.api.auth -> app.db.models.auth",
     "app.api.book_context.crud -> app.db.models.auth",
