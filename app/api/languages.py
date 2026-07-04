@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth_middleware import get_current_user
@@ -13,10 +13,11 @@ router = APIRouter()
 
 @router.get("", response_model=list[LanguageResponse])
 async def list_languages(
+    include_inactive: bool = Query(default=False),
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_user),
 ) -> list[LanguageResponse]:
-    languages = await language_service.list_languages(db)
+    languages = await language_service.list_languages(db, include_inactive=include_inactive)
     return [LanguageResponse.model_validate(lang) for lang in languages]
 
 
@@ -50,3 +51,12 @@ async def get_language_by_id(
 ) -> LanguageResponse:
     language = await language_service.get_language_or_404(db, language_id)
     return LanguageResponse.model_validate(language)
+
+
+@router.delete("/{language_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def deactivate_language(
+    language_id: str,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_user),
+) -> None:
+    await language_service.deactivate_language(db, language_id)

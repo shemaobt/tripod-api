@@ -67,6 +67,41 @@ async def test_list_languages_ordered_by_code(db_session) -> None:
 
 
 @pytest.mark.asyncio
+async def test_deactivate_language_sets_inactive(db_session) -> None:
+    created = await make_language(db_session, code="kos")
+    deactivated = await language_service.deactivate_language(db_session, created.id)
+    assert deactivated.is_active is False
+
+
+@pytest.mark.asyncio
+async def test_deactivate_language_missing_raises_not_found(db_session) -> None:
+    with pytest.raises(NotFoundError, match=r"Language .* not found"):
+        await language_service.deactivate_language(
+            db_session, "00000000-0000-0000-0000-000000000000"
+        )
+
+
+@pytest.mark.asyncio
+async def test_list_languages_hides_inactive_by_default(db_session) -> None:
+    active = await make_language(db_session, code="act", name="Active")
+    inactive = await make_language(db_session, code="ina", name="Inactive")
+    await language_service.deactivate_language(db_session, inactive.id)
+
+    languages = await language_service.list_languages(db_session)
+    assert [lang.id for lang in languages] == [active.id]
+
+
+@pytest.mark.asyncio
+async def test_list_languages_include_inactive(db_session) -> None:
+    active = await make_language(db_session, code="act", name="Active")
+    inactive = await make_language(db_session, code="ina", name="Inactive")
+    await language_service.deactivate_language(db_session, inactive.id)
+
+    languages = await language_service.list_languages(db_session, include_inactive=True)
+    assert {lang.id for lang in languages} == {active.id, inactive.id}
+
+
+@pytest.mark.asyncio
 async def test_get_language_or_404_raises_when_missing(db_session) -> None:
     with pytest.raises(NotFoundError, match=r"Language .* not found"):
         await language_service.get_language_or_404(
