@@ -1,6 +1,9 @@
 from datetime import datetime
+from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+Platform = Literal["web", "android", "ios"]
 
 
 class AppCreate(BaseModel):
@@ -11,7 +14,7 @@ class AppCreate(BaseModel):
     app_url: str | None = None
     ios_url: str | None = None
     android_url: str | None = None
-    platform: str | None = "web"
+    platforms: list[Platform] = Field(default_factory=lambda: ["web"])
     is_active: bool | None = True
     auto_approve: bool | None = False
 
@@ -23,7 +26,7 @@ class AppUpdate(BaseModel):
     app_url: str | None = None
     ios_url: str | None = None
     android_url: str | None = None
-    platform: str | None = None
+    platforms: list[Platform] | None = None
     is_active: bool | None = None
     auto_approve: bool | None = None
 
@@ -37,7 +40,7 @@ class AppResponse(BaseModel):
     app_url: str | None
     ios_url: str | None
     android_url: str | None
-    platform: str
+    platforms: list[str]
     is_active: bool
     auto_approve: bool
     created_at: datetime
@@ -54,7 +57,7 @@ class UserAppResponse(BaseModel):
     app_url: str | None
     ios_url: str | None
     android_url: str | None
-    platform: str
+    platforms: list[str]
     is_active: bool
     created_at: datetime
     roles: list[str]

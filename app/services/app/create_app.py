@@ -14,7 +14,7 @@ async def create_app(
     app_url: str | None = None,
     ios_url: str | None = None,
     android_url: str | None = None,
-    platform: str = "web",
+    platforms: list[str] | None = None,
     is_active: bool = True,
     auto_approve: bool = False,
 ) -> App:
@@ -30,7 +30,7 @@ async def create_app(
         app_url=app_url,
         ios_url=ios_url,
         android_url=android_url,
-        platform=platform,
+        platforms=platforms or ["web"],
         is_active=is_active,
         auto_approve=auto_approve,
     )
