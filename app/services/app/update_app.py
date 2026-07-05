@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import UTC, datetime
 
 from sqlalchemy import select
@@ -18,7 +19,7 @@ async def update_app(
     app_url: str | None = None,
     ios_url: str | None = None,
     android_url: str | None = None,
-    platforms: list[str] | None = None,
+    platforms: Sequence[str] | None = None,
     is_active: bool | None = None,
     auto_approve: bool | None = None,
     actor: User | None = None,
@@ -37,7 +38,7 @@ async def update_app(
     if android_url is not None:
         app.android_url = android_url
     if platforms is not None:
-        app.platforms = platforms
+        app.platforms = list(platforms)
     if is_active is not None:
         app.is_active = is_active
 

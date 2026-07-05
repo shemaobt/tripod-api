@@ -6,6 +6,10 @@ from pydantic import BaseModel, Field
 Platform = Literal["web", "android", "ios"]
 
 
+def _default_platforms() -> list[Platform]:
+    return ["web"]
+
+
 class AppCreate(BaseModel):
     app_key: str
     name: str
@@ -14,7 +18,7 @@ class AppCreate(BaseModel):
     app_url: str | None = None
     ios_url: str | None = None
     android_url: str | None = None
-    platforms: list[Platform] = Field(default_factory=lambda: ["web"])
+    platforms: list[Platform] = Field(default_factory=_default_platforms)
     is_active: bool | None = True
     auto_approve: bool | None = False
 
