@@ -15,3 +15,8 @@ class LanguageResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class LanguageStatsResponse(BaseModel):
+    language_id: str
+    project_count: int
