@@ -21,5 +21,5 @@ async def count_project_team_sizes(db: AsyncSession, project_ids: list[str]) -> 
         .group_by(ProjectUserAccess.project_id)
     )
     result = await db.execute(stmt)
-    counts = dict(result.all())
+    counts: dict[str, int] = {row[0]: row[1] for row in result.all()}
     return {project_id: counts.get(project_id, 0) for project_id in project_ids}
