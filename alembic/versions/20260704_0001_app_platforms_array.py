@@ -21,12 +21,14 @@ def upgrade() -> None:
     op.add_column("apps", sa.Column("platforms", sa.JSON(), nullable=True))
     op.execute(
         """
-        UPDATE apps SET platforms = CASE
-            WHEN platform = 'web' THEN '["web"]'
-            WHEN platform = 'mobile' THEN '["android", "ios"]'
-            WHEN platform = 'both' THEN '["web", "android", "ios"]'
-            ELSE '["web"]'
-        END
+        UPDATE apps SET platforms = CAST(
+            CASE
+                WHEN platform = 'web' THEN '["web"]'
+                WHEN platform = 'mobile' THEN '["android", "ios"]'
+                WHEN platform = 'both' THEN '["web", "android", "ios"]'
+                ELSE '["web"]'
+            END AS json
+        )
         """
     )
     op.alter_column("apps", "platforms", nullable=False)
@@ -38,9 +40,9 @@ def downgrade() -> None:
     op.execute(
         """
         UPDATE apps SET platform = CASE
-            WHEN platforms = '["web"]' THEN 'web'
-            WHEN platforms = '["android", "ios"]' THEN 'mobile'
-            WHEN platforms = '["web", "android", "ios"]' THEN 'both'
+            WHEN platforms::jsonb = '["web"]'::jsonb THEN 'web'
+            WHEN platforms::jsonb = '["android", "ios"]'::jsonb THEN 'mobile'
+            WHEN platforms::jsonb = '["web", "android", "ios"]'::jsonb THEN 'both'
             ELSE 'web'
         END
         """
