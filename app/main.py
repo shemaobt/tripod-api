@@ -12,6 +12,7 @@ from app.api.auth import router as auth_router
 from app.api.bhsa import router as bhsa_router
 from app.api.book_context import router as book_context_router
 from app.api.books import router as books_router
+from app.api.change_requests import router as change_requests_router
 from app.api.health import router as health_router
 from app.api.languages import router as languages_router
 from app.api.meaning_maps import router as meaning_maps_router
@@ -116,6 +117,11 @@ def create_app() -> FastAPI:
         access_requests_router,
         prefix="/api/access-requests",
         tags=["access-requests"],
+    )
+    app.include_router(
+        change_requests_router,
+        prefix="/api/change-requests",
+        tags=["change-requests"],
     )
     app.include_router(apps_router, prefix="/api/apps", tags=["apps"])
     app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
