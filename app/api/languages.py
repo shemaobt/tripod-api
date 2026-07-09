@@ -25,9 +25,11 @@ async def list_languages(
 async def create_language(
     payload: LanguageCreate,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ) -> LanguageResponse:
-    language = await language_service.create_language(db, payload.name, payload.code)
+    language = await language_service.create_language(
+        db, payload.name, payload.code, created_by=str(user.id)
+    )
     return LanguageResponse.model_validate(language)
 
 
@@ -57,6 +59,6 @@ async def get_language_by_id(
 async def deactivate_language(
     language_id: str,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ) -> None:
-    await language_service.deactivate_language(db, language_id)
+    await language_service.deactivate_language(db, language_id, user)

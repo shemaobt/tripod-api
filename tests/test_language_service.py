@@ -1,8 +1,8 @@
 import pytest
 
-from app.core.exceptions import ConflictError, NotFoundError
+from app.core.exceptions import AuthorizationError, ConflictError, NotFoundError
 from app.services import language_service
-from tests.baker import make_language
+from tests.baker import make_language, make_project, make_user
 
 
 @pytest.mark.asyncio
@@ -67,25 +67,63 @@ async def test_list_languages_ordered_by_code(db_session) -> None:
 
 
 @pytest.mark.asyncio
+async def test_create_language_sets_created_by(db_session) -> None:
+    user = await make_user(db_session)
+    language = await language_service.create_language(
+        db_session, name="Kokama", code="kos", created_by=user.id
+    )
+    assert language.created_by == user.id
+
+
+@pytest.mark.asyncio
 async def test_deactivate_language_sets_inactive(db_session) -> None:
+    admin = await make_user(db_session, email="admin@example.com", is_platform_admin=True)
     created = await make_language(db_session, code="kos")
-    deactivated = await language_service.deactivate_language(db_session, created.id)
+    deactivated = await language_service.deactivate_language(db_session, created.id, admin)
     assert deactivated.is_active is False
 
 
 @pytest.mark.asyncio
+async def test_deactivate_language_by_creator(db_session) -> None:
+    creator = await make_user(db_session)
+    created = await make_language(db_session, code="kos", created_by=creator.id)
+    deactivated = await language_service.deactivate_language(db_session, created.id, creator)
+    assert deactivated.is_active is False
+
+
+@pytest.mark.asyncio
+async def test_deactivate_language_forbidden_for_non_creator(db_session) -> None:
+    creator = await make_user(db_session, email="creator@example.com")
+    other = await make_user(db_session, email="other@example.com")
+    created = await make_language(db_session, code="kos", created_by=creator.id)
+    with pytest.raises(AuthorizationError, match="languages you created"):
+        await language_service.deactivate_language(db_session, created.id, other)
+
+
+@pytest.mark.asyncio
+async def test_deactivate_language_blocked_when_in_use(db_session) -> None:
+    admin = await make_user(db_session, email="admin@example.com", is_platform_admin=True)
+    created = await make_language(db_session, code="kos")
+    await make_project(db_session, created.id, name="Genesis OBT")
+    with pytest.raises(ConflictError, match="used by 1 project"):
+        await language_service.deactivate_language(db_session, created.id, admin)
+
+
+@pytest.mark.asyncio
 async def test_deactivate_language_missing_raises_not_found(db_session) -> None:
+    admin = await make_user(db_session, email="admin@example.com", is_platform_admin=True)
     with pytest.raises(NotFoundError, match=r"Language .* not found"):
         await language_service.deactivate_language(
-            db_session, "00000000-0000-0000-0000-000000000000"
+            db_session, "00000000-0000-0000-0000-000000000000", admin
         )
 
 
 @pytest.mark.asyncio
 async def test_list_languages_hides_inactive_by_default(db_session) -> None:
+    admin = await make_user(db_session, email="admin@example.com", is_platform_admin=True)
     active = await make_language(db_session, code="act", name="Active")
     inactive = await make_language(db_session, code="ina", name="Inactive")
-    await language_service.deactivate_language(db_session, inactive.id)
+    await language_service.deactivate_language(db_session, inactive.id, admin)
 
     languages = await language_service.list_languages(db_session)
     assert [lang.id for lang in languages] == [active.id]
@@ -93,9 +131,10 @@ async def test_list_languages_hides_inactive_by_default(db_session) -> None:
 
 @pytest.mark.asyncio
 async def test_list_languages_include_inactive(db_session) -> None:
+    admin = await make_user(db_session, email="admin@example.com", is_platform_admin=True)
     active = await make_language(db_session, code="act", name="Active")
     inactive = await make_language(db_session, code="ina", name="Inactive")
-    await language_service.deactivate_language(db_session, inactive.id)
+    await language_service.deactivate_language(db_session, inactive.id, admin)
 
     languages = await language_service.list_languages(db_session, include_inactive=True)
     assert {lang.id for lang in languages} == {active.id, inactive.id}
