@@ -5,7 +5,12 @@ from app.core.auth_middleware import get_current_user
 from app.core.database import get_db
 from app.core.exceptions import NotFoundError
 from app.db.models.auth import User
-from app.models.language import LanguageCreate, LanguageResponse, LanguageStatsResponse
+from app.models.language import (
+    LanguageCreate,
+    LanguageProjectRef,
+    LanguageResponse,
+    LanguageStatsResponse,
+)
 from app.services import language_service
 
 router = APIRouter()
@@ -58,5 +63,9 @@ async def get_language_stats(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_user),
 ) -> LanguageStatsResponse:
-    project_count = await language_service.get_language_stats(db, language_id)
-    return LanguageStatsResponse(language_id=language_id, project_count=project_count)
+    projects = await language_service.get_language_stats(db, language_id)
+    return LanguageStatsResponse(
+        language_id=language_id,
+        project_count=len(projects),
+        projects=[LanguageProjectRef(id=project_id, name=name) for project_id, name in projects],
+    )
