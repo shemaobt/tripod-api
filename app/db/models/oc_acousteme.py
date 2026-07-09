@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, Float, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
@@ -9,33 +9,43 @@ from app.core.enums import AcoustemeStatus
 
 
 class OC_AcoustemeArtifact(Base):
-    """Pointer to one recording's acousteme stream.
+    """Pointer to one audio's acousteme stream.
 
     The stream itself (the frame-level ``segments`` produced by the acoustic
     tokenizer) is an immutable, write-once blob living in GCS; this row is the
     queryable pointer + grid metadata the backend serves so the frontend can
-    fetch it by ``recording_id`` and chunk it client-side. One row per
-    (recording, codebook_version): a codebook change is a new version, never an
+    fetch it by ``audio_id`` and chunk it client-side. One row per
+    (audio, codebook_version): a codebook change is a new version, never an
     in-place edit.
+
+    Intentionally standalone — it does not require an OC_Recording, so pilot
+    collections (e.g. the Terena "ruth" set) can be served to Beads without
+    project/genre/recording scaffolding.
     """
 
     __tablename__ = "oc_acousteme_artifacts"
 
-    recording_id: Mapped[str] = mapped_column(
-        ForeignKey("oc_recordings.id", ondelete="CASCADE"), primary_key=True
-    )
-    # Frozen K-means codebook the unit ids are meaningless without. Part of the
-    # key so re-clustering yields a new artifact rather than silently corrupting
-    # every stored reference.
+    # Stable, caller-minted id for the source audio (e.g. a slug). Not an FK.
+    audio_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    # Frozen codebook the unit ids are meaningless without. Part of the key so
+    # re-clustering yields a new artifact rather than corrupting existing refs.
     codebook_version: Mapped[str] = mapped_column(String(64), primary_key=True)
+
+    # Grouping label for listing (e.g. "terena-ruth").
+    collection: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    title: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     status: Mapped[str] = mapped_column(String(20), default=AcoustemeStatus.PENDING, index=True)
 
-    # GCS location of the gzipped JSON stream. Bucket is stored per row so pilot
-    # buckets (e.g. terena-pilot) and the shared bucket can coexist.
+    # GCS location of the gzipped JSON acousteme stream. Bucket is stored per row
+    # so pilot buckets (e.g. terena-pilot) and the shared bucket can coexist.
     gcs_bucket: Mapped[str] = mapped_column(String(255))
     gcs_object: Mapped[str] = mapped_column(Text)
     content_encoding: Mapped[str] = mapped_column(String(20), default="gzip")
+
+    # GCS location of the source audio (served to Beads via a signed URL).
+    audio_bucket: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    audio_object: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Grid metadata — enough for the frontend to lay out chunks without opening
     # the blob. hop_sec * frame_index = time; num_units is the codebook size.

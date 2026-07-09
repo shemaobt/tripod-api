@@ -20,12 +20,16 @@ depends_on = None
 def upgrade() -> None:
     op.create_table(
         "oc_acousteme_artifacts",
-        sa.Column("recording_id", sa.String(length=36), nullable=False),
+        sa.Column("audio_id", sa.String(length=64), nullable=False),
         sa.Column("codebook_version", sa.String(length=64), nullable=False),
+        sa.Column("collection", sa.String(length=64), nullable=True),
+        sa.Column("title", sa.Text(), nullable=True),
         sa.Column("status", sa.String(length=20), nullable=False),
         sa.Column("gcs_bucket", sa.String(length=255), nullable=False),
         sa.Column("gcs_object", sa.Text(), nullable=False),
         sa.Column("content_encoding", sa.String(length=20), nullable=False),
+        sa.Column("audio_bucket", sa.String(length=255), nullable=True),
+        sa.Column("audio_object", sa.Text(), nullable=True),
         sa.Column("duration_sec", sa.Float(), nullable=True),
         sa.Column("num_frames", sa.Integer(), nullable=True),
         sa.Column("hop_sec", sa.Float(), nullable=True),
@@ -47,8 +51,13 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.ForeignKeyConstraint(["recording_id"], ["oc_recordings.id"], ondelete="CASCADE"),
-        sa.PrimaryKeyConstraint("recording_id", "codebook_version"),
+        sa.PrimaryKeyConstraint("audio_id", "codebook_version"),
+    )
+    op.create_index(
+        op.f("ix_oc_acousteme_artifacts_collection"),
+        "oc_acousteme_artifacts",
+        ["collection"],
+        unique=False,
     )
     op.create_index(
         op.f("ix_oc_acousteme_artifacts_status"),
@@ -61,6 +70,10 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index(
         op.f("ix_oc_acousteme_artifacts_status"),
+        table_name="oc_acousteme_artifacts",
+    )
+    op.drop_index(
+        op.f("ix_oc_acousteme_artifacts_collection"),
         table_name="oc_acousteme_artifacts",
     )
     op.drop_table("oc_acousteme_artifacts")
