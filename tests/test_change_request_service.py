@@ -67,6 +67,100 @@ async def test_create_project_request_unknown_language(db_session) -> None:
 
 
 @pytest.mark.asyncio
+async def test_create_project_request_with_new_language(db_session) -> None:
+    user = await make_user(db_session)
+    payload = ChangeRequestCreate(
+        kind="create_project",
+        name="Genesis",
+        new_language_name="Arara",
+        new_language_code="ARA",
+    )
+    request = await change_request_service.create_change_request(db_session, user.id, payload)
+    assert request.language_id is None
+    assert request.new_language_name == "Arara"
+    assert request.new_language_code == "ara"
+
+
+@pytest.mark.asyncio
+async def test_create_project_request_new_language_bad_code(db_session) -> None:
+    user = await make_user(db_session)
+    with pytest.raises(ValidationError):
+        await change_request_service.create_change_request(
+            db_session,
+            user.id,
+            ChangeRequestCreate(
+                kind="create_project", name="X", new_language_name="Arara", new_language_code="ar"
+            ),
+        )
+
+
+@pytest.mark.asyncio
+async def test_create_project_request_rejects_both_language_sources(db_session) -> None:
+    user = await make_user(db_session)
+    lang = await make_language(db_session, code="prj")
+    with pytest.raises(ValidationError):
+        await change_request_service.create_change_request(
+            db_session,
+            user.id,
+            ChangeRequestCreate(
+                kind="create_project",
+                name="X",
+                language_id=lang.id,
+                new_language_name="Arara",
+                new_language_code="ara",
+            ),
+        )
+
+
+@pytest.mark.asyncio
+async def test_approve_create_project_with_new_language(db_session) -> None:
+    admin = await make_user(db_session, email="a@example.com", is_platform_admin=True)
+    requester = await make_user(db_session, email="r@example.com")
+    request = await _pending(
+        db_session,
+        kind="create_project",
+        requester_user_id=requester.id,
+        name="Genesis",
+        new_language_name="Arara",
+        new_language_code="ara",
+    )
+    result, _ = await change_request_service.review_change_request(
+        db_session, admin, request.id, "approved", None, True
+    )
+    assert result.status == "approved"
+    from app.db.models.project import Project
+
+    project = await db_session.get(Project, result.created_entity_id)
+    assert project is not None
+    language = await db_session.get(Language, project.language_id)
+    assert language is not None
+    assert language.name == "Arara"
+    assert language.code == "ara"
+    assert language.created_by == requester.id
+    access = await _project_access(db_session, result.created_entity_id, requester.id)
+    assert access is not None and access.role == "manager"
+
+
+@pytest.mark.asyncio
+async def test_approve_create_project_new_language_duplicate_conflicts(db_session) -> None:
+    admin = await make_user(db_session, email="a@example.com", is_platform_admin=True)
+    requester = await make_user(db_session, email="r@example.com")
+    await make_language(db_session, code="dup")
+    request = await _pending(
+        db_session,
+        kind="create_project",
+        requester_user_id=requester.id,
+        name="Genesis",
+        new_language_name="Dupe",
+        new_language_code="dup",
+    )
+    with pytest.raises(ConflictError):
+        await change_request_service.review_change_request(
+            db_session, admin, request.id, "approved", None, True
+        )
+
+
+@pytest.mark.asyncio
 async def test_create_language_request_lowercases_code(db_session) -> None:
     user = await make_user(db_session)
     request = await change_request_service.create_change_request(

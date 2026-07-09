@@ -36,6 +36,8 @@ class ChangeRequest(Base):
     language_id: Mapped[str | None] = mapped_column(
         ForeignKey("languages.id", ondelete="SET NULL"), nullable=True
     )
+    new_language_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    new_language_code: Mapped[str | None] = mapped_column(String(3), nullable=True)
     grant_manager_access: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default="false"
     )

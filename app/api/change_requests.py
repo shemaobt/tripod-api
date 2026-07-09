@@ -27,6 +27,8 @@ def _to_response(request: ChangeRequest, requester: User) -> ChangeRequestRespon
         code=request.code,
         description=request.description,
         language_id=request.language_id,
+        new_language_name=request.new_language_name,
+        new_language_code=request.new_language_code,
         grant_manager_access=request.grant_manager_access,
         reviewed_by=request.reviewed_by,
         reviewed_at=request.reviewed_at,

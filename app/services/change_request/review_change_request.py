@@ -46,12 +46,12 @@ async def review_change_request(
 async def _apply(db: AsyncSession, request: ChangeRequest, grant_manager_access: bool) -> str:
     if request.kind == "create_project":
         name = request.name
-        language_id = request.language_id
-        assert name is not None and language_id is not None
+        assert name is not None
+        project_language_id = request.language_id or await _create_requested_language(db, request)
         project = await create_project(
             db,
             name=name,
-            language_id=language_id,
+            language_id=project_language_id,
             description=request.description,
             creator_user_id=request.requester_user_id if grant_manager_access else None,
         )
@@ -82,4 +82,18 @@ async def _apply(db: AsyncSession, request: ChangeRequest, grant_manager_access:
         language.name = new_name
     await db.commit()
     await db.refresh(language)
+    return language.id
+
+
+async def _create_requested_language(db: AsyncSession, request: ChangeRequest) -> str:
+    name = request.new_language_name
+    code = request.new_language_code
+    assert name is not None and code is not None
+    if await get_language_by_code(db, code):
+        raise ConflictError("Language code already exists")
+    language = Language(name=name, code=code, created_by=request.requester_user_id)
+    db.add(language)
+    # Flush (not commit) so the language and the project are persisted together
+    # by create_project's commit; a mid-approval failure leaves no orphan language.
+    await db.flush()
     return language.id

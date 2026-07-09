@@ -10,6 +10,8 @@ class ChangeRequestCreate(BaseModel):
     code: str | None = Field(default=None, max_length=3)
     description: str | None = Field(default=None, max_length=10000)
     language_id: str | None = None
+    new_language_name: str | None = Field(default=None, max_length=200)
+    new_language_code: str | None = Field(default=None, max_length=3)
 
 
 class ChangeRequestReview(BaseModel):
@@ -29,6 +31,8 @@ class ChangeRequestResponse(BaseModel):
     code: str | None
     description: str | None
     language_id: str | None
+    new_language_name: str | None
+    new_language_code: str | None
     grant_manager_access: bool
     reviewed_by: str | None
     reviewed_at: datetime | None

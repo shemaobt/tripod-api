@@ -14,10 +14,23 @@ async def create_change_request(
 ) -> ChangeRequest:
     """Validate a manager's change request per kind and store it as pending."""
     if payload.kind == "create_project":
-        if not payload.name or not payload.language_id:
-            raise ValidationError("A project request needs a name and a language")
-        if await db.get(Language, payload.language_id) is None:
-            raise NotFoundError("Language not found")
+        if not payload.name:
+            raise ValidationError("A project request needs a name")
+        wants_new_language = bool(payload.new_language_name or payload.new_language_code)
+        if payload.language_id and wants_new_language:
+            raise ValidationError(
+                "Pick an existing language or request a new one, not both"
+            )
+        if payload.language_id:
+            if await db.get(Language, payload.language_id) is None:
+                raise NotFoundError("Language not found")
+        elif wants_new_language:
+            if not payload.new_language_name or not payload.new_language_code:
+                raise ValidationError("A new language needs a name and a 3-character code")
+            if len(payload.new_language_code) != 3:
+                raise ValidationError("A language code must be exactly 3 characters")
+        else:
+            raise ValidationError("A project request needs a language")
     elif payload.kind == "create_language":
         if not payload.name or not payload.code or len(payload.code) != 3:
             raise ValidationError("A language request needs a name and a 3-character code")
@@ -33,6 +46,10 @@ async def create_change_request(
         code=payload.code.lower() if payload.code else None,
         description=payload.description,
         language_id=payload.language_id,
+        new_language_name=payload.new_language_name,
+        new_language_code=payload.new_language_code.lower()
+        if payload.new_language_code
+        else None,
     )
     db.add(request)
     await db.commit()
