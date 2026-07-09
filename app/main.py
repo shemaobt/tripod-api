@@ -16,6 +16,7 @@ from app.api.health import router as health_router
 from app.api.languages import router as languages_router
 from app.api.meaning_maps import router as meaning_maps_router
 from app.api.notifications import router as notifications_router
+from app.api.oral_collector.acoustemes import acoustemes_router as oc_acoustemes_router
 from app.api.oral_collector.genres import genres_router as oc_genres_router
 from app.api.oral_collector.genres import subcategories_router as oc_subcategories_router
 from app.api.oral_collector.invites import invites_router as oc_invites_router
@@ -172,6 +173,11 @@ def create_app() -> FastAPI:
         oc_recordings_router,
         prefix="/api/oc/recordings",
         tags=["oc-recordings"],
+    )
+    app.include_router(
+        oc_acoustemes_router,
+        prefix="/api/oc/acoustemes",
+        tags=["oc-acoustemes"],
     )
     app.include_router(
         oc_stats_router,
