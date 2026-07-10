@@ -65,5 +65,7 @@ async def request_project_creation(
         name=payload.name,
         language_id=payload.language_id,
         description=payload.description,
+        new_language_name=payload.new_language_name,
+        new_language_code=payload.new_language_code,
     )
     return PublicRequestResponse.model_validate(created)

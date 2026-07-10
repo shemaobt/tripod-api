@@ -29,6 +29,8 @@ def upgrade() -> None:
         sa.Column("code", sa.String(length=3), nullable=True),
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("language_id", sa.String(length=36), nullable=True),
+        sa.Column("new_language_name", sa.String(length=200), nullable=True),
+        sa.Column("new_language_code", sa.String(length=3), nullable=True),
         sa.Column("reviewed_by", sa.String(length=36), nullable=True),
         sa.Column("reviewed_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("review_reason", sa.Text(), nullable=True),

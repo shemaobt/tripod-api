@@ -35,6 +35,18 @@ async def test_create_language_request_conflicts_with_existing_language(db_sessi
         )
 
 
+async def test_create_language_request_conflicts_with_existing_name_case_insensitive(db_session):
+    await make_language(db_session, name="English", code="eng")
+    with pytest.raises(ConflictError):
+        await public_request_service.create_language_request(
+            db_session,
+            requester_name="Ana Silva",
+            requester_email="ana@example.com",
+            name="ENGLISH",
+            code="enn",
+        )
+
+
 async def test_create_language_request_conflicts_with_pending_request(db_session):
     await public_request_service.create_language_request(
         db_session,
@@ -50,6 +62,24 @@ async def test_create_language_request_conflicts_with_pending_request(db_session
             requester_email="beto@example.com",
             name="Arara do Norte",
             code="ara",
+        )
+
+
+async def test_create_language_request_conflicts_with_pending_name_case_insensitive(db_session):
+    await public_request_service.create_language_request(
+        db_session,
+        requester_name="Ana Silva",
+        requester_email="ana@example.com",
+        name="Arara",
+        code="ara",
+    )
+    with pytest.raises(ConflictError):
+        await public_request_service.create_language_request(
+            db_session,
+            requester_name="Beto Souza",
+            requester_email="beto@example.com",
+            name="ARARA",
+            code="arr",
         )
 
 
@@ -77,6 +107,72 @@ async def test_create_project_request_unknown_language(db_session):
             requester_email="ana@example.com",
             name="Genesis Oral Stories",
             language_id="missing-language-id",
+        )
+
+
+async def test_create_project_request_with_new_language(db_session):
+    request = await public_request_service.create_project_request(
+        db_session,
+        requester_name="Ana Silva",
+        requester_email="ana@example.com",
+        name="Genesis Oral Stories",
+        new_language_name="Arara",
+        new_language_code="ARA",
+    )
+    assert request.kind == "create_project"
+    assert request.language_id is None
+    assert request.new_language_name == "Arara"
+    assert request.new_language_code == "ara"
+
+
+async def test_create_project_request_new_language_conflicts_case_insensitive(db_session):
+    await make_language(db_session, name="English", code="eng")
+    with pytest.raises(ConflictError):
+        await public_request_service.create_project_request(
+            db_session,
+            requester_name="Ana Silva",
+            requester_email="ana@example.com",
+            name="Genesis Oral Stories",
+            new_language_name="english",
+            new_language_code="ptx",
+        )
+    with pytest.raises(ConflictError):
+        await public_request_service.create_project_request(
+            db_session,
+            requester_name="Ana Silva",
+            requester_email="ana@example.com",
+            name="Genesis Oral Stories",
+            new_language_name="Other Name",
+            new_language_code="ENG",
+        )
+
+
+async def test_create_project_request_without_language_info(db_session):
+    with pytest.raises(ValidationError):
+        await public_request_service.create_project_request(
+            db_session,
+            requester_name="Ana Silva",
+            requester_email="ana@example.com",
+            name="Genesis Oral Stories",
+        )
+
+
+async def test_language_request_conflicts_with_pending_project_new_language(db_session):
+    await public_request_service.create_project_request(
+        db_session,
+        requester_name="Ana Silva",
+        requester_email="ana@example.com",
+        name="Genesis Oral Stories",
+        new_language_name="Arara",
+        new_language_code="ara",
+    )
+    with pytest.raises(ConflictError):
+        await public_request_service.create_language_request(
+            db_session,
+            requester_name="Beto Souza",
+            requester_email="beto@example.com",
+            name="arara",
+            code="arz",
         )
 
 
