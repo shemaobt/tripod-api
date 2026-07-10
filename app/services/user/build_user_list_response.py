@@ -3,7 +3,6 @@ from app.models.user import UserListResponse, UserRole
 
 
 def build_user_list_response(user: User, *, is_manager: bool) -> UserListResponse:
-    """Build a user response DTO with the role derived from admin flag and project access."""
     role: UserRole = (
         "platform_admin" if user.is_platform_admin else "manager" if is_manager else "member"
     )

@@ -5,7 +5,6 @@ from app.db.models.project import ProjectUserAccess
 
 
 async def get_manager_user_ids(db: AsyncSession, user_ids: list[str] | None = None) -> set[str]:
-    """Return ids of users holding manager access on at least one project."""
     stmt: Select[tuple[str]] = (
         select(ProjectUserAccess.user_id).where(ProjectUserAccess.role == "manager").distinct()
     )

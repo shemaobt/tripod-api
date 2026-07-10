@@ -17,7 +17,6 @@ async def set_user_role(
     role: UserRole,
     project_ids: list[str] | None = None,
 ) -> UserListResponse:
-    """Set a user's platform role, adjusting the admin flag and project access rows."""
     user = await get_user_by_id(db, user_id)
     if user.id == acting_user.id:
         raise AuthorizationError("Platform admins cannot change their own role")
