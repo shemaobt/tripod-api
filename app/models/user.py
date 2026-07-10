@@ -25,6 +25,11 @@ class UserUpdate(BaseModel):
     avatar_url: str | None = None
 
 
+class UserRoleUpdate(BaseModel):
+    role: UserRole
+    project_ids: list[str] | None = None
+
+
 class UserRoleResponse(BaseModel):
     app_key: str
     role_key: str
