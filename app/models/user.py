@@ -1,6 +1,9 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel
+
+UserRole = Literal["member", "manager", "platform_admin"]
 
 
 class UserListResponse(BaseModel):
@@ -10,6 +13,7 @@ class UserListResponse(BaseModel):
     avatar_url: str | None
     is_active: bool
     is_platform_admin: bool
+    role: UserRole
     created_at: datetime
 
     model_config = {"from_attributes": True}

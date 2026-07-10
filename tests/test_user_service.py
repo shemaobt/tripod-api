@@ -2,7 +2,15 @@ import pytest
 
 from app.core.exceptions import NotFoundError
 from app.services import user_service
-from tests.baker import make_app, make_role, make_user, make_user_app_role
+from tests.baker import (
+    make_app,
+    make_language,
+    make_project,
+    make_project_user_access,
+    make_role,
+    make_user,
+    make_user_app_role,
+)
 
 
 @pytest.mark.asyncio
@@ -72,3 +80,61 @@ async def test_list_user_roles_returns_empty_for_no_roles(db_session) -> None:
     user = await make_user(db_session, email="noroles@example.com")
     roles = await user_service.list_user_roles(db_session, user.id)
     assert roles == []
+
+
+async def _derive_role(db_session, user) -> str:
+    manager_ids = await user_service.get_manager_user_ids(db_session, [user.id])
+    return user_service.build_user_list_response(user, is_manager=user.id in manager_ids).role
+
+
+@pytest.mark.asyncio
+async def test_derived_role_member_without_access(db_session) -> None:
+    user = await make_user(db_session, email="plain@example.com")
+    assert await _derive_role(db_session, user) == "member"
+
+
+@pytest.mark.asyncio
+async def test_derived_role_member_with_non_manager_access(db_session) -> None:
+    user = await make_user(db_session, email="member-access@example.com")
+    lang = await make_language(db_session)
+    project = await make_project(db_session, lang.id)
+    await make_project_user_access(db_session, project.id, user.id, role="member")
+    assert await _derive_role(db_session, user) == "member"
+
+
+@pytest.mark.asyncio
+async def test_derived_role_manager_with_manager_access(db_session) -> None:
+    user = await make_user(db_session, email="manages@example.com")
+    lang = await make_language(db_session)
+    project = await make_project(db_session, lang.id)
+    await make_project_user_access(db_session, project.id, user.id, role="manager")
+    assert await _derive_role(db_session, user) == "manager"
+
+
+@pytest.mark.asyncio
+async def test_derived_role_platform_admin_prevails_over_manager(db_session) -> None:
+    user = await make_user(db_session, email="admin-manager@example.com", is_platform_admin=True)
+    lang = await make_language(db_session)
+    project = await make_project(db_session, lang.id)
+    await make_project_user_access(db_session, project.id, user.id, role="manager")
+    assert await _derive_role(db_session, user) == "platform_admin"
+
+
+@pytest.mark.asyncio
+async def test_list_users_derives_mixed_roles(db_session) -> None:
+    member = await make_user(db_session, email="mix-member@example.com")
+    manager = await make_user(db_session, email="mix-manager@example.com")
+    admin = await make_user(db_session, email="mix-admin@example.com", is_platform_admin=True)
+    lang = await make_language(db_session)
+    project = await make_project(db_session, lang.id)
+    await make_project_user_access(db_session, project.id, manager.id, role="manager")
+
+    users = await user_service.list_users(db_session)
+    manager_ids = await user_service.get_manager_user_ids(db_session, [u.id for u in users])
+    roles = {
+        u.email: user_service.build_user_list_response(u, is_manager=u.id in manager_ids).role
+        for u in users
+    }
+    assert roles[member.email] == "member"
+    assert roles[manager.email] == "manager"
+    assert roles[admin.email] == "platform_admin"
