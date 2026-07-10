@@ -57,6 +57,28 @@ async def test_set_user_role_manager_with_project_ids_upserts_access(db_session)
 
 
 @pytest.mark.asyncio
+async def test_set_user_role_manager_deduplicates_repeated_project_ids(db_session) -> None:
+    admin = await make_user(db_session, email="admin@example.com", is_platform_admin=True)
+    target = await make_user(db_session, email="target@example.com")
+    lang = await make_language(db_session)
+    project = await make_project(db_session, lang.id)
+
+    updated = await user_service.set_user_role(
+        db_session,
+        target.id,
+        admin,
+        "manager",
+        project_ids=[project.id, project.id],
+    )
+
+    assert updated.role == "manager"
+    rows_stmt = select(ProjectUserAccess).where(ProjectUserAccess.user_id == target.id)
+    rows = list((await db_session.execute(rows_stmt)).scalars())
+    assert len(rows) == 1
+    assert rows[0].role == "manager"
+
+
+@pytest.mark.asyncio
 async def test_set_user_role_manager_without_project_ids_keeps_existing(db_session) -> None:
     admin = await make_user(db_session, email="admin@example.com", is_platform_admin=True)
     target = await make_user(db_session, email="target@example.com", is_platform_admin=True)
