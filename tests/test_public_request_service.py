@@ -1,0 +1,113 @@
+import importlib
+
+import pytest
+
+from app.core.exceptions import ConflictError, NotFoundError, ValidationError
+from app.services import public_request_service
+from tests.baker import make_language
+
+verify_recaptcha_module = importlib.import_module("app.services.public_request.verify_recaptcha")
+
+
+async def test_create_language_request(db_session):
+    request = await public_request_service.create_language_request(
+        db_session,
+        requester_name="Ana Silva",
+        requester_email="ana@example.com",
+        name="Arara",
+        code="ARA",
+    )
+    assert request.kind == "create_language"
+    assert request.status == "pending"
+    assert request.code == "ara"
+    assert request.requester_email == "ana@example.com"
+
+
+async def test_create_language_request_conflicts_with_existing_language(db_session):
+    await make_language(db_session, name="Arara", code="ara")
+    with pytest.raises(ConflictError):
+        await public_request_service.create_language_request(
+            db_session,
+            requester_name="Ana Silva",
+            requester_email="ana@example.com",
+            name="Arara",
+            code="ara",
+        )
+
+
+async def test_create_language_request_conflicts_with_pending_request(db_session):
+    await public_request_service.create_language_request(
+        db_session,
+        requester_name="Ana Silva",
+        requester_email="ana@example.com",
+        name="Arara",
+        code="ara",
+    )
+    with pytest.raises(ConflictError):
+        await public_request_service.create_language_request(
+            db_session,
+            requester_name="Beto Souza",
+            requester_email="beto@example.com",
+            name="Arara do Norte",
+            code="ara",
+        )
+
+
+async def test_create_project_request(db_session):
+    language = await make_language(db_session, code="prj")
+    request = await public_request_service.create_project_request(
+        db_session,
+        requester_name="Ana Silva",
+        requester_email="ana@example.com",
+        name="Genesis Oral Stories",
+        language_id=language.id,
+        description="Documentation project",
+    )
+    assert request.kind == "create_project"
+    assert request.status == "pending"
+    assert request.language_id == language.id
+    assert request.description == "Documentation project"
+
+
+async def test_create_project_request_unknown_language(db_session):
+    with pytest.raises(NotFoundError):
+        await public_request_service.create_project_request(
+            db_session,
+            requester_name="Ana Silva",
+            requester_email="ana@example.com",
+            name="Genesis Oral Stories",
+            language_id="missing-language-id",
+        )
+
+
+async def test_verify_recaptcha_skipped_without_secret(monkeypatch):
+    class _Settings:
+        recaptcha_secret_key = ""
+
+    monkeypatch.setattr(verify_recaptcha_module, "get_settings", lambda: _Settings())
+    await public_request_service.verify_recaptcha("any-token")
+
+
+async def test_verify_recaptcha_rejects_failed_verification(monkeypatch):
+    class _Settings:
+        recaptcha_secret_key = "secret"
+
+    async def _failed_siteverify(secret: str, token: str) -> bool:
+        return False
+
+    monkeypatch.setattr(verify_recaptcha_module, "get_settings", lambda: _Settings())
+    monkeypatch.setattr(verify_recaptcha_module, "_siteverify", _failed_siteverify)
+    with pytest.raises(ValidationError):
+        await public_request_service.verify_recaptcha("bad-token")
+
+
+async def test_verify_recaptcha_accepts_valid_token(monkeypatch):
+    class _Settings:
+        recaptcha_secret_key = "secret"
+
+    async def _ok_siteverify(secret: str, token: str) -> bool:
+        return True
+
+    monkeypatch.setattr(verify_recaptcha_module, "get_settings", lambda: _Settings())
+    monkeypatch.setattr(verify_recaptcha_module, "_siteverify", _ok_siteverify)
+    await public_request_service.verify_recaptcha("good-token")
