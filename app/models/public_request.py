@@ -16,7 +16,7 @@ class PublicLanguageRequestCreate(BaseModel):
     requester_email: EmailStr
     name: str = Field(min_length=1, max_length=200)
     code: str = Field(min_length=3, max_length=3)
-    recaptcha_token: str = Field(min_length=1)
+    recaptcha_token: str | None = None
 
 
 class PublicProjectRequestCreate(BaseModel):
@@ -25,7 +25,7 @@ class PublicProjectRequestCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     description: str | None = Field(default=None, max_length=10000)
     language_id: str
-    recaptcha_token: str = Field(min_length=1)
+    recaptcha_token: str | None = None
 
 
 class PublicRequestResponse(BaseModel):

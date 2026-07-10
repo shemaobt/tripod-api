@@ -17,9 +17,11 @@ async def _siteverify(secret: str, token: str) -> bool:
     return bool(payload.get("success"))
 
 
-async def verify_recaptcha(token: str) -> None:
+async def verify_recaptcha(token: str | None) -> None:
     secret = get_settings().recaptcha_secret_key
     if not secret:
         return
+    if not token:
+        raise ValidationError("reCAPTCHA token is required")
     if not await _siteverify(secret, token):
         raise ValidationError("reCAPTCHA verification failed")

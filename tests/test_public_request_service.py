@@ -88,6 +88,15 @@ async def test_verify_recaptcha_skipped_without_secret(monkeypatch):
     await public_request_service.verify_recaptcha("any-token")
 
 
+async def test_verify_recaptcha_requires_token_when_secret_configured(monkeypatch):
+    class _Settings:
+        recaptcha_secret_key = "secret"
+
+    monkeypatch.setattr(verify_recaptcha_module, "get_settings", lambda: _Settings())
+    with pytest.raises(ValidationError):
+        await public_request_service.verify_recaptcha(None)
+
+
 async def test_verify_recaptcha_rejects_failed_verification(monkeypatch):
     class _Settings:
         recaptcha_secret_key = "secret"
