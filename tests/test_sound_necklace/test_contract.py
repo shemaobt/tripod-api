@@ -5,11 +5,6 @@ not just in the code.
 
 from __future__ import annotations
 
-import os
-
-# The app wires inngest at import time; dev mode skips the signing-key requirement.
-os.environ.setdefault("INNGEST_DEV", "1")
-
 PREFIX = "/api/sound-necklace"
 METHODS = {"get", "post", "put", "delete", "patch"}
 
