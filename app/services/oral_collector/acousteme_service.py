@@ -43,14 +43,27 @@ async def get_artifact(
     *,
     codebook_version: str | None = None,
 ) -> OC_AcoustemeArtifact:
-    """Fetch one artifact pointer, defaulting to the newest version."""
+    """Fetch one artifact pointer.
 
-    stmt = select(OC_AcoustemeArtifact).where(OC_AcoustemeArtifact.audio_id == audio_id)
+    With a pinned version, returns that exact row. Unpinned, "newest" means
+    newest *usable* — the latest READY row — falling back to the latest of any
+    status only when none are READY, so a failed newer ingest doesn't shadow a
+    servable older version.
+    """
+
+    base = select(OC_AcoustemeArtifact).where(OC_AcoustemeArtifact.audio_id == audio_id)
     if codebook_version is not None:
-        stmt = stmt.where(OC_AcoustemeArtifact.codebook_version == codebook_version)
-    stmt = stmt.order_by(OC_AcoustemeArtifact.created_at.desc())
+        stmt = base.where(OC_AcoustemeArtifact.codebook_version == codebook_version)
+        artifact = (await db.execute(stmt)).scalars().first()
+    else:
+        ready = base.where(OC_AcoustemeArtifact.status == AcoustemeStatus.READY).order_by(
+            OC_AcoustemeArtifact.created_at.desc()
+        )
+        artifact = (await db.execute(ready)).scalars().first()
+        if artifact is None:
+            latest = base.order_by(OC_AcoustemeArtifact.created_at.desc())
+            artifact = (await db.execute(latest)).scalars().first()
 
-    artifact = (await db.execute(stmt)).scalars().first()
     if artifact is None:
         raise NotFoundError(f"No acousteme artifact for audio {audio_id}")
     return artifact
@@ -68,7 +81,11 @@ async def list_artifacts(db: AsyncSession, audio_id: str) -> list[OC_AcoustemeAr
 
 
 async def list_by_collection(db: AsyncSession, collection: str) -> list[OC_AcoustemeArtifact]:
-    """List every ready artifact in a collection (e.g. 'terena-ruth')."""
+    """List one ready artifact per audio in a collection (e.g. 'terena-ruth').
+
+    When multiple codebook versions exist for an audio, only the newest READY
+    one is returned, so the collection stays one entry per audio_id.
+    """
 
     stmt = (
         select(OC_AcoustemeArtifact)
@@ -76,9 +93,17 @@ async def list_by_collection(db: AsyncSession, collection: str) -> list[OC_Acous
             OC_AcoustemeArtifact.collection == collection,
             OC_AcoustemeArtifact.status == AcoustemeStatus.READY,
         )
-        .order_by(OC_AcoustemeArtifact.audio_id)
+        .order_by(OC_AcoustemeArtifact.audio_id, OC_AcoustemeArtifact.created_at.desc())
     )
-    return list((await db.execute(stmt)).scalars().all())
+    rows = (await db.execute(stmt)).scalars().all()
+    seen: set[str] = set()
+    latest_per_audio: list[OC_AcoustemeArtifact] = []
+    for row in rows:
+        if row.audio_id in seen:
+            continue
+        seen.add(row.audio_id)
+        latest_per_audio.append(row)
+    return latest_per_audio
 
 
 async def get_stream(
@@ -175,8 +200,10 @@ async def store_artifact(
         "segments": segments,
     }
     raw = json.dumps(payload, separators=(",", ":")).encode("utf-8")
-    gz = gzip.compress(raw)
-    sha256 = hashlib.sha256(gz).hexdigest()
+    # mtime=0 keeps the gzip byte-reproducible; hash the uncompressed payload so
+    # the digest is a stable content hash (gzip stamps a timestamp otherwise).
+    gz = gzip.compress(raw, mtime=0)
+    sha256 = hashlib.sha256(raw).hexdigest()
 
     blob_name = acousteme_blob_path(audio_id, codebook_version)
     await upload_gcs_object(bucket, blob_name, gz, "application/json", content_encoding="gzip")
@@ -189,8 +216,10 @@ async def store_artifact(
         artifact = OC_AcoustemeArtifact(audio_id=audio_id, codebook_version=codebook_version)
         db.add(artifact)
 
-    artifact.collection = collection
-    artifact.title = title
+    if collection is not None:
+        artifact.collection = collection
+    if title is not None:
+        artifact.title = title
     artifact.status = AcoustemeStatus.READY
     artifact.gcs_bucket = bucket
     artifact.gcs_object = blob_name

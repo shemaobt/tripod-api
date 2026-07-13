@@ -12,11 +12,12 @@ class OC_AcoustemeArtifact(Base):
     """Pointer to one audio's acousteme stream.
 
     The stream itself (the frame-level ``segments`` produced by the acoustic
-    tokenizer) is an immutable, write-once blob living in GCS; this row is the
-    queryable pointer + grid metadata the backend serves so the frontend can
-    fetch it by ``audio_id`` and chunk it client-side. One row per
-    (audio, codebook_version): a codebook change is a new version, never an
-    in-place edit.
+    tokenizer) is a blob living in GCS; this row is the queryable pointer + grid
+    metadata the backend serves so the frontend can fetch it by ``audio_id`` and
+    chunk it client-side. One row per (audio, codebook_version): a codebook
+    change is a new version rather than a mutation of an existing one.
+    Re-ingesting the same version is an idempotent upsert (same deterministic
+    blob path + content hash), not an accumulating edit history.
 
     Intentionally standalone — it does not require an OC_Recording, so pilot
     collections (e.g. the Terena "ruth" set) can be served to Beads without

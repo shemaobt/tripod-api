@@ -22,6 +22,7 @@ import argparse
 import asyncio
 import json
 import logging
+import math
 import re
 import unicodedata
 from typing import Any
@@ -58,7 +59,12 @@ def units_to_segments(units: list[int], duration_sec: float | None) -> list[dict
     segments: list[dict[str, Any]] = []
     if not units:
         return segments
-    dt = (duration_sec / len(units)) if duration_sec else HOP_SEC
+    valid_dur = (
+        duration_sec
+        if (duration_sec and math.isfinite(duration_sec) and duration_sec > 0)
+        else None
+    )
+    dt = (valid_dur / len(units)) if valid_dur else HOP_SEC
     run_start = 0
     for i in range(1, len(units) + 1):
         if i == len(units) or units[i] != units[run_start]:
@@ -70,12 +76,17 @@ def units_to_segments(units: list[int], duration_sec: float | None) -> list[dict
                 }
             )
             run_start = i
+    if valid_dur:
+        segments[-1]["end"] = round(valid_dur, 6)
     return segments
 
 
 def load_corpus(corpus_uri: str) -> dict[str, Any]:
     if corpus_uri.startswith("gs://"):
-        bucket_name, obj = corpus_uri[len("gs://") :].split("/", 1)
+        rest = corpus_uri[len("gs://") :]
+        if "/" not in rest or not all(rest.split("/", 1)):
+            raise ValueError(f"Invalid gs:// URI, expected gs://bucket/object: {corpus_uri}")
+        bucket_name, obj = rest.split("/", 1)
         data = storage.Client().bucket(bucket_name).blob(obj).download_as_bytes()
         corpus: dict[str, Any] = json.loads(data)
         return corpus
@@ -91,21 +102,36 @@ async def import_corpus(corpus_uri: str, dry_run: bool, limit: int | None) -> No
         entries = entries[:limit]
     logger.info("Loaded %d corpus entries from %s", len(entries), corpus_uri)
 
+    # Preflight slug collisions: distinct names can normalize to the same id
+    # (e.g. "A B" / "A-B" / accent variants), and store_artifact upserts, so a
+    # collision would silently overwrite an earlier stream. Fail before writing.
+    by_slug: dict[str, str] = {}
+    for name, _ in entries:
+        slug = slugify(name)
+        if slug in by_slug:
+            raise ValueError(f"Slug collision: {name!r} and {by_slug[slug]!r} both map to {slug!r}")
+        by_slug[slug] = name
+
     async with AsyncSessionLocal() as db:
         for name, entry in entries:
             audio_id = slugify(name)
-            segments = units_to_segments(entry.get("units") or [], entry.get("duration_sec"))
+            units = entry.get("units")
+            if not isinstance(units, list) or not units:
+                logger.warning("Skipping %s: missing or empty units", name)
+                continue
+            num_frames = len(units)
+            segments = units_to_segments(units, entry.get("duration_sec"))
             audio_object = entry.get("source_object") or f"ruth/{name}.mp3"
             stream = {
                 "duration_sec": entry.get("duration_sec"),
-                "num_frames": entry.get("num_frames"),
+                "num_frames": num_frames,
                 "segments": segments,
             }
             logger.info(
                 "%s -> %s (%d frames, %d segments)%s",
                 name,
                 audio_id,
-                entry.get("num_frames") or 0,
+                num_frames,
                 len(segments),
                 " [dry-run]" if dry_run else "",
             )
@@ -135,6 +161,8 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true", help="Log only; no uploads/DB writes")
     parser.add_argument("--limit", type=int, default=None, help="Only import the first N entries")
     args = parser.parse_args()
+    if args.limit is not None and args.limit < 0:
+        parser.error("--limit must be >= 0")
     asyncio.run(import_corpus(args.corpus, args.dry_run, args.limit))
 
 
