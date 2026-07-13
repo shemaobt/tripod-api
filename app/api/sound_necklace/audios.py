@@ -2,8 +2,8 @@
 
 from fastapi import APIRouter
 
-from app.api.colar._deps import CurrentUser, not_implemented
-from app.models.colar import AudioUrlResponse, BucketAudioListResponse
+from app.api.sound_necklace._deps import CurrentUser, not_implemented
+from app.models.sound_necklace import AudioUrlResponse, BucketAudioListResponse
 
 router = APIRouter()
 

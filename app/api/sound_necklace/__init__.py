@@ -1,4 +1,4 @@
-"""Sound Necklace (Colar de Sons) API surface, mounted at ``/api/colar``.
+"""Sound Necklace API surface, mounted at ``/api/sound-necklace``.
 
 Every route is a contract stub returning 501; they exist so the emitted OpenAPI
 carries the full contract for the SPA to generate its TypeScript types.
@@ -6,7 +6,7 @@ carries the full contract for the SPA to generate its TypeScript types.
 
 from fastapi import APIRouter
 
-from app.api.colar import artifacts, audios, lock, resources, sessions
+from app.api.sound_necklace import artifacts, audios, lock, resources, sessions
 
 router = APIRouter()
 

@@ -2,21 +2,21 @@
 @accessToken = {{login.response.body.access_token}}
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Sound Necklace (Colar de Sons) — /api/colar
+# Sound Necklace — /api/sound-necklace
 #
 # All routes below are STUBS returning 501 until each resource is implemented
 # (sessions, audio bucket, voice answers, artifacts). They exist so the emitted
 # OpenAPI carries the full contract and the SPA can generate its TypeScript types:
 #
 #   # with the app running (uvicorn app.main:app):
-#   npx openapi-typescript@7 http://localhost:8000/openapi.json -o colar-types.ts
+#   npx openapi-typescript@7 http://localhost:8000/openapi.json -o sound-necklace-types.ts
 #
 #   # or straight from a dumped schema, no server needed:
 #   uv run python -c "import json; from app.main import app; print(json.dumps(app.openapi()))" > openapi.json
-#   npx openapi-typescript@7 openapi.json -o colar-types.ts
+#   npx openapi-typescript@7 openapi.json -o sound-necklace-types.ts
 #
-# Every colar schema is marked `x-stability: experimental` (provisional until the
-# resource issues finalize each shape; the acousteme envelope is opaque per O8).
+# Every schema in this module is marked `x-stability: experimental` (provisional
+# until each resource finalizes its shape; the acousteme envelope stays opaque).
 # ─────────────────────────────────────────────────────────────────────────────
 
 ### Login (sets the bearer token for the requests below)
@@ -30,11 +30,11 @@ Content-Type: application/json
 }
 
 ### Sessions: list
-GET {{baseUrl}}/api/colar/sessions
+GET {{baseUrl}}/api/sound-necklace/sessions
 Authorization: Bearer {{accessToken}}
 
 ### Sessions: create
-POST {{baseUrl}}/api/colar/sessions
+POST {{baseUrl}}/api/sound-necklace/sessions
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
@@ -50,7 +50,7 @@ Content-Type: application/json
 }
 
 ### Sessions: autosave (version-guarded state envelope)
-PUT {{baseUrl}}/api/colar/sessions/sess_1/state
+PUT {{baseUrl}}/api/sound-necklace/sessions/sess_1/state
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
@@ -59,13 +59,13 @@ Content-Type: application/json
 }
 
 ### Lock: acquire / renew
-PUT {{baseUrl}}/api/colar/sessions/sess_1/lock
+PUT {{baseUrl}}/api/sound-necklace/sessions/sess_1/lock
 Authorization: Bearer {{accessToken}}
 
 ### Bucket: list a project's audios
-GET {{baseUrl}}/api/colar/projects/prj_1/audios
+GET {{baseUrl}}/api/sound-necklace/projects/prj_1/audios
 Authorization: Bearer {{accessToken}}
 
 ### Bucket: short-TTL signed URL for an audio (audit point)
-GET {{baseUrl}}/api/colar/audios/aud_1/url
+GET {{baseUrl}}/api/sound-necklace/audios/aud_1/url
 Authorization: Bearer {{accessToken}}

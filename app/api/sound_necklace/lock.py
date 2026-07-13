@@ -2,8 +2,8 @@
 
 from fastapi import APIRouter, status
 
-from app.api.colar._deps import CurrentUser, not_implemented
-from app.models.colar import LockStatusResponse
+from app.api.sound_necklace._deps import CurrentUser, not_implemented
+from app.models.sound_necklace import LockStatusResponse
 
 router = APIRouter()
 

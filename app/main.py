@@ -12,7 +12,6 @@ from app.api.auth import router as auth_router
 from app.api.bhsa import router as bhsa_router
 from app.api.book_context import router as book_context_router
 from app.api.books import router as books_router
-from app.api.colar import router as colar_router
 from app.api.health import router as health_router
 from app.api.languages import router as languages_router
 from app.api.meaning_maps import router as meaning_maps_router
@@ -37,6 +36,7 @@ from app.api.project_health import router as project_health_router
 from app.api.projects import router as projects_router
 from app.api.rag import router as rag_router
 from app.api.roles import router as roles_router
+from app.api.sound_necklace import router as sound_necklace_router
 from app.api.translation_helper import router as translation_helper_router
 from app.api.uploads import router as uploads_router
 from app.api.users import router as users_router
@@ -134,7 +134,7 @@ def create_app() -> FastAPI:
     app.include_router(
         annotation_studio_router, prefix="/api/annotation-studio", tags=["annotation-studio"]
     )
-    app.include_router(colar_router, prefix="/api/colar", tags=["colar"])
+    app.include_router(sound_necklace_router, prefix="/api/sound-necklace", tags=["sound-necklace"])
     app.include_router(
         project_health_router,
         prefix="/api/project-health",

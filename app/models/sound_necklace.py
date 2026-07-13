@@ -1,7 +1,7 @@
-"""Pydantic schemas for the Sound Necklace (Colar de Sons) app module.
+"""Pydantic schemas for the sound-necklace app module.
 
 The wire contract the SPA generates its TypeScript types from (code-first
-OpenAPI). Provisional: the ``/api/colar`` routes are stubs returning 501 until
+OpenAPI). Provisional: the ``/api/sound-necklace`` routes are stubs returning 501 until
 each resource is implemented, so every schema is tagged ``x-stability: experimental``
 and mirrors the SPA's provisional contracts (sound-necklace ``contracts/``).
 Artifacts and the session-state envelope are opaque — never parsed or

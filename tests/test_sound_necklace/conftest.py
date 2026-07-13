@@ -12,7 +12,7 @@ APP_KEY = "sound-necklace"
 
 
 @pytest.fixture()
-async def colar_app(db_session):
+async def sound_necklace_app(db_session):
     """The sound-necklace app registry row plus its two seeded roles."""
     app = await make_app(db_session, app_key=APP_KEY, name="Sound Necklace")
     await make_role(db_session, app.id, role_key="facilitator", label="Facilitator", is_system=True)
@@ -24,17 +24,21 @@ async def colar_app(db_session):
 
 @pytest.fixture()
 async def client(db_session):
-    """An ASGI client mounting only the colar router (with the real exception
-    handlers, so AuthorizationError → 403) against the test session — exercising
-    the real auth → require_app_access dependency chain."""
+    """An ASGI client whose handlers run against the test session.
+
+    Mounts only the sound-necklace router (with the real exception handlers, so
+    AuthorizationError → 403) to avoid the full app's lifespan/inngest startup.
+    Exercises the real dependency chain (auth → require_app_access) that gates
+    every route in the module.
+    """
     from fastapi import FastAPI
 
-    from app.api.colar import router as colar_router
+    from app.api.sound_necklace import router as sound_necklace_router
     from app.core.database import get_db
     from app.core.exceptions import register_exception_handlers
 
     test_app = FastAPI()
-    test_app.include_router(colar_router, prefix="/api/colar")
+    test_app.include_router(sound_necklace_router, prefix="/api/sound-necklace")
     register_exception_handlers(test_app)
 
     async def _get_db():

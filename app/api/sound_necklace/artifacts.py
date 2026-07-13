@@ -2,8 +2,8 @@
 
 from fastapi import APIRouter
 
-from app.api.colar._deps import CurrentUser, not_implemented
-from app.models.colar import ArtifactKind
+from app.api.sound_necklace._deps import CurrentUser, not_implemented
+from app.models.sound_necklace import ArtifactKind
 
 router = APIRouter()
 
