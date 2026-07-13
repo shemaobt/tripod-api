@@ -29,6 +29,7 @@ from app.db.models.meaning_map import (
     Pericope,
 )
 from app.db.models.notification import Notification, NotificationMeaningMapDetail
+from app.db.models.oc_acousteme import OC_AcoustemeArtifact
 from app.db.models.oc_genre import OC_Genre, OC_Subcategory
 from app.db.models.oc_recording import OC_Recording
 from app.db.models.oc_storyteller import OC_Storyteller
@@ -80,6 +81,7 @@ __all__ = [
     "MeaningMapFeedback",
     "Notification",
     "NotificationMeaningMapDetail",
+    "OC_AcoustemeArtifact",
     "OC_Genre",
     "OC_Recording",
     "OC_Storyteller",
