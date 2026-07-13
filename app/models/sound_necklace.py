@@ -48,15 +48,19 @@ class ArtifactKind(StrEnum):
     RELATORIO = "relatorio"
 
 
-# ── Artifacts (opaque bytes; never parsed or re-serialized) ─────────────────
+# ── Artifacts ───────────────────────────────────────────────────────────────
+#
+# Bytes are uploaded raw (multipart) and served back verbatim from storage: they
+# never enter a Pydantic model, so nothing can re-shape them. Only this envelope
+# is typed.
 
 
-class ArtifactTriple(BaseModel):
-    model_config = ConfigDict(json_schema_extra=_EXPERIMENTAL)
+class ArtifactResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
 
-    manifesto: str
-    retorno: str
-    relatorio: str
+    kind: ArtifactKind
+    size: int
+    crc32c: str
 
 
 # ── Sessions ────────────────────────────────────────────────────────────────
@@ -114,12 +118,6 @@ class AutosaveResponse(BaseModel):
 
     saved_at: str
     schema_version: int
-
-
-class SessionCompleteRequest(BaseModel):
-    model_config = ConfigDict(json_schema_extra=_EXPERIMENTAL)
-
-    artifacts: ArtifactTriple
 
 
 # ── Advisory single-editor lock ──────────────────────────────────────────────

@@ -62,6 +62,32 @@ Content-Type: application/json
 PUT {{baseUrl}}/api/sound-necklace/sessions/sess_1/lock
 Authorization: Bearer {{accessToken}}
 
+### Artifacts: upload the three on completion (RAW bytes — byte-identical custody)
+POST {{baseUrl}}/api/sound-necklace/sessions/sess_1/artifacts
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=----boundary
+
+------boundary
+Content-Disposition: form-data; name="manifesto"; filename="manifesto-contas.json"
+Content-Type: application/json
+
+< ./manifesto-contas.json
+------boundary
+Content-Disposition: form-data; name="retorno"; filename="retorno-ancoragem.json"
+Content-Type: application/json
+
+< ./retorno-ancoragem.json
+------boundary
+Content-Disposition: form-data; name="relatorio"; filename="relatorio-mapeamento.md"
+Content-Type: text/markdown
+
+< ./relatorio-mapeamento.md
+------boundary--
+
+### Artifacts: download one (redirects to a signed URL)
+GET {{baseUrl}}/api/sound-necklace/sessions/sess_1/artifacts/retorno
+Authorization: Bearer {{accessToken}}
+
 ### Bucket: list a project's audios
 GET {{baseUrl}}/api/sound-necklace/projects/prj_1/audios
 Authorization: Bearer {{accessToken}}

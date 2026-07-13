@@ -5,7 +5,6 @@ from fastapi import APIRouter, status
 from app.api.sound_necklace._deps import CurrentUser, not_implemented
 from app.models.sound_necklace import (
     AutosaveResponse,
-    SessionCompleteRequest,
     SessionCreate,
     SessionListResponse,
     SessionStateUpdate,
@@ -42,10 +41,8 @@ async def autosave_session(
 
 
 @router.post("/sessions/{session_id}/complete", response_model=SessionSummary)
-async def complete_session(
-    session_id: str, payload: SessionCompleteRequest, user: CurrentUser
-) -> SessionSummary:
-    """Complete a session, uploading the opaque artifact triple."""
+async def complete_session(session_id: str, user: CurrentUser) -> SessionSummary:
+    """Complete a session (its artifacts are uploaded to the artifacts route)."""
     not_implemented()
 
 
