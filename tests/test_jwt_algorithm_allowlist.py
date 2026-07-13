@@ -1,6 +1,8 @@
 """Guard: token decoding pins an explicit algorithm allowlist, so a token signed
-with any other algorithm is rejected (no algorithm confusion). Paired with the
-python-jose >= 3.5.0 security bump (CVE-2024-33663/33664).
+with any other algorithm is rejected (no algorithm confusion).
+
+This guards the allowlist, not a CVE — the python-jose >= 3.5.0 bump is what
+carries the CVE-2024-33663/33664 fixes.
 """
 
 from __future__ import annotations

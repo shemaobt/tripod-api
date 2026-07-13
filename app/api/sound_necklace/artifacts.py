@@ -6,6 +6,7 @@ on download — no Pydantic model ever parses a payload.
 """
 
 from fastapi import APIRouter, File, UploadFile, status
+from fastapi.responses import RedirectResponse
 
 from app.api.sound_necklace._deps import CurrentUser, not_implemented
 from app.models.sound_necklace import ArtifactKind, ArtifactResponse
@@ -29,7 +30,18 @@ async def upload_artifacts(
     not_implemented()
 
 
-@router.get("/sessions/{session_id}/artifacts/{kind}")
-async def download_artifact(session_id: str, kind: ArtifactKind, user: CurrentUser) -> None:
-    """Redirect to a short-lived signed URL serving the stored bytes verbatim."""
+@router.get(
+    "/sessions/{session_id}/artifacts/{kind}",
+    status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+    response_class=RedirectResponse,
+    response_model=None,
+)
+async def download_artifact(
+    session_id: str, kind: ArtifactKind, user: CurrentUser
+) -> RedirectResponse:
+    """Redirect to a short-lived signed URL: storage serves the bytes verbatim.
+
+    The API never proxies an artifact's bytes — that is what keeps the download
+    byte-identical to the upload.
+    """
     not_implemented()
