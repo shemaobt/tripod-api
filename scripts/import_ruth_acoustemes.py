@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import json
 import logging
 import math
@@ -39,13 +40,24 @@ CODEBOOK_VERSION = "terena-xlsr53-k100-v1"
 COLLECTION = "terena-ruth"
 AUDIO_BUCKET = "terena-pilot"
 HOP_SEC = acousteme_service.ACOUSTEME_HOP_SEC
+# Must match oc_acousteme_artifacts.audio_id (String(128)).
+AUDIO_ID_MAX_LEN = 128
 
 
 def slugify(name: str, prefix: str = "ruth") -> str:
-    """Stable ascii slug for an audio basename (handles spaces/accents)."""
+    """Stable ascii slug for an audio basename (handles spaces/accents).
+
+    Capped at AUDIO_ID_MAX_LEN to fit oc_acousteme_artifacts.audio_id. Long
+    names are truncated and suffixed with a digest of the original name, so the
+    id stays unique and deterministic rather than silently colliding.
+    """
     ascii_name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
     ascii_name = re.sub(r"[^a-zA-Z0-9]+", "-", ascii_name).strip("-").lower()
-    return f"{prefix}-{ascii_name}" if ascii_name else prefix
+    slug = f"{prefix}-{ascii_name}" if ascii_name else prefix
+    if len(slug) > AUDIO_ID_MAX_LEN:
+        digest = hashlib.sha256(name.encode("utf-8")).hexdigest()[:8]
+        slug = f"{slug[: AUDIO_ID_MAX_LEN - len(digest) - 1].rstrip('-')}-{digest}"
+    return slug
 
 
 def units_to_segments(units: list[int], duration_sec: float | None) -> list[dict[str, Any]]:

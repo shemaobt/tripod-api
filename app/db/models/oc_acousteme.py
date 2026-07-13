@@ -27,7 +27,9 @@ class OC_AcoustemeArtifact(Base):
     __tablename__ = "oc_acousteme_artifacts"
 
     # Stable, caller-minted id for the source audio (e.g. a slug). Not an FK.
-    audio_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    # Wide enough for descriptive slugs from long story titles; ingestion caps
+    # ids at this length (hash-suffixing longer ones) so they always fit.
+    audio_id: Mapped[str] = mapped_column(String(128), primary_key=True)
     # Frozen codebook the unit ids are meaningless without. Part of the key so
     # re-clustering yields a new artifact rather than corrupting existing refs.
     codebook_version: Mapped[str] = mapped_column(String(64), primary_key=True)
