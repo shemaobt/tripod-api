@@ -1,10 +1,4 @@
-"""Artifact download stub (§8.8/§10.5). Upload happens on session complete.
-
-Artifacts are OPAQUE bytes served exactly as uploaded — never parsed. Implemented
-by the artifacts resource issue.
-"""
-
-from __future__ import annotations
+"""Artifact download stub route (opaque bytes; upload happens on complete)."""
 
 from fastapi import APIRouter
 
@@ -16,5 +10,5 @@ router = APIRouter()
 
 @router.get("/sessions/{session_id}/artifacts/{kind}")
 async def download_artifact(session_id: str, kind: ArtifactKind, user: CurrentUser) -> None:
-    """Download one opaque artifact (manifesto/retorno/relatorio) by kind (§10.5)."""
+    """Download one opaque artifact by kind."""
     not_implemented()

@@ -4,10 +4,9 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Sound Necklace (Colar de Sons) — /api/colar
 #
-# All routes below are STUBS returning 501 until each resource issue lands
-# (sessions ENG-260, audio bucket ENG-261, voice answers, artifacts, …). They
-# exist so the emitted OpenAPI carries the full contract and the SPA can generate
-# its TypeScript types:
+# All routes below are STUBS returning 501 until each resource is implemented
+# (sessions, audio bucket, voice answers, artifacts). They exist so the emitted
+# OpenAPI carries the full contract and the SPA can generate its TypeScript types:
 #
 #   # with the app running (uvicorn app.main:app):
 #   npx openapi-typescript@7 http://localhost:8000/openapi.json -o colar-types.ts

@@ -2,8 +2,7 @@
 
 ``CurrentUser`` requires any sound-necklace role (or platform admin), gating the
 whole ``/api/colar`` surface via the shared per-app RBAC guard. Role-specific
-guards (facilitator / project_admin) are added by the resource issues that need
-them.
+guards (facilitator / project_admin) are added when a route needs them.
 """
 
 from __future__ import annotations
@@ -24,8 +23,8 @@ CurrentUser = Annotated[User, require_app_access(APP_KEY)]
 
 
 def not_implemented() -> NoReturn:
-    """Every Colar route is a contract stub until its own resource issue lands."""
+    """Signal a Colar route that is still a contract stub."""
     raise HTTPException(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Not implemented yet — lands with this resource's own issue.",
+        detail="Not implemented yet.",
     )

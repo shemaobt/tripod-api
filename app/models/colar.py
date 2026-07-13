@@ -1,16 +1,11 @@
-"""Pydantic DTOs for the Sound Necklace (Colar de Sons) app module — the wire
-contract the SPA generates TypeScript from (PRD v2 §5, code-first OpenAPI).
+"""Pydantic schemas for the Sound Necklace (Colar de Sons) app module.
 
-PROVISIONAL: every schema here is a stub surface. The ``/api/colar`` routes
-return 501 until each resource issue (sessions ENG-260, audio bucket ENG-261,
-voice answers, artifacts, …) lands and replaces them. All models carry
-``x-stability: experimental`` in their JSON schema so the SPA treats the
-generated types as provisional.
-
-Shapes mirror the SPA's provisional Zod contracts (sound-necklace
-``contracts/api.ts`` + ``contracts/bucket.ts``, ENG-235) so both tracks meet at
-one contract. §10.5 opaque custody: artifacts and the session-state payload pass
-as opaque values — never parsed or re-serialized here.
+The wire contract the SPA generates its TypeScript types from (code-first
+OpenAPI). Provisional: the ``/api/colar`` routes are stubs returning 501 until
+each resource is implemented, so every schema is tagged ``x-stability: experimental``
+and mirrors the SPA's provisional contracts (sound-necklace ``contracts/``).
+Artifacts and the session-state envelope are opaque — never parsed or
+re-serialized here.
 """
 
 from __future__ import annotations
@@ -20,55 +15,64 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
-class _ColarModel(BaseModel):
-    """Base for every Colar DTO: ORM-friendly and marked provisional."""
-
-    model_config = ConfigDict(
-        from_attributes=True,
-        json_schema_extra={"x-stability": "experimental"},
-    )
+# Vendor extension marking every schema in this module as provisional.
+_EXPERIMENTAL: dict[str, Any] = {"x-stability": "experimental"}
 
 
-# ── Enums ─────────────────────────────────────────────────────────────────────
+# ── Enums (identifiers English; values are the SPA wire contract) ───────────
 
 
 class SessionStatus(StrEnum):
-    em_progresso = "em_progresso"
-    concluida = "concluida"
+    IN_PROGRESS = "em_progresso"
+    COMPLETED = "concluida"
 
 
 class SessionStep(StrEnum):
-    ouvir = "ouvir"
-    cortar = "cortar"
-    triagem = "triagem"
-    frases = "frases"
-    conversa = "conversa"
-    guardar = "guardar"
+    LISTEN = "ouvir"
+    CUT = "cortar"
+    TRIAGE = "triagem"
+    PHRASES = "frases"
+    CONVERSATION = "conversa"
+    SAVE = "guardar"
 
 
 class GranularityLevel(StrEnum):
-    pequena = "pequena"
-    media = "media"
-    grande = "grande"
+    SMALL = "pequena"
+    MEDIUM = "media"
+    LARGE = "grande"
 
 
 class ArtifactKind(StrEnum):
-    manifesto = "manifesto"
-    retorno = "retorno"
-    relatorio = "relatorio"
+    MANIFESTO = "manifesto"
+    RETORNO = "retorno"
+    RELATORIO = "relatorio"
 
 
-# ── Sessions (§7.2/§7.3 — real lifecycle/persistence in ENG-260) ──────────────
+# ── Artifacts (opaque bytes; never parsed or re-serialized) ─────────────────
+
+
+class ArtifactTriple(BaseModel):
+    model_config = ConfigDict(json_schema_extra=_EXPERIMENTAL)
+
+    manifesto: str
+    retorno: str
+    relatorio: str
+
+
+# ── Sessions ────────────────────────────────────────────────────────────────
 
 MANIFEST_ID_PATTERN = r"^fnv1a32:[0-9a-f]{8}$"
 
 
-class SessionProgress(_ColarModel):
+class SessionProgress(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
     current_step: SessionStep
 
 
-class SessionSummary(_ColarModel):
+class SessionSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
     id: str
     project_id: str
     story_name: str
@@ -78,11 +82,15 @@ class SessionSummary(_ColarModel):
     progress: SessionProgress
 
 
-class SessionListResponse(_ColarModel):
+class SessionListResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
     sessions: list[SessionSummary]
 
 
-class CreateSessionRequest(_ColarModel):
+class SessionCreate(BaseModel):
+    model_config = ConfigDict(json_schema_extra=_EXPERIMENTAL)
+
     audio_id: str
     project_id: str
     story_name: str
@@ -93,52 +101,46 @@ class CreateSessionRequest(_ColarModel):
     pipeline_consent: bool
 
 
-class SessionStatePayload(_ColarModel):
-    """Autosave body (§7.3): opaque session-state envelope. Only the version is
-    validated; the rest of the state passes through unread (``extra='allow'``)."""
+class SessionStateUpdate(BaseModel):
+    """Autosave body: opaque session-state envelope; only the version is read."""
 
-    model_config = ConfigDict(
-        from_attributes=True,
-        extra="allow",
-        json_schema_extra={"x-stability": "experimental"},
-    )
+    model_config = ConfigDict(extra="allow", json_schema_extra=_EXPERIMENTAL)
 
     schema_version: int
 
 
-class AutosaveResponse(_ColarModel):
+class AutosaveResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
     saved_at: str
     schema_version: int
 
 
-# ── Advisory lock (§7.3/O4 — real acquire/renew/release in ENG-260) ───────────
+class SessionCompleteRequest(BaseModel):
+    model_config = ConfigDict(json_schema_extra=_EXPERIMENTAL)
+
+    artifacts: ArtifactTriple
 
 
-class LockHolder(_ColarModel):
+# ── Advisory single-editor lock ──────────────────────────────────────────────
+
+
+class LockHolder(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
     user_id: str
     display_name: str
 
 
-class LockStatus(_ColarModel):
+class LockStatusResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
     held: bool
     holder: LockHolder | None = None
     expires_at: str | None = None
 
 
-# ── Artifacts (§8.8/§10.5 — OPAQUE bytes; never parsed or re-serialized) ──────
-
-
-class ArtifactTriple(_ColarModel):
-    manifesto: str
-    retorno: str
-    relatorio: str
-
-
-class CompleteSessionRequest(_ColarModel):
-    artifacts: ArtifactTriple
-
-
-# ── Resources: voice answers by canonical ``respostas/...`` path (§10.4) ──────
+# ── Voice-answer resources (canonical respostas/... path) ────────────────────
 
 RESOURCE_PATH_PATTERN = (
     r"^respostas/(level1/[a-z0-9_]+"
@@ -147,27 +149,33 @@ RESOURCE_PATH_PATTERN = (
 )
 
 
-class ResourceRef(_ColarModel):
+class ResourceRef(BaseModel):
+    model_config = ConfigDict(json_schema_extra=_EXPERIMENTAL)
+
     path: str = Field(pattern=RESOURCE_PATH_PATTERN)
 
 
-class PresignResponse(_ColarModel):
+class ResourcePresignResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
     url: str
 
 
-# ── Bucket audios (§7.4 — real listing/signing in ENG-261) ────────────────────
+# ── Bucket audios ─────────────────────────────────────────────────────────────
 
 
-class AcoustemeEnvelope(_ColarModel):
-    """OPAQUE versioned acousteme envelope (§6.1/§15.2 O8). The API stores/serves
-    it and NEVER interprets ``data``. ENG-261 reconciles the concrete shape
-    against tripod-api PR #100 (``AcoustemeStreamResponse``)."""
+class AcoustemeEnvelope(BaseModel):
+    """Opaque versioned acousteme envelope; the API never interprets ``data``."""
+
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
 
     version: int
     data: dict[str, Any]
 
 
-class BucketAudio(_ColarModel):
+class BucketAudioResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
     id: str
     filename: str
     duration_sec: float = Field(gt=0)
@@ -175,9 +183,13 @@ class BucketAudio(_ColarModel):
     acousteme: AcoustemeEnvelope | None = None
 
 
-class BucketListResponse(_ColarModel):
-    audios: list[BucketAudio]
+class BucketAudioListResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    audios: list[BucketAudioResponse]
 
 
-class AudioUrlResponse(_ColarModel):
+class AudioUrlResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
     url: str
