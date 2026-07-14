@@ -2330,7 +2330,7 @@ requires-dist = [
     { name = "procrastinate", specifier = ">=3.7.2" },
     { name = "pydantic", extras = ["email"], specifier = "==2.10.0" },
     { name = "pydantic-settings", specifier = "==2.6.0" },
-    { name = "python-jose", extras = ["cryptography"], specifier = ">=3.5.0" },
+    { name = "python-jose", extras = ["cryptography"], specifier = "==3.5.0" },
     { name = "python-multipart", specifier = "==0.0.9" },
     { name = "qdrant-client", specifier = ">=1.15.0,<1.17.0" },
     { name = "slowapi", specifier = ">=0.1.9" },

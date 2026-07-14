@@ -162,23 +162,25 @@ class ResourcePresignResponse(BaseModel):
 # ── Bucket audios ─────────────────────────────────────────────────────────────
 
 
-class AcoustemeEnvelope(BaseModel):
-    """Opaque versioned acousteme envelope; the API never interprets ``data``."""
-
-    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
-
-    version: int
-    data: dict[str, Any]
-
-
 class BucketAudioResponse(BaseModel):
+    """An audio the facilitator can pick from the project's bucket.
+
+    The acousteme payload is deliberately absent: the acousteme API already
+    serves a concrete shape whose codebook version is a string, so any envelope
+    described here would be known-wrong. It is added when the audio listing is
+    implemented, against that real DTO.
+
+    ``duration_sec`` is nullable because response models are validated on the way
+    out: one un-probed audio would otherwise fail validation of the whole listing.
+    The invariant belongs at ingestion, where a violation is actionable.
+    """
+
     model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
 
     id: str
     filename: str
-    duration_sec: float = Field(gt=0)
+    duration_sec: float | None = None
     consent_present: bool
-    acousteme: AcoustemeEnvelope | None = None
 
 
 class BucketAudioListResponse(BaseModel):
