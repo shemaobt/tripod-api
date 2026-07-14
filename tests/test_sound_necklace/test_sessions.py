@@ -142,7 +142,7 @@ async def test_resume_returns_the_saved_document_byte_for_byte(client, facilitat
     resumed = await client.get(f"{SN}/sessions/{session_id}/state", headers=headers)
 
     assert resumed.status_code == 200
-    assert resumed.text == raw
+    assert resumed.content == raw.encode(), "the stored document must come back as the same bytes"
 
 
 async def test_progress_follows_the_saved_state(client, facilitator):
@@ -286,7 +286,7 @@ async def test_complete_then_reopen_preserves_the_document(client, facilitator):
     )
 
     resumed = await client.get(f"{SN}/sessions/{session_id}/state", headers=headers)
-    assert resumed.text == raw
+    assert resumed.content == raw.encode(), "a completed-then-reopened session must resume intact"
 
 
 # ── Listing ──────────────────────────────────────────────────────────────────
