@@ -48,6 +48,13 @@ from app.db.models.project_health import (
     PHLanguage,
     PHReport,
 )
+from app.db.models.sound_necklace import (
+    GranularityLevel,
+    SessionStatus,
+    SessionStep,
+    SnSession,
+    SnSessionState,
+)
 from app.db.models.translation_helper import (
     AgentId,
     ChatMessageRole,
@@ -76,6 +83,7 @@ __all__ = [
     "BibleBook",
     "BookContextDocument",
     "ChatMessageRole",
+    "GranularityLevel",
     "Language",
     "MeaningMap",
     "MeaningMapFeedback",
@@ -105,6 +113,10 @@ __all__ = [
     "RefreshToken",
     "Role",
     "RolePermission",
+    "SessionStatus",
+    "SessionStep",
+    "SnSession",
+    "SnSessionState",
     "THAgentPrompt",
     "THChat",
     "THChatMessage",
