@@ -19,33 +19,37 @@ from pydantic import BaseModel, ConfigDict, Field
 _EXPERIMENTAL: dict[str, Any] = {"x-stability": "experimental"}
 
 
-# ── Enums (identifiers English; values are the SPA wire contract) ───────────
+# ── Enums ───────────────────────────────────────────────────────────────────
 
 
 class SessionStatus(StrEnum):
-    IN_PROGRESS = "em_progresso"
-    COMPLETED = "concluida"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
 
 
 class SessionStep(StrEnum):
-    LISTEN = "ouvir"
-    CUT = "cortar"
-    TRIAGE = "triagem"
-    PHRASES = "frases"
-    CONVERSATION = "conversa"
-    SAVE = "guardar"
+    LISTEN = "listen"
+    CUT = "cut"
+    TRIAGE = "triage"
+    PHRASES = "phrases"
+    CONVERSATION = "conversation"
+    SAVE = "save"
 
 
 class GranularityLevel(StrEnum):
-    SMALL = "pequena"
-    MEDIUM = "media"
-    LARGE = "grande"
+    SMALL = "small"
+    MEDIUM = "medium"
+    LARGE = "large"
 
 
 class ArtifactKind(StrEnum):
-    MANIFESTO = "manifesto"
-    RETORNO = "retorno"
-    RELATORIO = "relatorio"
+    """The three artifacts, by kind. The stored FILENAMES stay Portuguese
+    (``manifesto-contas.json``, ``retorno-ancoragem.json``,
+    ``relatorio-mapeamento.md``) — the downstream pipeline reads them by name."""
+
+    MANIFEST = "manifest"
+    ANCHORING = "anchoring"
+    REPORT = "report"
 
 
 # ── Artifacts ───────────────────────────────────────────────────────────────

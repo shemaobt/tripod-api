@@ -22,9 +22,9 @@ router = APIRouter()
 async def upload_artifacts(
     session_id: str,
     user: CurrentUser,
-    manifesto: UploadFile = File(),
-    retorno: UploadFile = File(),
-    relatorio: UploadFile = File(),
+    manifest: UploadFile = File(),
+    anchoring: UploadFile = File(),
+    report: UploadFile = File(),
 ) -> list[ArtifactResponse]:
     """Store the three artifacts as opaque bytes, checksummed on the way in."""
     not_implemented()
