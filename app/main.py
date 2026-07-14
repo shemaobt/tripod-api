@@ -33,6 +33,7 @@ from app.api.organizations import router as organizations_router
 from app.api.pericopes import router as pericopes_router
 from app.api.phases import router as phases_router
 from app.api.places import router as places_router
+from app.api.platform import router as platform_router
 from app.api.project_health import router as project_health_router
 from app.api.projects import router as projects_router
 from app.api.rag import router as rag_router
@@ -121,6 +122,7 @@ def create_app() -> FastAPI:
     app.include_router(apps_router, prefix="/api/apps", tags=["apps"])
     app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
     app.include_router(roles_router, prefix="/api/roles", tags=["roles"])
+    app.include_router(platform_router, prefix="/api/platform", tags=["platform"])
     app.include_router(uploads_router, prefix="/api/uploads", tags=["uploads"])
     app.include_router(users_router, prefix="/api/users", tags=["users"])
     app.include_router(languages_router, prefix="/api/languages", tags=["languages"])

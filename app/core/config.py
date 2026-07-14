@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     ph_elevenlabs_api_key: str = ""
 
     gcs_bucket_name: str = ""
+    # Bucket genérico da plataforma (cache de TTS). Só do servidor: nenhum navegador
+    # o acessa, então não precisa de CORS nem de acesso público.
+    gcs_platform_bucket: str = ""
     bhsa_data_path: str = ""
 
     cleaning_api_url: str = ""

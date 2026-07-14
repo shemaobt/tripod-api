@@ -40,6 +40,8 @@ services:
     environment:
       GOOGLE_APPLICATION_CREDENTIALS: /etc/gcs/signing-key.json
       INNGEST_DEV: "http://inngest:8288/"
+      # Bucket generico da plataforma (cache de TTS). Nome, nao credencial: env comum.
+      GCS_PLATFORM_BUCKET: ${GCS_PLATFORM_BUCKET:-tripod-platform}
     dns:
       - 8.8.8.8
       - 8.8.4.4
