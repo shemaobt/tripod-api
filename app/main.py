@@ -2,7 +2,7 @@ import threading
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.access_requests import router as access_requests_router
@@ -37,6 +37,7 @@ from app.api.project_health import router as project_health_router
 from app.api.projects import router as projects_router
 from app.api.rag import router as rag_router
 from app.api.roles import router as roles_router
+from app.api.sound_necklace import router as sound_necklace_router
 from app.api.translation_helper import router as translation_helper_router
 from app.api.uploads import router as uploads_router
 from app.api.users import router as users_router
@@ -133,6 +134,13 @@ def create_app() -> FastAPI:
     app.include_router(meaning_maps_router, prefix="/api/meaning-maps", tags=["meaning-maps"])
     app.include_router(
         annotation_studio_router, prefix="/api/annotation-studio", tags=["annotation-studio"]
+    )
+    app.include_router(
+        sound_necklace_router,
+        prefix="/api/sound-necklace",
+        tags=["sound-necklace"],
+        # Every route is still a contract stub; say so in the schema the SPA reads.
+        responses={status.HTTP_501_NOT_IMPLEMENTED: {"description": "Not implemented yet"}},
     )
     app.include_router(
         project_health_router,
