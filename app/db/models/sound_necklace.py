@@ -50,11 +50,27 @@ class GranularityLevel(enum.StrEnum):
     LARGE = "large"
 
 
+class ArtifactKind(enum.StrEnum):
+    """Which of the three artifacts. The stored FILENAMES stay Portuguese
+    (``manifesto-contas.json``, ``retorno-ancoragem.json``,
+    ``relatorio-mapeamento.md``): PRD §10 freezes them as part of the contract shared
+    with the downstream pipeline. The kind is the handle, not the file."""
+
+    MANIFEST = "manifest"
+    ANCHORING = "anchoring"
+    REPORT = "report"
+
+
 # `values_callable` makes the database store the value ("in_progress"), not the
 # member name ("IN_PROGRESS") — the values are what goes on the wire.
 _STATUS_TYPE = Enum(
     SessionStatus,
     name="sn_session_status_enum",
+    values_callable=lambda enum_cls: [m.value for m in enum_cls],
+)
+_ARTIFACT_KIND_TYPE = Enum(
+    ArtifactKind,
+    name="sn_artifact_kind_enum",
     values_callable=lambda enum_cls: [m.value for m in enum_cls],
 )
 _STEP_TYPE = Enum(
@@ -115,6 +131,42 @@ class SnSessionState(Base):
     )
     state: Mapped[str | None] = mapped_column(Text, nullable=True)
     version: Mapped[int] = mapped_column(Integer, default=0)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class SnArtifact(Base):
+    """One of a session's three exported artifacts, held as an opaque object.
+
+    The bytes are NOT here. They live in GCS, exactly as the SPA produced them, and
+    this row is the queryable pointer plus the checksums that prove custody. A Postgres
+    column would be a trap either way: ``jsonb`` discards key order, whitespace and
+    duplicate keys, and even ``text`` invites something downstream to re-encode it. The
+    pipeline diffs these files byte for byte against a golden reference (PRD §10.5), so
+    the API's only job is to hand back what it was given.
+
+    ``crc32c`` is the checksum GCS itself validated on the way in — a corrupt upload is
+    rejected by storage and the object is never created. ``sha256`` is ours, for an
+    audit trail that does not depend on trusting the storage provider.
+
+    Keyed by (session, kind): a session has at most one artifact of each kind, and
+    re-completing a reopened session replaces it rather than accumulating versions the
+    pipeline would then have to choose between.
+    """
+
+    __tablename__ = "sn_artifacts"
+
+    session_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("sn_sessions.id", ondelete="CASCADE"), primary_key=True
+    )
+    kind: Mapped[ArtifactKind] = mapped_column(_ARTIFACT_KIND_TYPE, primary_key=True)
+    storage_key: Mapped[str] = mapped_column(String(512))
+    size: Mapped[int] = mapped_column(Integer)
+    crc32c: Mapped[str] = mapped_column(String(16))
+    sha256: Mapped[str] = mapped_column(String(64))
+    content_type: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

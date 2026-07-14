@@ -1,3 +1,4 @@
+from app.services.sound_necklace.artifact_download_url import artifact_download_url
 from app.services.sound_necklace.audio_signed_url import audio_signed_url
 from app.services.sound_necklace.autosave_state import (
     StateVersionConflict,
@@ -12,9 +13,11 @@ from app.services.sound_necklace.list_project_audios import list_project_audios
 from app.services.sound_necklace.list_sessions import list_sessions
 from app.services.sound_necklace.load_state import load_state
 from app.services.sound_necklace.reopen_session import reopen_session
+from app.services.sound_necklace.store_artifacts import store_artifacts
 
 __all__ = [
     "StateVersionConflict",
+    "artifact_download_url",
     "audio_signed_url",
     "autosave_state",
     "complete_session",
@@ -26,4 +29,5 @@ __all__ = [
     "load_state",
     "reopen_session",
     "step_for",
+    "store_artifacts",
 ]
