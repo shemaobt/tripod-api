@@ -43,18 +43,14 @@ class GranularityLevel(StrEnum):
 
 
 class ArtifactKind(StrEnum):
-    """The three artifacts, named after the files they are.
-
-    These values stay Portuguese on purpose: each one IS a frozen filename
+    """Which of the three artifacts. The stored FILENAMES stay Portuguese
     (``manifesto-contas.json``, ``retorno-ancoragem.json``,
-    ``relatorio-mapeamento.md``) that the downstream pipeline reads by name.
-    Translating the handle without translating the thing it names would only add
-    a lookup table.
-    """
+    ``relatorio-mapeamento.md``): PRD §10 freezes them as part of the contract
+    shared with the downstream pipeline. The kind is the handle, not the file."""
 
-    MANIFESTO = "manifesto"
-    RETORNO = "retorno"
-    RELATORIO = "relatorio"
+    MANIFEST = "manifest"
+    ANCHORING = "anchoring"
+    REPORT = "report"
 
 
 # ── Artifacts ───────────────────────────────────────────────────────────────
