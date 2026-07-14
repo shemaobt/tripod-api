@@ -15,31 +15,17 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.db.models.sound_necklace import GranularityLevel, SessionStatus, SessionStep
+
 # Vendor extension marking every schema in this module as provisional.
 _EXPERIMENTAL: dict[str, Any] = {"x-stability": "experimental"}
 
 
 # ── Enums ───────────────────────────────────────────────────────────────────
-
-
-class SessionStatus(StrEnum):
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
-
-
-class SessionStep(StrEnum):
-    LISTEN = "listen"
-    CUT = "cut"
-    TRIAGE = "triage"
-    PHRASES = "phrases"
-    CONVERSATION = "conversation"
-    SAVE = "save"
-
-
-class GranularityLevel(StrEnum):
-    SMALL = "small"
-    MEDIUM = "medium"
-    LARGE = "large"
+#
+# The session enums are imported above rather than defined here: they now back
+# real columns, and the database constrains them to exactly these values. Keeping
+# them with the table is what forces a value change to come with a migration.
 
 
 class ArtifactKind(StrEnum):

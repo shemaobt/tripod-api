@@ -4,8 +4,10 @@ A session is a facilitator's pass over one recorded story. It carries the grid
 parameters the SPA needs to reopen the audio, its lifecycle status, and — in a
 dedicated narrow table — the state document the SPA autosaves.
 
-The identifiers here are English; the enum *values* are the wire contract the SPA
-validates against, so they stay Portuguese.
+The enums live here, not with the DTOs that expose them: the database constrains
+each to exactly these values, so a value change has to arrive with a migration.
+Portuguese survives only inside the state document, which is the SPA's and is
+never interpreted here.
 """
 
 import enum
@@ -29,27 +31,27 @@ from app.core.database import Base
 
 
 class SessionStatus(enum.StrEnum):
-    IN_PROGRESS = "em_progresso"
-    COMPLETED = "concluida"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
 
 
 class SessionStep(enum.StrEnum):
-    LISTEN = "ouvir"
-    CUT = "cortar"
-    TRIAGE = "triagem"
-    PHRASES = "frases"
-    CONVERSATION = "conversa"
-    SAVE = "guardar"
+    LISTEN = "listen"
+    CUT = "cut"
+    TRIAGE = "triage"
+    PHRASES = "phrases"
+    CONVERSATION = "conversation"
+    SAVE = "save"
 
 
 class GranularityLevel(enum.StrEnum):
-    SMALL = "pequena"
-    MEDIUM = "media"
-    LARGE = "grande"
+    SMALL = "small"
+    MEDIUM = "medium"
+    LARGE = "large"
 
 
-# `values_callable` makes the database store the value ("em_progresso"), not the
-# member name ("IN_PROGRESS") — the values are what the SPA reads.
+# `values_callable` makes the database store the value ("in_progress"), not the
+# member name ("IN_PROGRESS") — the values are what goes on the wire.
 _STATUS_TYPE = Enum(
     SessionStatus,
     name="sn_session_status_enum",
