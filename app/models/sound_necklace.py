@@ -86,10 +86,12 @@ class SessionListResponse(BaseModel):
 class SessionCreate(BaseModel):
     model_config = ConfigDict(json_schema_extra=_EXPERIMENTAL)
 
-    audio_id: str
+    # The text lengths mirror their columns: unbounded here, an over-long value would
+    # reach Postgres and fail the insert instead of failing validation.
+    audio_id: str = Field(max_length=255)
     project_id: str
-    story_name: str
-    story_slug: str
+    story_name: str = Field(max_length=255)
+    story_slug: str = Field(max_length=255)
     granularity_level: GranularityLevel
     bead_sec: float = Field(gt=0)
     manifest_id: str = Field(pattern=MANIFEST_ID_PATTERN)

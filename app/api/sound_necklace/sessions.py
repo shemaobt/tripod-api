@@ -51,14 +51,22 @@ def _etag(version: int) -> str:
     return f'"{version}"'
 
 
+# The version column is a 32-bit int, so a larger number is not a version this API
+# could have issued — and handing it to the driver as one is an error, not a miss.
+_MAX_VERSION = 2**31 - 1
+
+
 def _expected_version(if_match: str | None) -> int | None:
     """The state version the caller believes is current. Absent = unconditional write."""
     if if_match is None:
         return None
     try:
-        return int(if_match.strip().strip('"'))
+        version = int(if_match.strip().strip('"'))
     except ValueError:
-        raise ValidationError("If-Match must carry a session-state version") from None
+        version = -1
+    if not 0 <= version <= _MAX_VERSION:
+        raise ValidationError("If-Match must carry a session-state version")
+    return version
 
 
 def _document(body: bytes) -> str:
@@ -144,6 +152,9 @@ async def autosave_session(
             db,
             session,
             document=document,
+            # already parsed by the model; re-reading the raw text would reject bodies
+            # the parser accepted (a UTF-8 BOM, for one)
+            fields=payload.model_extra or {},
             expected_version=_expected_version(if_match),
         )
     except sn_service.StateVersionConflict as exc:

@@ -209,6 +209,20 @@ async def test_a_stale_if_match_that_is_not_a_version_is_refused_not_crashed(cli
     assert res.status_code == 400
 
 
+async def test_an_if_match_beyond_the_version_column_is_refused_not_crashed(client, facilitator):
+    """The version column is a 32-bit int; a bigger number is not a version we ever issued."""
+    _user, project, headers = facilitator
+    session_id = await new_session(client, headers, project.id)
+
+    res = await client.put(
+        f"{SN}/sessions/{session_id}/state",
+        headers={**headers, **JSON_HEADERS, "If-Match": '"99999999999999999999"'},
+        content=state_bytes(),
+    )
+
+    assert res.status_code == 400
+
+
 async def test_a_body_that_is_not_utf8_is_refused_not_crashed(client, facilitator):
     """`json.loads` accepts UTF-16, so a body can validate and still not be UTF-8 text."""
     _user, project, headers = facilitator
@@ -221,6 +235,45 @@ async def test_a_body_that_is_not_utf8_is_refused_not_crashed(client, facilitato
     )
 
     assert res.status_code == 400
+
+
+async def test_a_body_with_a_utf8_bom_still_saves(client, facilitator):
+    """A BOM decodes cleanly, so it must not blow up on the way to the progress step."""
+    _user, project, headers = facilitator
+    session_id = await new_session(client, headers, project.id)
+    raw = state_bytes(mode="triagem").encode("utf-8-sig")
+
+    saved = await client.put(
+        f"{SN}/sessions/{session_id}/state",
+        headers={**headers, **JSON_HEADERS},
+        content=raw,
+    )
+
+    assert saved.status_code == 200, saved.text
+    summary = await client.get(f"{SN}/sessions/{session_id}", headers=headers)
+    assert summary.json()["progress"]["current_step"] == "triagem"
+
+
+async def test_a_story_name_longer_than_the_column_is_refused_not_truncated(client, facilitator):
+    """Postgres would reject the oversized insert; SQLite would silently take it."""
+    _user, project, headers = facilitator
+
+    res = await client.post(
+        f"{SN}/sessions",
+        headers=headers,
+        json={
+            "audio_id": "aud_1",
+            "project_id": project.id,
+            "story_name": "b" * 300,
+            "story_slug": "conto-do-boto",
+            "granularity_level": "media",
+            "bead_sec": 0.5,
+            "manifest_id": "fnv1a32:d31a8419",
+            "pipeline_consent": True,
+        },
+    )
+
+    assert res.status_code == 422
 
 
 async def test_the_second_writer_of_a_version_is_refused_and_told_the_current_one(
