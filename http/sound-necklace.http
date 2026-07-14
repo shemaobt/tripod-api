@@ -4,9 +4,9 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Sound Necklace — /api/sound-necklace
 #
-# All routes below are STUBS returning 501 until each resource is implemented
-# (sessions, audio bucket, voice answers, artifacts). They exist so the emitted
-# OpenAPI carries the full contract and the SPA can generate its TypeScript types:
+# Sessions are implemented. The remaining routes (lock, audio bucket, voice answers,
+# artifacts) are still STUBS returning 501 — they exist so the emitted OpenAPI carries
+# the full contract and the SPA can generate its TypeScript types:
 #
 #   # with the app running (uvicorn app.main:app):
 #   npx openapi-typescript@7 http://localhost:8000/openapi.json -o sound-necklace-types.ts
@@ -49,14 +49,52 @@ Content-Type: application/json
   "pipeline_consent": true
 }
 
-### Sessions: autosave (version-guarded state envelope)
+### Sessions: fetch one (meta only — the state has its own route below)
+GET {{baseUrl}}/api/sound-necklace/sessions/sess_1
+Authorization: Bearer {{accessToken}}
+
+### Sessions: autosave the state envelope (unconditional — what the SPA's autosaver does)
+# The request body IS the state document. It is stored as the exact bytes sent and
+# served back unchanged: the SPA re-validates it under a strict schema, so anything
+# the API re-serialized would come back as an unresumable session.
+# The response carries the new version in `ETag`.
 PUT {{baseUrl}}/api/sound-necklace/sessions/sess_1/state
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
-  "schema_version": 1
+  "schema_version": 1,
+  "mode": "triagem",
+  "beadSec": 0.5,
+  "whole": { "id": "S1", "span": { "s": 0, "e": 23 }, "confirmed": true }
 }
+
+### Sessions: autosave with the version guard (two machines on the same session)
+# `If-Match` is the version from the last ETag. If someone else saved in the meantime
+# the write is refused with 409 and the body carries `current_version` to reload from.
+PUT {{baseUrl}}/api/sound-necklace/sessions/sess_1/state
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+If-Match: "3"
+
+{
+  "schema_version": 1,
+  "mode": "mapeamento",
+  "beadSec": 0.5,
+  "whole": { "id": "S1", "span": { "s": 0, "e": 23 }, "confirmed": true }
+}
+
+### Sessions: resume — the saved document, byte for byte (ETag = current version)
+GET {{baseUrl}}/api/sound-necklace/sessions/sess_1/state
+Authorization: Bearer {{accessToken}}
+
+### Sessions: complete (no body — the artifacts go to the artifacts route)
+POST {{baseUrl}}/api/sound-necklace/sessions/sess_1/complete
+Authorization: Bearer {{accessToken}}
+
+### Sessions: reopen a completed session
+POST {{baseUrl}}/api/sound-necklace/sessions/sess_1/reopen
+Authorization: Bearer {{accessToken}}
 
 ### Lock: acquire / renew
 PUT {{baseUrl}}/api/sound-necklace/sessions/sess_1/lock
