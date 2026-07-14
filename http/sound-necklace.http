@@ -139,8 +139,8 @@ Authorization: Bearer {{accessToken}}
 # The bytes live in a private bucket and are never proxied, so this is where the Sound
 # Necklace reaches them — and where ENG-266 will hook its audit log.
 #
-# NOT the only path in this API, though: GET /api/oc/acoustemes/{audio_id}/audio mints
-# the same signed URL for the same object behind nothing but get_current_user — no app
-# role, no project scoping. See ENG-290.
+# The only path in this API — but only since ENG-290. GET /api/oc/acoustemes/{id}/audio
+# used to mint the same signed URL for the same object behind nothing but
+# get_current_user (no app role, no project scoping); it is retired.
 GET {{baseUrl}}/api/sound-necklace/audios/ruth-a-historia-de-rute/url
 Authorization: Bearer {{accessToken}}
