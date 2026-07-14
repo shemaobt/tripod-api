@@ -3,9 +3,9 @@
 Creates only the sn_* tables and their enum types. This database is shared with
 every other Tripod app, so nothing here alters or drops anything it did not create.
 
-Revision ID: 20260713_0001
-Revises: 20260609_0001
-Create Date: 2026-07-13 12:00:00.000000
+Revision ID: 20260714_0001
+Revises: 20260713_0001
+Create Date: 2026-07-14 12:00:00.000000
 """
 
 from __future__ import annotations
@@ -13,8 +13,8 @@ from __future__ import annotations
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "20260713_0001"
-down_revision: str | None = "20260609_0001"
+revision: str = "20260714_0001"
+down_revision: str | None = "20260713_0001"
 branch_labels = None
 depends_on = None
 
