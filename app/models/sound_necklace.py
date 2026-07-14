@@ -1,11 +1,15 @@
 """Pydantic schemas for the sound-necklace app module.
 
 The wire contract the SPA generates its TypeScript types from (code-first
-OpenAPI). Provisional: the ``/api/sound-necklace`` routes are stubs returning 501 until
-each resource is implemented, so every schema is tagged ``x-stability: experimental``
-and mirrors the SPA's provisional contracts (sound-necklace ``contracts/``).
-Artifacts and the session-state envelope are opaque — never parsed or
-re-serialized here.
+OpenAPI). Provisional: the resources not yet implemented are stubs returning 501, so
+every schema is tagged ``x-stability: experimental`` and mirrors the SPA's provisional
+contracts (sound-necklace ``contracts/``). Artifacts and the session-state envelope are
+opaque — never parsed or re-serialized here.
+
+Where this and the SPA's provisional contracts disagree, this wins and the SPA
+regenerates: its ``contracts/bucket.ts`` still types the codebook version as an integer
+and the audio duration as non-null, and both are wrong against the pipeline that
+actually mints them (ENG-261).
 """
 
 from __future__ import annotations
@@ -155,13 +159,31 @@ class ResourcePresignResponse(BaseModel):
 # ── Bucket audios ─────────────────────────────────────────────────────────────
 
 
+class AcoustemeEnvelope(BaseModel):
+    """The granularity grid an audio's bead duration is derived from.
+
+    ``beadSec = granularity_frames[level] x hop_sec`` — the two fields exist together
+    or the envelope is useless, so an audio whose grid is incomplete carries no
+    envelope at all rather than half of one.
+
+    ``codebook_version`` is a string, not a number: it is half of the acousteme
+    artifact's primary key and reads like ``terena-xlsr53-k100-v1``. An integer here
+    would be a version the pipeline never mints.
+    """
+
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    codebook_version: str
+    hop_sec: float
+    granularity_frames: dict[str, int]
+
+
 class BucketAudioResponse(BaseModel):
     """An audio the facilitator can pick from the project's bucket.
 
-    The acousteme payload is deliberately absent: the acousteme API already
-    serves a concrete shape whose codebook version is a string, so any envelope
-    described here would be known-wrong. It is added when the audio listing is
-    implemented, against that real DTO.
+    ``acousteme`` is null when no servable grid exists for the audio — an ingest that
+    never succeeded, or an audio that was never tokenized. That is a fallback, not an
+    error (PRD §6.1: the levels then map to fixed durations), so the audio still lists.
 
     ``duration_sec`` is nullable because response models are validated on the way
     out: one un-probed audio would otherwise fail validation of the whole listing.
@@ -174,6 +196,7 @@ class BucketAudioResponse(BaseModel):
     filename: str
     duration_sec: float | None = None
     consent_present: bool
+    acousteme: AcoustemeEnvelope | None = None
 
 
 class BucketAudioListResponse(BaseModel):

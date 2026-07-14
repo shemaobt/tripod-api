@@ -6,7 +6,12 @@ from httpx import ASGITransport
 from sqlalchemy import select
 
 from app.db.models.auth import Role
-from app.db.models.sound_necklace import SnSession, SnSessionState  # noqa: F401 (create_all)
+from app.db.models.oc_acousteme import OC_AcoustemeArtifact  # noqa: F401 (create_all)
+from app.db.models.sound_necklace import (  # noqa: F401 (create_all)
+    SnAudioRef,
+    SnSession,
+    SnSessionState,
+)
 from tests.baker import make_app, make_role, make_user_app_role
 
 APP_KEY = "sound-necklace"

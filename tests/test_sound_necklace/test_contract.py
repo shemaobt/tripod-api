@@ -7,8 +7,8 @@ from __future__ import annotations
 PREFIX = "/api/sound-necklace"
 METHODS = {"get", "post", "put", "delete", "patch"}
 
-# Implemented here (ENG-260). Everything else in the module still answers 501.
-SESSION_OPERATIONS = {
+# Implemented (ENG-260 sessions, ENG-261 audios). Everything else still answers 501.
+IMPLEMENTED_OPERATIONS = {
     ("/sessions", "post"),
     ("/sessions", "get"),
     ("/sessions/{session_id}", "get"),
@@ -16,6 +16,8 @@ SESSION_OPERATIONS = {
     ("/sessions/{session_id}/state", "put"),
     ("/sessions/{session_id}/complete", "post"),
     ("/sessions/{session_id}/reopen", "post"),
+    ("/projects/{project_id}/audios", "get"),
+    ("/audios/{audio_id}/url", "get"),
 }
 
 
@@ -32,9 +34,9 @@ def _operations() -> list[tuple[str, str, dict]]:
     ]
 
 
-def test_the_session_routes_are_in_the_schema():
+def test_the_implemented_routes_are_in_the_schema():
     operations = {(path, method) for path, method, _ in _operations()}
-    assert operations >= SESSION_OPERATIONS, f"missing: {SESSION_OPERATIONS - operations}"
+    assert operations >= IMPLEMENTED_OPERATIONS, f"missing: {IMPLEMENTED_OPERATIONS - operations}"
 
 
 def test_only_the_unimplemented_routes_advertise_501():
@@ -45,12 +47,12 @@ def test_only_the_unimplemented_routes_advertise_501():
     lying = [
         f"{method.upper()} {path}"
         for path, method, operation in operations
-        if (path, method) in SESSION_OPERATIONS and "501" in operation["responses"]
+        if (path, method) in IMPLEMENTED_OPERATIONS and "501" in operation["responses"]
     ]
     hiding = [
         f"{method.upper()} {path}"
         for path, method, operation in operations
-        if (path, method) not in SESSION_OPERATIONS and "501" not in operation["responses"]
+        if (path, method) not in IMPLEMENTED_OPERATIONS and "501" not in operation["responses"]
     ]
 
     assert not lying, f"implemented operations still advertising 501: {lying}"

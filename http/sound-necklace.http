@@ -4,9 +4,9 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Sound Necklace — /api/sound-necklace
 #
-# Sessions are implemented. The remaining routes (lock, audio bucket, voice answers,
-# artifacts) are still STUBS returning 501 — they exist so the emitted OpenAPI carries
-# the full contract and the SPA can generate its TypeScript types:
+# Sessions and the audio bucket are implemented. The remaining routes (lock, voice
+# answers, artifacts) are still STUBS returning 501 — they exist so the emitted OpenAPI
+# carries the full contract and the SPA can generate its TypeScript types:
 #
 #   # with the app running (uvicorn app.main:app):
 #   npx openapi-typescript@7 http://localhost:8000/openapi.json -o sound-necklace-types.ts
@@ -16,7 +16,9 @@
 #   npx openapi-typescript@7 openapi.json -o sound-necklace-types.ts
 #
 # Every schema in this module is marked `x-stability: experimental` (provisional
-# until each resource finalizes its shape; the acousteme envelope stays opaque).
+# until each resource finalizes its shape). The acousteme envelope is now concrete:
+# `{codebook_version, hop_sec, granularity_frames}`, and beadSec = frames[level] × hop_sec.
+# It is null for an audio with no servable grid — a fallback, not an error (PRD §6.1).
 # ─────────────────────────────────────────────────────────────────────────────
 
 ### Login (sets the bearer token for the requests below)
@@ -127,9 +129,18 @@ GET {{baseUrl}}/api/sound-necklace/sessions/sess_1/artifacts/anchoring
 Authorization: Bearer {{accessToken}}
 
 ### Bucket: list a project's audios
+# The audios a project may see, each with its acousteme envelope and collection consent.
+# The bindings are seeded per project:
+#   uv run python scripts/seed_sn_audio_refs.py --project-id <uuid> [--consent]
 GET {{baseUrl}}/api/sound-necklace/projects/prj_1/audios
 Authorization: Bearer {{accessToken}}
 
 ### Bucket: short-TTL signed URL for an audio (audit point)
-GET {{baseUrl}}/api/sound-necklace/audios/aud_1/url
+# The bytes live in a private bucket and are never proxied, so this is where the Sound
+# Necklace reaches them — and where ENG-266 will hook its audit log.
+#
+# NOT the only path in this API, though: GET /api/oc/acoustemes/{audio_id}/audio mints
+# the same signed URL for the same object behind nothing but get_current_user — no app
+# role, no project scoping. See ENG-290.
+GET {{baseUrl}}/api/sound-necklace/audios/ruth-a-historia-de-rute/url
 Authorization: Bearer {{accessToken}}
