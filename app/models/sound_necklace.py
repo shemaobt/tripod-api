@@ -43,13 +43,18 @@ class GranularityLevel(StrEnum):
 
 
 class ArtifactKind(StrEnum):
-    """The three artifacts, by kind. The stored FILENAMES stay Portuguese
-    (``manifesto-contas.json``, ``retorno-ancoragem.json``,
-    ``relatorio-mapeamento.md``) — the downstream pipeline reads them by name."""
+    """The three artifacts, named after the files they are.
 
-    MANIFEST = "manifest"
-    ANCHORING = "anchoring"
-    REPORT = "report"
+    These values stay Portuguese on purpose: each one IS a frozen filename
+    (``manifesto-contas.json``, ``retorno-ancoragem.json``,
+    ``relatorio-mapeamento.md``) that the downstream pipeline reads by name.
+    Translating the handle without translating the thing it names would only add
+    a lookup table.
+    """
+
+    MANIFESTO = "manifesto"
+    RETORNO = "retorno"
+    RELATORIO = "relatorio"
 
 
 # ── Artifacts ───────────────────────────────────────────────────────────────
