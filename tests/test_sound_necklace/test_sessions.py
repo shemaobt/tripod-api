@@ -39,7 +39,7 @@ async def new_session(client, headers, project_id: str, *, name: str = "O Conto 
             "project_id": project_id,
             "story_name": name,
             "story_slug": "conto-do-boto",
-            "granularity_level": "media",
+            "granularity_level": "medium",
             "bead_sec": 0.5,
             "manifest_id": "fnv1a32:d31a8419",
             "pipeline_consent": True,
@@ -75,7 +75,7 @@ async def test_create_opens_the_session_at_the_first_station(client, facilitator
             "project_id": project.id,
             "story_name": "O Conto do Boto",
             "story_slug": "conto-do-boto",
-            "granularity_level": "media",
+            "granularity_level": "medium",
             "bead_sec": 0.5,
             "manifest_id": "fnv1a32:d31a8419",
             "pipeline_consent": True,
@@ -84,8 +84,8 @@ async def test_create_opens_the_session_at_the_first_station(client, facilitator
 
     assert res.status_code == 201, res.text
     body = res.json()
-    assert body["status"] == "em_progresso"
-    assert body["progress"]["current_step"] == "ouvir"
+    assert body["status"] == "in_progress"
+    assert body["progress"]["current_step"] == "listen"
     assert body["story_slug"] == "conto-do-boto"
     assert body["project_id"] == project.id
 
@@ -105,7 +105,7 @@ async def test_create_in_a_project_the_user_cannot_reach_is_forbidden(
             "project_id": foreign.id,
             "story_name": "Alheia",
             "story_slug": "alheia",
-            "granularity_level": "media",
+            "granularity_level": "medium",
             "bead_sec": 0.5,
             "manifest_id": "fnv1a32:d31a8419",
             "pipeline_consent": True,
@@ -156,7 +156,7 @@ async def test_progress_follows_the_saved_state(client, facilitator):
     )
 
     res = await client.get(f"{SN}/sessions/{session_id}", headers=headers)
-    assert res.json()["progress"]["current_step"] == "conversa"
+    assert res.json()["progress"]["current_step"] == "conversation"
 
 
 async def test_progress_reaches_the_cutting_station_once_the_whole_is_confirmed(
@@ -172,7 +172,7 @@ async def test_progress_reaches_the_cutting_station_once_the_whole_is_confirmed(
     )
 
     res = await client.get(f"{SN}/sessions/{session_id}", headers=headers)
-    assert res.json()["progress"]["current_step"] == "cortar"
+    assert res.json()["progress"]["current_step"] == "cut"
 
 
 # ── The version guard ────────────────────────────────────────────────────────
@@ -251,7 +251,7 @@ async def test_a_body_with_a_utf8_bom_still_saves(client, facilitator):
 
     assert saved.status_code == 200, saved.text
     summary = await client.get(f"{SN}/sessions/{session_id}", headers=headers)
-    assert summary.json()["progress"]["current_step"] == "triagem"
+    assert summary.json()["progress"]["current_step"] == "triage"
 
 
 async def test_a_story_name_longer_than_the_column_is_refused_not_truncated(client, facilitator):
@@ -266,7 +266,7 @@ async def test_a_story_name_longer_than_the_column_is_refused_not_truncated(clie
             "project_id": project.id,
             "story_name": "b" * 300,
             "story_slug": "conto-do-boto",
-            "granularity_level": "media",
+            "granularity_level": "medium",
             "bead_sec": 0.5,
             "manifest_id": "fnv1a32:d31a8419",
             "pipeline_consent": True,
@@ -328,13 +328,13 @@ async def test_complete_then_reopen_preserves_the_document(client, facilitator):
 
     done = await client.post(f"{SN}/sessions/{session_id}/complete", headers=headers)
     assert done.status_code == 200, done.text
-    assert done.json()["status"] == "concluida"
-    assert done.json()["progress"]["current_step"] == "guardar"
+    assert done.json()["status"] == "completed"
+    assert done.json()["progress"]["current_step"] == "save"
 
     reopened = await client.post(f"{SN}/sessions/{session_id}/reopen", headers=headers)
     assert reopened.status_code == 200, reopened.text
-    assert reopened.json()["status"] == "em_progresso"
-    assert reopened.json()["progress"]["current_step"] == "conversa", (
+    assert reopened.json()["status"] == "in_progress"
+    assert reopened.json()["progress"]["current_step"] == "conversation", (
         "reopening must restore the station the state was left at, not the completion one"
     )
 
