@@ -148,3 +148,24 @@ Authorization: Bearer {{accessToken}}
 # get_current_user (no app role, no project scoping); it is retired.
 GET {{baseUrl}}/api/sound-necklace/audios/ruth-a-historia-de-rute/url
 Authorization: Bearer {{accessToken}}
+
+### Voice answers: upload one to its canonical path (raw WebM bytes, replace on re-record)
+# The path is a fixed allowlist — respostas/level{1,2,3}/…/<k>.webm — validated before it
+# names the object, so no traversal and no free-form key can reach storage.
+PUT {{baseUrl}}/api/sound-necklace/sessions/sess_1/resources?path=respostas/level1/recontar.webm
+Authorization: Bearer {{accessToken}}
+Content-Type: audio/webm
+
+< ./recontar.webm
+
+### Voice answers: which questions are answered (the Mapeamento screen reads this)
+GET {{baseUrl}}/api/sound-necklace/sessions/sess_1/resources
+Authorization: Bearer {{accessToken}}
+
+### Voice answers: short-TTL signed URL to play one back (audit point)
+GET {{baseUrl}}/api/sound-necklace/sessions/sess_1/resources/url?path=respostas/level1/recontar.webm
+Authorization: Bearer {{accessToken}}
+
+### Voice answers: delete one (object + row; a path never recorded is a no-op)
+DELETE {{baseUrl}}/api/sound-necklace/sessions/sess_1/resources?path=respostas/level1/recontar.webm
+Authorization: Bearer {{accessToken}}

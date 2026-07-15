@@ -134,6 +134,9 @@ class LockStatusResponse(BaseModel):
 
 # ── Voice-answer resources (canonical respostas/... path) ────────────────────
 
+# The logical, contract-frozen path the SPA builds for each answer (§10.4). It is an
+# allowlist, not a hint: the three shapes are all that can name an object, which is what
+# lets the path be trusted as an object-name suffix — no traversal, no free-form key.
 RESOURCE_PATH_PATTERN = (
     r"^respostas/(level1/[a-z0-9_]+"
     r"|level2/PT[1-9][0-9]*/[a-z0-9_]+"
@@ -141,13 +144,23 @@ RESOURCE_PATH_PATTERN = (
 )
 
 
-class ResourceRef(BaseModel):
-    model_config = ConfigDict(json_schema_extra=_EXPERIMENTAL)
+class ResourceSummary(BaseModel):
+    """One recorded answer in the listing — the path is what the Mapeamento screen keys
+    on to know which questions are answered."""
 
-    path: str = Field(pattern=RESOURCE_PATH_PATTERN)
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    path: str
+    size: int
 
 
-class ResourcePresignResponse(BaseModel):
+class ResourceListResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    resources: list[ResourceSummary]
+
+
+class ResourceUrlResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
 
     url: str

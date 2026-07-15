@@ -12,6 +12,7 @@ from app.db.models.sound_necklace import (  # noqa: F401 (create_all)
     SnAudioRef,
     SnSession,
     SnSessionState,
+    SnVoiceAnswer,
 )
 from tests.baker import make_app, make_role, make_user_app_role
 

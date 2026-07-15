@@ -1,8 +1,10 @@
 import asyncio
+import contextlib
 from datetime import timedelta
 
 import google.auth
 import google.auth.transport.requests
+from google.api_core.exceptions import NotFound
 from google.cloud import storage
 
 from app.services.oral_collector.constants import GCS_OC_BUCKET, GCS_OC_PROJECT
@@ -86,6 +88,23 @@ async def copy_gcs_blob(source_name: str, dest_name: str) -> None:
         bucket = client.bucket(GCS_OC_BUCKET)
         source_blob = bucket.blob(source_name)
         bucket.copy_blob(source_blob, bucket, dest_name)
+
+    await asyncio.to_thread(_blocking)
+
+
+async def delete_gcs_object(bucket_name: str, blob_name: str) -> None:
+    """Delete an object from an arbitrary bucket.
+
+    Idempotent: a missing object is a no-op, so deleting a row whose object was already
+    gone is not an error — the caller's goal (the object does not exist) is met.
+    """
+
+    def _blocking() -> None:
+        client = storage.Client(project=GCS_OC_PROJECT)
+        # delete() raises NotFound on a missing object; a 404 with the object gone is
+        # already the goal, so treat it as success.
+        with contextlib.suppress(NotFound):
+            client.bucket(bucket_name).blob(blob_name).delete()
 
     await asyncio.to_thread(_blocking)
 
