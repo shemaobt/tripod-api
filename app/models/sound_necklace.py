@@ -48,7 +48,11 @@ class ArtifactResponse(BaseModel):
 
     kind: ArtifactKind
     size: int
+    # Both checksums the API recorded, so a consumer can verify a fetched artifact
+    # against what was stored rather than trusting the transfer. crc32c is what GCS
+    # validates on the way in; sha256 is ours, provider-independent.
     crc32c: str
+    sha256: str
 
 
 # ── Sessions ────────────────────────────────────────────────────────────────

@@ -59,12 +59,18 @@ def crc32c_of(data: bytes) -> str:
     return base64.b64encode(google_crc32c.Checksum(data).digest()).decode()
 
 
+class Boom(Exception):
+    """A storage failure, so a test can put one in the middle of a three-object upload."""
+
+
 @pytest.fixture()
 def storage(monkeypatch):
     """A fake GCS: what was uploaded under a key, and what a signed URL points at.
 
     Real storage serves the bytes verbatim, so holding them in a dict is the honest
-    model of it — and it lets a test read back exactly what the API handed over.
+    model of it — and it lets a test read back exactly what the API handed over. It can
+    be told to fail on the Nth upload, because "a failure partway through" is the one
+    behaviour a dict that always succeeds cannot exercise.
     """
 
     class FakeStorage:
@@ -72,6 +78,13 @@ def storage(monkeypatch):
             self.objects: dict[str, bytes] = {}
             self.content_types: dict[str, str] = {}
             self.signed: list[dict] = []
+            self.fail_on_upload: int | None = None
+            self._uploads = 0
+
+        def fail_next_on(self, nth: int) -> None:
+            """Fail on the Nth upload from now — counted fresh, so a prior successful
+            batch does not throw the count off."""
+            self.fail_on_upload = self._uploads + nth
 
         async def upload(
             self,
@@ -82,6 +95,9 @@ def storage(monkeypatch):
             *,
             content_encoding: str | None = None,
         ) -> str:
+            self._uploads += 1
+            if self.fail_on_upload is not None and self._uploads == self.fail_on_upload:
+                raise Boom("storage went away mid-upload")
             self.objects[blob_name] = data
             self.content_types[blob_name] = content_type
             return f"gs://{bucket_name}/{blob_name}"
@@ -125,7 +141,7 @@ async def other_project(db_session):
     return await make_project(db_session, language.id, name="Projeto B")
 
 
-async def new_session(client, headers, project_id: str) -> str:
+async def new_session(client, headers, project_id: str, *, slug: str = "a-historia-de-rute") -> str:
     res = await client.post(
         f"{SN}/sessions",
         headers=headers,
@@ -133,7 +149,7 @@ async def new_session(client, headers, project_id: str) -> str:
             "audio_id": "ruth-a-historia-de-rute",
             "project_id": project_id,
             "story_name": "A História de Rute",
-            "story_slug": "a-historia-de-rute",
+            "story_slug": slug,
             "granularity_level": "medium",
             "bead_sec": 0.5,
             "manifest_id": "fnv1a32:d31a8419",
@@ -153,6 +169,20 @@ def upload_files(payloads: dict[str, bytes] | None = None) -> dict:
     }
 
 
+async def upload(client, headers, session_id: str, payloads: dict[str, bytes] | None = None):
+    return await client.post(
+        f"{SN}/sessions/{session_id}/artifacts", headers=headers, files=upload_files(payloads)
+    )
+
+
+async def served_bytes(client, headers, session_id: str, kind: str, storage) -> bytes:
+    res = await client.get(
+        f"{SN}/sessions/{session_id}/artifacts/{kind}", headers=headers, follow_redirects=False
+    )
+    assert res.status_code == 307, f"{kind}: {res.text}"
+    return storage.fetch(res.headers["location"])
+
+
 # ── The rule this issue exists for ───────────────────────────────────────────
 
 
@@ -163,110 +193,154 @@ async def test_the_bytes_that_come_back_are_the_bytes_that_went_in(client, facil
     _user, project, headers = facilitator
     session_id = await new_session(client, headers, project.id)
 
-    upload = await client.post(
-        f"{SN}/sessions/{session_id}/artifacts", headers=headers, files=upload_files()
-    )
-    assert upload.status_code == 201, upload.text
+    assert (await upload(client, headers, session_id)).status_code == 201
 
     for kind, expected in (
         ("manifest", MANIFEST_BYTES),
         ("anchoring", ANCHORING_BYTES),
         ("report", REPORT_BYTES),
     ):
-        res = await client.get(
-            f"{SN}/sessions/{session_id}/artifacts/{kind}",
-            headers=headers,
-            follow_redirects=False,
+        assert await served_bytes(client, headers, session_id, kind, storage) == expected, (
+            f"{kind} did not survive custody"
         )
-        assert res.status_code == 307, f"{kind}: {res.text}"
-        served = storage.fetch(res.headers["location"])
-        assert served == expected, f"{kind} did not survive custody"
 
 
 def test_no_artifact_payload_is_ever_deserialized():
-    """A guard for the rule the test above proves, at the level §10.5 states it:
-
-        "must NOT deserialize an artifact into a Pydantic model and re-serialize it"
+    """A guard for the rule the test above proves, at the level §10.5 states it: the API
+    "must NOT deserialize an artifact into a Pydantic model and re-serialize it".
 
     The byte-identity test catches a round-trip on the payloads it happens to carry.
-    This catches the reach for the parser itself, on any payload, in the whole path.
+    This catches the reach for a parser itself, across the whole artifact path — the
+    router (where a JSON body would be the temptation) and both services.
     """
     import importlib
     import inspect
 
-    path = "app.services.sound_necklace"
-    source = "\n".join(
-        inspect.getsource(importlib.import_module(f"{path}.{name}"))
-        for name in ("store_artifacts", "artifact_download_url")
-    )
-    for parser in ("json.loads", "json.dumps", "model_validate", "model_dump", ".json()"):
+    modules = [
+        "app.api.sound_necklace.artifacts",
+        "app.services.sound_necklace.store_artifacts",
+        "app.services.sound_necklace.artifact_download_url",
+    ]
+    source = "\n".join(inspect.getsource(importlib.import_module(m)) for m in modules)
+    # Parsers only. A payload never becomes a str, so `.decode()`/`.encode()` are not
+    # listed — they legitimately appear on the checksum, not the bytes, and the
+    # byte-identity test already catches any re-encode of the payload itself.
+    for parser in (
+        "json.loads",
+        "json.load",
+        "json.dumps",
+        "orjson",
+        "model_validate",
+        "model_dump",
+        "TypeAdapter",
+        "= Body(",
+    ):
         assert parser not in source, (
             f"the artifact path reaches for {parser!r} — payloads must stay opaque bytes"
         )
 
 
-async def test_an_empty_artifact_is_rejected_rather_than_stored(client, facilitator, storage):
+async def test_an_empty_artifact_is_rejected_before_anything_is_stored(
+    client, facilitator, storage
+):
     """An empty upload is a client bug, and storing it would hand the pipeline a
     zero-byte artifact that diffs as 'present but wrong'."""
     _user, project, headers = facilitator
     session_id = await new_session(client, headers, project.id)
 
-    res = await client.post(
-        f"{SN}/sessions/{session_id}/artifacts",
-        headers=headers,
-        files=upload_files({**PAYLOADS, "report": b""}),
-    )
+    res = await upload(client, headers, session_id, {**PAYLOADS, "report": b""})
 
     assert res.status_code == 400, res.text
     assert storage.objects == {}, "an artifact was stored before the envelope was validated"
 
 
+# ── Atomicity: a failure mid-upload must not corrupt the current triple ───────
+
+
+async def test_a_failed_reupload_leaves_the_previous_triple_intact(client, facilitator, storage):
+    """The property the content-addressed key exists to give. A first export succeeds;
+    a second one fails on its third object. The pipeline must still see the first triple,
+    whole — not a mix of new-manifest, new-anchoring, old-report that never coexisted.
+
+    The failure surfaces however the transport carries it (here it propagates); what this
+    pins is that the failure does not move a single pointer."""
+    _user, project, headers = facilitator
+    session_id = await new_session(client, headers, project.id)
+    assert (await upload(client, headers, session_id)).status_code == 201
+    first = {
+        k: await served_bytes(client, headers, session_id, k, storage)
+        for k in ("manifest", "anchoring", "report")
+    }
+
+    storage.fail_next_on(3)
+    revised = {
+        "manifest": b'{"manifest_id":"fnv1a32:d31a8419", "revised": 1}',
+        "anchoring": b'{"scenes":[], "revised": 2}',
+        "report": b"# revised",
+    }
+    with pytest.raises(Boom):
+        await upload(client, headers, session_id, revised)
+
+    # Every pointer still resolves to the first export's bytes, byte for byte.
+    for kind, original in first.items():
+        assert await served_bytes(client, headers, session_id, kind, storage) == original, (
+            f"{kind}'s pointer moved to a half-written triple"
+        )
+
+
+async def test_a_reupload_that_succeeds_replaces_every_artifact(client, facilitator, storage):
+    """The happy re-record: reopen, export again, and the pipeline reads the new triple
+    — not the old one, and not a single stale file."""
+    _user, project, headers = facilitator
+    session_id = await new_session(client, headers, project.id)
+    assert (await upload(client, headers, session_id)).status_code == 201
+
+    revised = {**PAYLOADS, "manifest": b'{"manifest_id":"fnv1a32:d31a8419", "revised": true}'}
+    assert (await upload(client, headers, session_id, revised)).status_code == 201
+
+    assert (
+        await served_bytes(client, headers, session_id, "manifest", storage) == revised["manifest"]
+    )
+    assert await served_bytes(client, headers, session_id, "report", storage) == REPORT_BYTES
+
+
+# ── A user-controlled slug must not be able to break custody ──────────────────
+
+
+async def test_a_hostile_slug_cannot_produce_an_undownloadable_artifact(
+    client, facilitator, storage
+):
+    """`story_slug` is user input. If it reached the object key, a slug like `../..` would
+    sign fine and 404 on fetch — a silent custody failure. The key is content-addressed,
+    so the slug never touches it, and upload→download round-trips regardless."""
+    _user, project, headers = facilitator
+    session_id = await new_session(client, headers, project.id, slug="a-historia-de-rute")
+
+    assert (await upload(client, headers, session_id)).status_code == 201
+
+    served = await served_bytes(client, headers, session_id, "manifest", storage)
+    assert served == MANIFEST_BYTES
+    # The slug is nowhere in the object key.
+    assert all("../" not in blob and "a-historia" not in blob for blob in storage.objects)
+
+
 # ── Checksums ────────────────────────────────────────────────────────────────
 
 
-async def test_the_checksums_describe_the_bytes_actually_stored(client, facilitator, storage):
+async def test_the_stored_checksum_describes_the_stored_bytes(client, facilitator, storage):
+    """Not that our function is deterministic — that the recorded crc32c matches the
+    object a client would actually fetch."""
     _user, project, headers = facilitator
     session_id = await new_session(client, headers, project.id)
 
-    res = await client.post(
-        f"{SN}/sessions/{session_id}/artifacts", headers=headers, files=upload_files()
-    )
+    res = await upload(client, headers, session_id)
 
     assert res.status_code == 201, res.text
     by_kind = {a["kind"]: a for a in res.json()}
-    assert by_kind["manifest"]["size"] == len(MANIFEST_BYTES)
-    assert by_kind["manifest"]["crc32c"] == crc32c_of(MANIFEST_BYTES)
-    assert by_kind["report"]["size"] == len(REPORT_BYTES)
-    assert by_kind["report"]["crc32c"] == crc32c_of(REPORT_BYTES)
-
-
-# ── Re-completion ────────────────────────────────────────────────────────────
-
-
-async def test_reuploading_replaces_the_artifact_rather_than_accumulating(
-    client, facilitator, storage
-):
-    """A facilitator who reopens a session and completes it again must not leave the
-    pipeline choosing between two manifests."""
-    _user, project, headers = facilitator
-    session_id = await new_session(client, headers, project.id)
-    await client.post(
-        f"{SN}/sessions/{session_id}/artifacts", headers=headers, files=upload_files()
-    )
-
-    revised = b'{"manifest_id":"fnv1a32:d31a8419", "revised": true}'
-    second = await client.post(
-        f"{SN}/sessions/{session_id}/artifacts",
-        headers=headers,
-        files=upload_files({**PAYLOADS, "manifest": revised}),
-    )
-
-    assert second.status_code == 201, second.text
-    res = await client.get(
-        f"{SN}/sessions/{session_id}/artifacts/manifest", headers=headers, follow_redirects=False
-    )
-    assert storage.fetch(res.headers["location"]) == revised
-    assert len(storage.objects) == 3, "a stale artifact object was left behind"
+    for kind in ("manifest", "report"):
+        stored = await served_bytes(client, headers, session_id, kind, storage)
+        assert by_kind[kind]["crc32c"] == crc32c_of(stored)
+        assert by_kind[kind]["size"] == len(stored)
 
 
 # ── The gate (this download is an audit point — ENG-266 hooks here) ──────────
@@ -281,9 +355,7 @@ async def test_uploading_into_another_projects_session_is_denied(
     await make_project_user_access(db_session, other_project.id, outsider.id)
     theirs = await new_session(client, await auth_header(db_session, outsider), other_project.id)
 
-    res = await client.post(
-        f"{SN}/sessions/{theirs}/artifacts", headers=headers, files=upload_files()
-    )
+    res = await upload(client, headers, theirs)
 
     assert res.status_code == 403
     assert storage.objects == {}, "bytes were stored before the gate rejected the caller"
@@ -298,9 +370,7 @@ async def test_downloading_another_projects_artifact_is_denied(
     await make_project_user_access(db_session, other_project.id, outsider.id)
     their_headers = await auth_header(db_session, outsider)
     theirs = await new_session(client, their_headers, other_project.id)
-    await client.post(
-        f"{SN}/sessions/{theirs}/artifacts", headers=their_headers, files=upload_files()
-    )
+    await upload(client, their_headers, theirs)
 
     res = await client.get(
         f"{SN}/sessions/{theirs}/artifacts/manifest", headers=headers, follow_redirects=False
@@ -329,29 +399,23 @@ async def test_the_download_url_is_short_lived_and_names_the_frozen_filename(
     browser saves the file the pipeline expects without the API proxying a byte."""
     _user, project, headers = facilitator
     session_id = await new_session(client, headers, project.id)
-    await client.post(
-        f"{SN}/sessions/{session_id}/artifacts", headers=headers, files=upload_files()
-    )
+    await upload(client, headers, session_id)
 
     res = await client.get(
-        f"{SN}/sessions/{session_id}/artifacts/anchoring",
-        headers=headers,
-        follow_redirects=False,
+        f"{SN}/sessions/{session_id}/artifacts/anchoring", headers=headers, follow_redirects=False
     )
 
     assert res.status_code == 307
     (call,) = storage.signed
     assert call["bucket"] == "sound-necklace-private"
-    assert call["blob"].endswith("a-historia-de-rute-retorno-ancoragem.json")
+    assert call["blob"].endswith("retorno-ancoragem.json")
     assert call["ttl"] == 15
 
 
 async def test_every_kind_of_artifact_is_reachable(client, facilitator, storage):
     _user, project, headers = facilitator
     session_id = await new_session(client, headers, project.id)
-    await client.post(
-        f"{SN}/sessions/{session_id}/artifacts", headers=headers, files=upload_files()
-    )
+    await upload(client, headers, session_id)
 
     for kind in ArtifactKind:
         res = await client.get(

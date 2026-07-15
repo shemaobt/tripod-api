@@ -44,8 +44,11 @@ async def upload_artifacts(
         ArtifactKind.ANCHORING: await anchoring.read(),
         ArtifactKind.REPORT: await report.read(),
     }
-    artifacts = await sn_service.store_artifacts(db, session, payloads)
-    return [ArtifactResponse(kind=a.kind, size=a.size, crc32c=a.crc32c) for a in artifacts]
+    artifacts = await sn_service.store_artifacts(db, session.id, payloads)
+    return [
+        ArtifactResponse(kind=a.kind, size=a.size, crc32c=a.crc32c, sha256=a.sha256)
+        for a in artifacts
+    ]
 
 
 @router.get(
