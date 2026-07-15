@@ -9,9 +9,13 @@ async def delete_voice_answer(db: AsyncSession, session_id: str, resource_path: 
     """Remove one voice answer — the object and its row.
 
     A path that was never recorded is not an error: the caller's goal (no answer at this
-    path) is already met, so deleting a missing answer is a no-op. The object is deleted
-    before the row, and the GCS delete is itself idempotent, so a failure after the
-    object is gone leaves no row pointing at a missing object.
+    path) is already met, so deleting a missing answer is a no-op.
+
+    The object is deleted before the row, deliberately. If the commit then fails, the row
+    survives pointing at a now-missing object — a playback that 404s until a retry heals
+    it. That is the safe direction to fail for LGPD-sensitive audio: better a dangling
+    pointer than the reverse, a deleted row and the recording still sitting in the bucket
+    with nothing left to reach it.
     """
     answer = await db.get(SnVoiceAnswer, (session_id, resource_path))
     if answer is None:

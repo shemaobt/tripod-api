@@ -137,10 +137,16 @@ class LockStatusResponse(BaseModel):
 # The logical, contract-frozen path the SPA builds for each answer (§10.4). It is an
 # allowlist, not a hint: the three shapes are all that can name an object, which is what
 # lets the path be trusted as an object-name suffix — no traversal, no free-form key.
+#
+# The segments are LENGTH-BOUNDED, and that bound is load-bearing, not cosmetic. The path
+# is used verbatim as the object-name suffix and stored in a VARCHAR(255); an unbounded k
+# would pass validation, upload the bytes to the private bucket, then fail the INSERT on
+# Postgres — a 500 with an LGPD-sensitive recording orphaned where the API can't reach
+# it. The question keys are short human-authored strings, so 64 is generous.
 RESOURCE_PATH_PATTERN = (
-    r"^respostas/(level1/[a-z0-9_]+"
-    r"|level2/PT[1-9][0-9]*/[a-z0-9_]+"
-    r"|level3/P[1-9][0-9]*/[a-z0-9_]+)\.webm$"
+    r"^respostas/(level1/[a-z0-9_]{1,64}"
+    r"|level2/PT[1-9][0-9]{0,3}/[a-z0-9_]{1,64}"
+    r"|level3/P[1-9][0-9]{0,3}/[a-z0-9_]{1,64})\.webm$"
 )
 
 

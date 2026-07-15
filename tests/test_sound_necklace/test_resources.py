@@ -55,7 +55,7 @@ def storage(monkeypatch):
     fake = FakeStorage()
     monkeypatch.setattr(gcs_utils, "upload_gcs_object", fake.upload)
     monkeypatch.setattr(gcs_utils, "generate_signed_download_url", fake.sign)
-    monkeypatch.setattr(gcs_utils, "delete_gcs_object", fake.delete, raising=False)
+    monkeypatch.setattr(gcs_utils, "delete_gcs_object", fake.delete)
     return fake
 
 
@@ -130,6 +130,11 @@ async def test_the_three_question_shapes_are_accepted(client, facilitator, stora
         "respostas/level2/P3/quem.webm",  # P# where PT# belongs
         "arbitrary/key.webm",
         "respostas/level1/UPPER.webm",
+        # An over-long k would pass an unbounded regex, then blow the VARCHAR(255) on
+        # Postgres AFTER the object is already in the private bucket — a 500 and an
+        # orphaned recording that SQLite would never surface. The bound makes it a 422.
+        "respostas/level1/" + "a" * 300 + ".webm",
+        "respostas/level2/PT" + "9" * 300 + "/quem.webm",
     ],
 )
 async def test_anything_outside_the_allowlist_is_rejected_and_stores_nothing(
@@ -226,6 +231,23 @@ async def test_an_oversize_answer_is_rejected_and_nothing_is_stored(client, faci
     assert storage.objects == {}
 
 
+# ── Delete is idempotent ─────────────────────────────────────────────────────
+
+
+async def test_deleting_an_answer_that_was_never_recorded_is_a_no_op(client, facilitator, storage):
+    """The caller's goal — no answer at this path — is already met, so deleting one that
+    never existed succeeds rather than 404ing."""
+    _user, project, headers = facilitator
+    session_id = await new_session(client, headers, project.id)
+
+    res = await client.request(
+        "DELETE", f"{SN}/sessions/{session_id}/resources", headers=headers, params={"path": P1}
+    )
+
+    assert res.status_code == 204, res.text
+    assert storage.deleted == []
+
+
 # ── The gate ─────────────────────────────────────────────────────────────────
 
 
@@ -273,3 +295,19 @@ async def test_an_answer_never_recorded_is_a_miss(client, facilitator, storage):
 
     assert res.status_code == 404
     assert storage.signed == []
+
+
+async def test_listing_another_projects_answers_is_denied(
+    client, facilitator, other_project, db_session, sound_necklace_app, storage
+):
+    """Which questions a session has answered is itself scoped — a non-member cannot
+    read another project's answer inventory."""
+    _user, _project, headers = facilitator
+    outsider = await make_user(db_session, email="outsider@example.com")
+    await grant_role(db_session, sound_necklace_app.id, outsider.id, "facilitator")
+    await make_project_user_access(db_session, other_project.id, outsider.id)
+    theirs = await new_session(client, await auth_header(db_session, outsider), other_project.id)
+
+    res = await client.get(f"{SN}/sessions/{theirs}/resources", headers=headers)
+
+    assert res.status_code == 403

@@ -3,11 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import ValidationError
 from app.db.models.sound_necklace import SnVoiceAnswer
 from app.services.oral_collector import gcs_utils
-from app.services.sound_necklace.constants import (
-    GCS_SN_BUCKET,
-    MAX_VOICE_ANSWER_BYTES,
-    VOICE_ANSWER_CONTENT_TYPE,
-)
+from app.services.sound_necklace.constants import GCS_SN_BUCKET, VOICE_ANSWER_CONTENT_TYPE
 
 
 def _storage_key(session_id: str, resource_path: str) -> str:
@@ -26,14 +22,15 @@ async def store_voice_answer(
     """Store one voice answer, replacing any previous take of the same question (O5).
 
     The bytes are opaque audio: they are moved to the private bucket and never parsed.
-    The size cap is checked before the upload, so an oversize body never reaches storage.
     Re-recording overwrites in place — the key is a pure function of session+path, so a
     second take lands on the same object and updates the one row.
+
+    The size cap is the router's job (it returns 413 from the streamed body before this
+    is called). The empty check stays here as the one size rule every caller shares,
+    including a future non-HTTP one that has no router in front of it.
     """
     if not data:
         raise ValidationError("The voice answer is empty")
-    if len(data) > MAX_VOICE_ANSWER_BYTES:
-        raise ValidationError("The voice answer is larger than the 10 MB limit")
 
     key = _storage_key(session_id, resource_path)
     await gcs_utils.upload_gcs_object(GCS_SN_BUCKET, key, data, VOICE_ANSWER_CONTENT_TYPE)

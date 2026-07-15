@@ -33,6 +33,9 @@ ResourcePath = Annotated[str, Query(pattern=RESOURCE_PATH_PATTERN)]
     "/sessions/{session_id}/resources",
     response_model=ResourceSummary,
     status_code=status.HTTP_201_CREATED,
+    responses={
+        status.HTTP_413_REQUEST_ENTITY_TOO_LARGE: {"description": "The answer is over the size cap"}
+    },
 )
 async def put_resource(
     session_id: str, path: ResourcePath, request: Request, db: Db, user: CurrentUser
