@@ -115,6 +115,30 @@ async def test_create_in_a_project_the_user_cannot_reach_is_forbidden(
     assert res.status_code == 403
 
 
+async def test_create_with_a_nonexistent_project_is_not_found_for_an_admin(client, db_session):
+    """A platform admin bypasses the access check, so a bogus project_id would otherwise
+    reach the FK as a 500. It must be a clean 404 instead."""
+    admin = await make_user(db_session, email="admin@example.com", is_platform_admin=True)
+    headers = await auth_header(db_session, admin)
+
+    res = await client.post(
+        f"{SN}/sessions",
+        headers=headers,
+        json={
+            "audio_id": "aud_1",
+            "project_id": "proj_missing",
+            "story_name": "Fantasma",
+            "story_slug": "fantasma",
+            "granularity_level": "medium",
+            "bead_sec": 0.5,
+            "manifest_id": "fnv1a32:d31a8419",
+            "pipeline_consent": True,
+        },
+    )
+
+    assert res.status_code == 404, res.text
+
+
 # ── Autosave + resume: the bytes are the contract ────────────────────────────
 
 
