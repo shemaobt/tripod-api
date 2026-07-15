@@ -6,7 +6,7 @@ bytes, and is served back as those bytes. Nothing here parses it to persist it.
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Header, Request, Response, status
+from fastapi import APIRouter, Header, Query, Request, Response, status
 from fastapi.responses import JSONResponse
 
 from app.api.projects._deps import assert_project_access
@@ -90,9 +90,14 @@ async def create_session(payload: SessionCreate, db: Db, user: CurrentUser) -> S
 
 
 @router.get("/sessions", response_model=SessionListResponse)
-async def list_sessions(db: Db, user: CurrentUser) -> SessionListResponse:
+async def list_sessions(
+    db: Db,
+    user: CurrentUser,
+    offset: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+) -> SessionListResponse:
     """List the caller's sessions with status and progress."""
-    sessions = await sn_service.list_sessions(db, user)
+    sessions = await sn_service.list_sessions(db, user, offset=offset, limit=limit)
     return SessionListResponse(sessions=[_summary(s) for s in sessions])
 
 

@@ -413,3 +413,19 @@ async def test_an_unknown_session_is_not_found(client, facilitator):
     res = await client.get(f"{SN}/sessions/does-not-exist", headers=headers)
 
     assert res.status_code == 404
+
+
+async def test_the_list_is_paginated(client, facilitator):
+    """The dashboard loads this on open, so the page size must be bounded."""
+    _user, project, headers = facilitator
+    for i in range(3):
+        await new_session(client, headers, project.id, name=f"S{i}")
+
+    page1 = await client.get(f"{SN}/sessions?limit=2", headers=headers)
+    page2 = await client.get(f"{SN}/sessions?limit=2&offset=2", headers=headers)
+
+    ids1 = [s["id"] for s in page1.json()["sessions"]]
+    ids2 = [s["id"] for s in page2.json()["sessions"]]
+    assert len(ids1) == 2
+    assert len(ids2) == 1
+    assert len(set(ids1 + ids2)) == 3, "pages must not overlap and must cover every session"
