@@ -18,9 +18,7 @@ async def create_change_request(
             raise ValidationError("A project request needs a name")
         wants_new_language = bool(payload.new_language_name or payload.new_language_code)
         if payload.language_id and wants_new_language:
-            raise ValidationError(
-                "Pick an existing language or request a new one, not both"
-            )
+            raise ValidationError("Pick an existing language or request a new one, not both")
         if payload.language_id:
             if await db.get(Language, payload.language_id) is None:
                 raise NotFoundError("Language not found")
@@ -47,9 +45,7 @@ async def create_change_request(
         description=payload.description,
         language_id=payload.language_id,
         new_language_name=payload.new_language_name,
-        new_language_code=payload.new_language_code.lower()
-        if payload.new_language_code
-        else None,
+        new_language_code=payload.new_language_code.lower() if payload.new_language_code else None,
     )
     db.add(request)
     await db.commit()
