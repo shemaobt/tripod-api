@@ -42,6 +42,7 @@ async def request_language_creation(
         requester_email=payload.requester_email,
         name=payload.name,
         code=payload.code,
+        description=payload.description,
     )
     return PublicRequestResponse.model_validate(created)
 

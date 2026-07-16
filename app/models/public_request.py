@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
@@ -18,6 +19,7 @@ class PublicLanguageRequestCreate(BaseModel):
     requester_email: EmailStr
     name: str = Field(min_length=1, max_length=200)
     code: str = Field(pattern=LANGUAGE_CODE_PATTERN)
+    description: str | None = Field(default=None, max_length=10000)
     recaptcha_token: str | None = None
 
 
@@ -38,6 +40,11 @@ class PublicProjectRequestCreate(BaseModel):
         return self
 
 
+class PublicRequestReview(BaseModel):
+    status: Literal["approved", "rejected"]
+    reason: str | None = Field(default=None, max_length=2000)
+
+
 class PublicRequestResponse(BaseModel):
     id: str
     kind: str
@@ -53,3 +60,10 @@ class PublicRequestResponse(BaseModel):
     requested_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class PublicRequestAdminResponse(PublicRequestResponse):
+    reviewed_by: str | None
+    reviewed_at: datetime | None
+    review_reason: str | None
+    created_entity_id: str | None

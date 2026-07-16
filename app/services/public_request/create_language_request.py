@@ -10,6 +10,7 @@ async def create_language_request(
     requester_email: str,
     name: str,
     code: str,
+    description: str | None = None,
 ) -> PublicRequest:
     normalized_code = code.lower()
     await ensure_language_available(db, name, normalized_code)
@@ -20,6 +21,7 @@ async def create_language_request(
         requester_email=requester_email,
         name=name.strip(),
         code=normalized_code,
+        description=description,
     )
     db.add(request)
     await db.commit()

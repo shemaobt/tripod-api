@@ -5,9 +5,10 @@ import pytest
 from pydantic import ValidationError as PydanticValidationError
 
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
+from app.db.models.project import Project
 from app.models.public_request import PublicProjectRequestCreate
-from app.services import public_request_service
-from tests.baker import make_language
+from app.services import language_service, public_request_service
+from tests.baker import make_language, make_user
 
 verify_recaptcha_module = importlib.import_module("app.services.public_request.verify_recaptcha")
 
@@ -255,4 +256,145 @@ def test_public_project_request_rejects_both_language_modes():
             name="Projeto",
             language_id="lang-1",
             new_language_name="Arara",
+        )
+
+
+async def test_create_language_request_stores_description(db_session):
+    request = await public_request_service.create_language_request(
+        db_session,
+        requester_name="Ana Silva",
+        requester_email="ana@example.com",
+        name="Arara",
+        code="ARA",
+        description="Spoken along the Purus river.",
+    )
+    assert request.description == "Spoken along the Purus river."
+
+
+async def test_create_language_request_description_is_optional(db_session):
+    request = await public_request_service.create_language_request(
+        db_session,
+        requester_name="Ana Silva",
+        requester_email="ana@example.com",
+        name="Arara",
+        code="ARA",
+    )
+    assert request.description is None
+
+
+async def test_list_public_requests_filters_by_kind_and_status(db_session):
+    language_request = await public_request_service.create_language_request(
+        db_session,
+        requester_name="Ana Silva",
+        requester_email="ana@example.com",
+        name="Arara",
+        code="ara",
+    )
+    language = await make_language(db_session, name="Kokama", code="kos")
+    await public_request_service.create_project_request(
+        db_session,
+        requester_name="Ana Silva",
+        requester_email="ana@example.com",
+        name="Projeto",
+        language_id=language.id,
+    )
+
+    pending = await public_request_service.list_public_requests(db_session, status="pending")
+    assert len(pending) == 2
+
+    languages_only = await public_request_service.list_public_requests(
+        db_session, kind="create_language"
+    )
+    assert [request.id for request in languages_only] == [language_request.id]
+
+
+async def test_review_public_request_approve_creates_language(db_session):
+    admin = await make_user(db_session, email="admin@example.com", is_platform_admin=True)
+    request = await public_request_service.create_language_request(
+        db_session,
+        requester_name="Ana Silva",
+        requester_email="ana@example.com",
+        name="Arara",
+        code="ara",
+    )
+
+    reviewed = await public_request_service.review_public_request(
+        db_session, admin, request.id, "approved", None
+    )
+
+    assert reviewed.status == "approved"
+    assert reviewed.reviewed_by == admin.id
+    assert reviewed.created_entity_id is not None
+    created = await language_service.get_language_by_code(db_session, "ara")
+    assert created is not None
+    assert created.id == reviewed.created_entity_id
+
+
+async def test_review_public_request_approve_creates_project_with_new_language(db_session):
+    admin = await make_user(db_session, email="admin@example.com", is_platform_admin=True)
+    request = await public_request_service.create_project_request(
+        db_session,
+        requester_name="Ana Silva",
+        requester_email="ana@example.com",
+        name="Projeto Arara",
+        new_language_name="Arara",
+        new_language_code="ara",
+    )
+
+    reviewed = await public_request_service.review_public_request(
+        db_session, admin, request.id, "approved", None
+    )
+
+    assert reviewed.status == "approved"
+    created_language = await language_service.get_language_by_code(db_session, "ara")
+    assert created_language is not None
+    project = await db_session.get(Project, reviewed.created_entity_id)
+    assert project is not None
+    assert project.language_id == created_language.id
+
+
+async def test_review_public_request_reject_creates_nothing(db_session):
+    admin = await make_user(db_session, email="admin@example.com", is_platform_admin=True)
+    request = await public_request_service.create_language_request(
+        db_session,
+        requester_name="Ana Silva",
+        requester_email="ana@example.com",
+        name="Arara",
+        code="ara",
+    )
+
+    reviewed = await public_request_service.review_public_request(
+        db_session, admin, request.id, "rejected", "Out of scope"
+    )
+
+    assert reviewed.status == "rejected"
+    assert reviewed.created_entity_id is None
+    assert reviewed.review_reason == "Out of scope"
+    assert await language_service.get_language_by_code(db_session, "ara") is None
+
+
+async def test_review_public_request_twice_conflicts(db_session):
+    admin = await make_user(db_session, email="admin@example.com", is_platform_admin=True)
+    request = await public_request_service.create_language_request(
+        db_session,
+        requester_name="Ana Silva",
+        requester_email="ana@example.com",
+        name="Arara",
+        code="ara",
+    )
+    await public_request_service.review_public_request(
+        db_session, admin, request.id, "approved", None
+    )
+
+    with pytest.raises(ConflictError, match="already been reviewed"):
+        await public_request_service.review_public_request(
+            db_session, admin, request.id, "rejected", None
+        )
+
+
+async def test_review_public_request_missing_raises_not_found(db_session):
+    admin = await make_user(db_session, email="admin@example.com", is_platform_admin=True)
+    with pytest.raises(NotFoundError, match="Public request not found"):
+        await public_request_service.review_public_request(
+            db_session, admin, "00000000-0000-0000-0000-000000000000", "approved", None
         )
