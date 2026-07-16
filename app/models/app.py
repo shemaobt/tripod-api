@@ -1,13 +1,22 @@
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import AfterValidator, BaseModel, Field
 
 Platform = Literal["web", "android", "ios"]
 
 
 def _default_platforms() -> list[Platform]:
     return ["web"]
+
+
+def _no_duplicate_platforms(value: list[Platform]) -> list[Platform]:
+    if len(set(value)) != len(value):
+        raise ValueError("platforms must not contain duplicate values")
+    return value
+
+
+PlatformList = Annotated[list[Platform], AfterValidator(_no_duplicate_platforms)]
 
 
 class AppCreate(BaseModel):
@@ -18,7 +27,7 @@ class AppCreate(BaseModel):
     app_url: str | None = None
     ios_url: str | None = None
     android_url: str | None = None
-    platforms: list[Platform] = Field(default_factory=_default_platforms)
+    platforms: PlatformList = Field(default_factory=_default_platforms, min_length=1)
     is_active: bool | None = True
     auto_approve: bool | None = False
 
@@ -30,7 +39,7 @@ class AppUpdate(BaseModel):
     app_url: str | None = None
     ios_url: str | None = None
     android_url: str | None = None
-    platforms: list[Platform] | None = None
+    platforms: PlatformList | None = Field(default=None, min_length=1)
     is_active: bool | None = None
     auto_approve: bool | None = None
 

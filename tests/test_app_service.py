@@ -1,6 +1,8 @@
 import pytest
+from pydantic import ValidationError
 
 from app.core.exceptions import ConflictError, NotFoundError
+from app.models.app import AppCreate, AppUpdate
 from app.services import app_service
 from tests.baker import make_app, make_role, make_user, make_user_app_role
 
@@ -47,6 +49,20 @@ async def test_create_app_with_all_fields(db_session) -> None:
 async def test_create_app_defaults_platforms_to_web(db_session) -> None:
     app = await app_service.create_app(db_session, app_key="def-app", name="Default App")
     assert app.platforms == ["web"]
+
+
+def test_app_platforms_reject_empty() -> None:
+    with pytest.raises(ValidationError):
+        AppCreate(app_key="x", name="X", platforms=[])
+    with pytest.raises(ValidationError):
+        AppUpdate(platforms=[])
+
+
+def test_app_platforms_reject_duplicates() -> None:
+    with pytest.raises(ValidationError):
+        AppCreate(app_key="x", name="X", platforms=["web", "web"])
+    with pytest.raises(ValidationError):
+        AppUpdate(platforms=["ios", "ios"])
 
 
 @pytest.mark.asyncio
