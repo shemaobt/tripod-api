@@ -1,12 +1,12 @@
-"""Bucket genérico da plataforma — não pertence a nenhum app.
+"""The generic platform bucket — it belongs to no app.
 
-**Só do servidor.** Nenhum navegador toca neste bucket: a API lê os bytes e os transmite.
-Por isso, ao contrário de `annotation_studio/storage.py` e do oral-collector, aqui não há
-URL assinada, nem CORS, nem acesso público — só existir e a service account poder ler e
-escrever.
+**Server-side only.** No browser touches this bucket: the API reads the bytes and streams
+them. So, unlike `annotation_studio/storage.py` and the oral-collector, there is no signed
+URL here, no CORS, no public access — it only has to exist and let the service account read
+and write.
 
-O nome do bucket vem das Settings (`GCS_PLATFORM_BUCKET`), não de uma constante cravada no
-módulo como fazem `storage/upload.py` e `annotation_studio/constants.py`.
+The bucket name comes from Settings (`GCS_PLATFORM_BUCKET`), not from a constant nailed into
+the module the way `storage/upload.py` and `annotation_studio/constants.py` do it.
 """
 
 from __future__ import annotations
@@ -35,26 +35,26 @@ def _blob(key: str, settings: Settings):  # type: ignore[no-untyped-def]
 
 
 class GcsPlatformStore:
-    """Leitura/escrita de objetos opacos no bucket da plataforma."""
+    """Reads and writes opaque objects in the platform bucket."""
 
     def __init__(self, settings: Settings | None = None) -> None:
         self._settings = settings or get_settings()
 
     async def get(self, key: str) -> bytes | None:
-        """Os bytes do objeto, ou `None` se ele não existe."""
+        """The object's bytes, or `None` if it does not exist."""
         return await asyncio.to_thread(self._get_sync, key)
 
     async def put(self, key: str, data: bytes, content_type: str) -> None:
-        """Grava o objeto (sobrescreve)."""
+        """Write the object (overwrites)."""
         await asyncio.to_thread(self._put_sync, key, data, content_type)
 
     def _get_sync(self, key: str) -> bytes | None:
-        # `exists()` + download custa duas idas ao GCS; pegar `NotFound` custaria uma. Mas
-        # `from google.cloud.exceptions import NotFound` importa de um pacote TIPADO
-        # (google-cloud-core), o que faz o mypy "acordar" o namespace `google.cloud` — e aí
-        # o `ignore_missing_imports` do pyproject deixa de mascarar os cinco
-        # `from google.cloud import storage` que já existem no repo, e o build quebra em
-        # arquivos que não têm nada a ver com este. Duas idas é o preço de não pisar nessa mina.
+        # `exists()` + download costs two GCS round trips; catching `NotFound` would cost
+        # one. But `from google.cloud.exceptions import NotFound` imports from a TYPED
+        # package (google-cloud-core), which makes mypy "wake up" the `google.cloud`
+        # namespace — and then `ignore_missing_imports` in pyproject stops masking the five
+        # `from google.cloud import storage` already in the repo, breaking the build in
+        # files unrelated to this one. Two round trips is the price of not stepping on that.
         blob = _blob(key, self._settings)
         if not blob.exists():
             return None

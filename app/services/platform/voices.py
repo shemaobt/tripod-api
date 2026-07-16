@@ -1,12 +1,13 @@
-"""Mapa idioma → voz da plataforma.
+"""Language -> platform voice map.
 
-Inline no código de propósito (decisão do dono): a voz é uma escolha de produto, feita de
-ouvido, não configuração de ambiente — quem a troca precisa ouvir o resultado e abrir um PR.
+Inline in code on purpose (owner's call): the voice is a product choice, made by ear, not
+environment configuration — whoever changes it needs to hear the result and open a PR.
 
-**Uma voz NATIVA por idioma**, não uma multilíngue só. A ElevenLabs avisa que uma voz
-"retains its unique characteristics *and accent*" em qualquer língua que fale: a voz única
-(`EXAVITQu4vr4xnSDxMaL`, que o project_health e o translation_helper usam hoje) lê inglês
-com sotaque brasileiro, e vice-versa. Numa ferramenta cuja tese é soar humana, isso pesa.
+**One NATIVE voice per language**, not a single multilingual one. ElevenLabs warns that a
+voice "retains its unique characteristics *and accent*" in any language it speaks: the single
+voice (`EXAVITQu4vr4xnSDxMaL`, the one project_health and translation_helper use today) reads
+English with a Brazilian accent, and vice versa. In a tool whose whole thesis is sounding
+human, that matters.
 """
 
 from app.core.exceptions import ValidationError
@@ -14,7 +15,7 @@ from app.core.exceptions import ValidationError
 PT_BR = "aU2vcrnwi348Gnc2Y1si"
 EN_US = "gfRt6Z3Z8aTbpLfexQ7N"
 
-#: Locale BCP-47 → `voice_id`. Aceita a língua base como apelido do locale principal.
+#: BCP-47 locale -> `voice_id`. Accepts the base language as an alias for the main locale.
 VOICES: dict[str, str] = {
     "pt-BR": PT_BR,
     "pt": PT_BR,
@@ -24,11 +25,11 @@ VOICES: dict[str, str] = {
 
 
 def resolve_voice(language: str) -> str:
-    """A voz do idioma pedido.
+    """The voice for the requested language.
 
-    Erra explicitamente num idioma sem voz configurada em vez de emprestar a de outro:
-    uma voz pt-BR lendo japonês sai ininteligível, e um silêncio confuso é pior que um
-    erro claro.
+    Fails loudly on a language with no configured voice instead of borrowing another one: a
+    pt-BR voice reading Japanese comes out unintelligible, and confusing noise is worse than
+    a clear error.
     """
     voice = VOICES.get(language) or VOICES.get(language.split("-")[0])
     if voice is None:
@@ -37,5 +38,5 @@ def resolve_voice(language: str) -> str:
 
 
 def language_hint(language: str) -> str:
-    """A língua base (`pt-BR` → `pt`), como a ElevenLabs espera em `language_code`."""
+    """The base language (`pt-BR` -> `pt`), as ElevenLabs expects in `language_code`."""
     return language.split("-")[0].lower()
