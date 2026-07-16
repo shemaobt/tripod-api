@@ -111,6 +111,9 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        # Neither is CORS-safelisted, so without this the SPA cannot read them at all:
+        # ETag defeats conditional requests, X-Tts-Cached defeats observing cache warming.
+        expose_headers=["ETag", "X-Tts-Cached"],
     )
 
     app.include_router(health_router)
