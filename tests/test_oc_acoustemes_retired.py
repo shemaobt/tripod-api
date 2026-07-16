@@ -31,20 +31,30 @@ def test_no_acousteme_route_is_served_at_this_prefix():
     assert not leaking, f"the acousteme HTTP surface is back: {leaking}"
 
 
-def test_no_route_anywhere_serves_an_acousteme_dto():
+# The DTOs the retired routes served. Named exactly rather than matched by prefix: the
+# Sound Necklace's own AcoustemeEnvelope is served, legitimately, by its project-scoped
+# listing — a prefix match would flag that and the guard would be deleted as noisy.
+RETIRED_DTOS = {
+    "AcoustemeArtifactResponse",
+    "AcoustemeListItem",
+    "AcoustemeStreamResponse",
+    "AcoustemeAudioResponse",
+}
+
+
+def test_no_route_anywhere_serves_the_retired_dtos():
     """The prefix test names the obvious regression; this one catches the disguised one.
 
-    FastAPI emits a component schema only when a route references it, so an acousteme
-    response model in the schema means a route serves it — under *any* prefix, by any
+    FastAPI emits a component schema only when a route references it, so one of these
+    response models in the schema means a route serves it — under *any* prefix, by any
     method. Re-mounting the surface at, say, ``/api/oc/audio-tokens`` would slip past a
     prefix check and be caught here.
     """
     from app.main import app
 
-    schemas = app.openapi()["components"]["schemas"]
-    serving = [name for name in schemas if name.startswith("Acousteme")]
+    serving = RETIRED_DTOS & set(app.openapi()["components"]["schemas"])
 
-    assert not serving, f"a route is serving an acousteme DTO again: {serving}"
+    assert not serving, f"a route is serving a retired acousteme DTO again: {sorted(serving)}"
 
 
 async def test_the_service_beneath_it_still_resolves_an_artifact(db_session):
