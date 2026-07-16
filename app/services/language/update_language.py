@@ -1,3 +1,4 @@
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ConflictError
@@ -13,7 +14,6 @@ async def update_language(
     name: str | None = None,
     code: str | None = None,
 ) -> Language:
-    """Update a language's name and/or code, enforcing code uniqueness."""
     language = await get_language_or_404(db, language_id)
 
     if code is not None:
@@ -27,6 +27,10 @@ async def update_language(
     if name is not None:
         language.name = name
 
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise ConflictError("Language code already exists") from exc
     await db.refresh(language)
     return language
