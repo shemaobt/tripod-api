@@ -1,0 +1,135 @@
+@baseUrl = http://localhost:8000
+@accessToken = {{login.response.body.access_token}}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Sound Necklace — /api/sound-necklace
+#
+# Sessions are implemented. The remaining routes (lock, audio bucket, voice answers,
+# artifacts) are still STUBS returning 501 — they exist so the emitted OpenAPI carries
+# the full contract and the SPA can generate its TypeScript types:
+#
+#   # with the app running (uvicorn app.main:app):
+#   npx openapi-typescript@7 http://localhost:8000/openapi.json -o sound-necklace-types.ts
+#
+#   # or straight from a dumped schema, no server needed:
+#   uv run python -c "import json; from app.main import app; print(json.dumps(app.openapi()))" > openapi.json
+#   npx openapi-typescript@7 openapi.json -o sound-necklace-types.ts
+#
+# Every schema in this module is marked `x-stability: experimental` (provisional
+# until each resource finalizes its shape; the acousteme envelope stays opaque).
+# ─────────────────────────────────────────────────────────────────────────────
+
+### Login (sets the bearer token for the requests below)
+# @name login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "facilitator@example.com",
+  "password": "password123"
+}
+
+### Sessions: list
+GET {{baseUrl}}/api/sound-necklace/sessions
+Authorization: Bearer {{accessToken}}
+
+### Sessions: create
+POST {{baseUrl}}/api/sound-necklace/sessions
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "audio_id": "aud_1",
+  "project_id": "prj_1",
+  "story_name": "O Conto do Boto",
+  "story_slug": "conto-do-boto",
+  "granularity_level": "medium",
+  "bead_sec": 0.5,
+  "manifest_id": "fnv1a32:d31a8419",
+  "pipeline_consent": true
+}
+
+### Sessions: fetch one (meta only — the state has its own route below)
+GET {{baseUrl}}/api/sound-necklace/sessions/sess_1
+Authorization: Bearer {{accessToken}}
+
+### Sessions: autosave the state envelope (unconditional — what the SPA's autosaver does)
+# The request body IS the state document. It is stored as the exact bytes sent and
+# served back unchanged: the SPA re-validates it under a strict schema, so anything
+# the API re-serialized would come back as an unresumable session.
+# The response carries the new version in `ETag`.
+PUT {{baseUrl}}/api/sound-necklace/sessions/sess_1/state
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "schema_version": 1,
+  "mode": "triagem",
+  "beadSec": 0.5,
+  "whole": { "id": "S1", "span": { "s": 0, "e": 23 }, "confirmed": true }
+}
+
+### Sessions: autosave with the version guard (two machines on the same session)
+# `If-Match` is the version from the last ETag. If someone else saved in the meantime
+# the write is refused with 409 and the body carries `current_version` to reload from.
+PUT {{baseUrl}}/api/sound-necklace/sessions/sess_1/state
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+If-Match: "3"
+
+{
+  "schema_version": 1,
+  "mode": "mapeamento",
+  "beadSec": 0.5,
+  "whole": { "id": "S1", "span": { "s": 0, "e": 23 }, "confirmed": true }
+}
+
+### Sessions: resume — the saved document, byte for byte (ETag = current version)
+GET {{baseUrl}}/api/sound-necklace/sessions/sess_1/state
+Authorization: Bearer {{accessToken}}
+
+### Sessions: complete (no body — the artifacts go to the artifacts route)
+POST {{baseUrl}}/api/sound-necklace/sessions/sess_1/complete
+Authorization: Bearer {{accessToken}}
+
+### Sessions: reopen a completed session
+POST {{baseUrl}}/api/sound-necklace/sessions/sess_1/reopen
+Authorization: Bearer {{accessToken}}
+
+### Lock: acquire / renew
+PUT {{baseUrl}}/api/sound-necklace/sessions/sess_1/lock
+Authorization: Bearer {{accessToken}}
+
+### Artifacts: upload the three on completion (RAW bytes — byte-identical custody)
+POST {{baseUrl}}/api/sound-necklace/sessions/sess_1/artifacts
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=----boundary
+
+------boundary
+Content-Disposition: form-data; name="manifest"; filename="manifesto-contas.json"
+Content-Type: application/json
+
+< ./manifesto-contas.json
+------boundary
+Content-Disposition: form-data; name="anchoring"; filename="retorno-ancoragem.json"
+Content-Type: application/json
+
+< ./retorno-ancoragem.json
+------boundary
+Content-Disposition: form-data; name="report"; filename="relatorio-mapeamento.md"
+Content-Type: text/markdown
+
+< ./relatorio-mapeamento.md
+------boundary--
+
+### Artifacts: download one (redirects to a signed URL)
+GET {{baseUrl}}/api/sound-necklace/sessions/sess_1/artifacts/anchoring
+Authorization: Bearer {{accessToken}}
+
+### Bucket: list a project's audios
+GET {{baseUrl}}/api/sound-necklace/projects/prj_1/audios
+Authorization: Bearer {{accessToken}}
+
+### Bucket: short-TTL signed URL for an audio (audit point)
+GET {{baseUrl}}/api/sound-necklace/audios/aud_1/url
+Authorization: Bearer {{accessToken}}

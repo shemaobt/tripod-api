@@ -1,0 +1,188 @@
+"""Pydantic schemas for the sound-necklace app module.
+
+The wire contract the SPA generates its TypeScript types from (code-first
+OpenAPI). Provisional: the ``/api/sound-necklace`` routes are stubs returning 501 until
+each resource is implemented, so every schema is tagged ``x-stability: experimental``
+and mirrors the SPA's provisional contracts (sound-necklace ``contracts/``).
+Artifacts and the session-state envelope are opaque — never parsed or
+re-serialized here.
+"""
+
+from __future__ import annotations
+
+from enum import StrEnum
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.db.models.sound_necklace import GranularityLevel, SessionStatus, SessionStep
+
+# Vendor extension marking every schema in this module as provisional.
+_EXPERIMENTAL: dict[str, Any] = {"x-stability": "experimental"}
+
+
+# ── Enums ───────────────────────────────────────────────────────────────────
+#
+# The session enums are imported above rather than defined here: they now back
+# real columns, and the database constrains them to exactly these values. Keeping
+# them with the table is what forces a value change to come with a migration.
+
+
+class ArtifactKind(StrEnum):
+    """Which of the three artifacts. The stored FILENAMES stay Portuguese
+    (``manifesto-contas.json``, ``retorno-ancoragem.json``,
+    ``relatorio-mapeamento.md``): PRD §10 freezes them as part of the contract
+    shared with the downstream pipeline. The kind is the handle, not the file."""
+
+    MANIFEST = "manifest"
+    ANCHORING = "anchoring"
+    REPORT = "report"
+
+
+# ── Artifacts ───────────────────────────────────────────────────────────────
+#
+# Bytes are uploaded raw (multipart) and served back verbatim from storage: they
+# never enter a Pydantic model, so nothing can re-shape them. Only this envelope
+# is typed.
+
+
+class ArtifactResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    kind: ArtifactKind
+    size: int
+    crc32c: str
+
+
+# ── Sessions ────────────────────────────────────────────────────────────────
+
+MANIFEST_ID_PATTERN = r"^fnv1a32:[0-9a-f]{8}$"
+
+
+class SessionProgress(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    current_step: SessionStep
+
+
+class SessionSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    id: str
+    project_id: str
+    story_name: str
+    story_slug: str
+    status: SessionStatus
+    last_modified: str
+    progress: SessionProgress
+
+
+class SessionListResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    sessions: list[SessionSummary]
+
+
+class SessionCreate(BaseModel):
+    model_config = ConfigDict(json_schema_extra=_EXPERIMENTAL)
+
+    # The text lengths mirror their columns: unbounded here, an over-long value would
+    # reach Postgres and fail the insert instead of failing validation.
+    audio_id: str = Field(max_length=255)
+    project_id: str
+    story_name: str = Field(max_length=255)
+    story_slug: str = Field(max_length=255)
+    granularity_level: GranularityLevel
+    bead_sec: float = Field(gt=0)
+    manifest_id: str = Field(pattern=MANIFEST_ID_PATTERN)
+    pipeline_consent: bool
+
+
+class SessionStateUpdate(BaseModel):
+    """Autosave body: opaque session-state envelope; only the version is read."""
+
+    model_config = ConfigDict(extra="allow", json_schema_extra=_EXPERIMENTAL)
+
+    schema_version: int
+
+
+class AutosaveResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    saved_at: str
+    schema_version: int
+
+
+# ── Advisory single-editor lock ──────────────────────────────────────────────
+
+
+class LockHolder(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    user_id: str
+    display_name: str
+
+
+class LockStatusResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    held: bool
+    holder: LockHolder | None = None
+    expires_at: str | None = None
+
+
+# ── Voice-answer resources (canonical respostas/... path) ────────────────────
+
+RESOURCE_PATH_PATTERN = (
+    r"^respostas/(level1/[a-z0-9_]+"
+    r"|level2/PT[1-9][0-9]*/[a-z0-9_]+"
+    r"|level3/P[1-9][0-9]*/[a-z0-9_]+)\.webm$"
+)
+
+
+class ResourceRef(BaseModel):
+    model_config = ConfigDict(json_schema_extra=_EXPERIMENTAL)
+
+    path: str = Field(pattern=RESOURCE_PATH_PATTERN)
+
+
+class ResourcePresignResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    url: str
+
+
+# ── Bucket audios ─────────────────────────────────────────────────────────────
+
+
+class BucketAudioResponse(BaseModel):
+    """An audio the facilitator can pick from the project's bucket.
+
+    The acousteme payload is deliberately absent: the acousteme API already
+    serves a concrete shape whose codebook version is a string, so any envelope
+    described here would be known-wrong. It is added when the audio listing is
+    implemented, against that real DTO.
+
+    ``duration_sec`` is nullable because response models are validated on the way
+    out: one un-probed audio would otherwise fail validation of the whole listing.
+    The invariant belongs at ingestion, where a violation is actionable.
+    """
+
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    id: str
+    filename: str
+    duration_sec: float | None = None
+    consent_present: bool
+
+
+class BucketAudioListResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    audios: list[BucketAudioResponse]
+
+
+class AudioUrlResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    url: str
