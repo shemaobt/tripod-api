@@ -49,19 +49,29 @@ async def get_artifact(
     newest *usable* — the latest READY row — falling back to the latest of any
     status only when none are READY, so a failed newer ingest doesn't shadow a
     servable older version.
+
+    Every consumer resolves "newest" through here, so the tiebreak lives here too:
+    created_at is a transaction timestamp, so a batch re-clustering ingests two
+    versions at the same instant, and the codebook keeps the winner deterministic.
+    Without it, the listing and the play route can pick different versions of the
+    same audio — and unit ids don't survive a codebook swap.
     """
 
+    newest_first = (
+        OC_AcoustemeArtifact.created_at.desc(),
+        OC_AcoustemeArtifact.codebook_version.desc(),
+    )
     base = select(OC_AcoustemeArtifact).where(OC_AcoustemeArtifact.audio_id == audio_id)
     if codebook_version is not None:
         stmt = base.where(OC_AcoustemeArtifact.codebook_version == codebook_version)
         artifact = (await db.execute(stmt)).scalars().first()
     else:
         ready = base.where(OC_AcoustemeArtifact.status == AcoustemeStatus.READY).order_by(
-            OC_AcoustemeArtifact.created_at.desc()
+            *newest_first
         )
         artifact = (await db.execute(ready)).scalars().first()
         if artifact is None:
-            latest = base.order_by(OC_AcoustemeArtifact.created_at.desc())
+            latest = base.order_by(*newest_first)
             artifact = (await db.execute(latest)).scalars().first()
 
     if artifact is None:

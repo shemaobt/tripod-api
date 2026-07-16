@@ -352,6 +352,44 @@ async def test_the_newest_servable_version_wins(client, facilitator, db_session)
     assert audio["acousteme"]["codebook_version"] == "terena-v2"
 
 
+async def test_co_ingested_versions_list_and_play_the_same_one(
+    client, facilitator, db_session, signer_calls
+):
+    """``created_at`` is a transaction timestamp, so a batch re-clustering ties. The
+    listing and the URL route resolve through different queries, so the tiebreak has to
+    live where both read it — otherwise the bucket advertises one codebook's envelope
+    while the signer hands over the other codebook's bytes, and unit ids do not survive
+    a codebook swap."""
+    _user, project, headers = facilitator
+    await bind_audio(db_session, project.id, "ruth-a-historia-de-rute")
+    ingested_together = datetime(2026, 7, 10, tzinfo=UTC)
+    await make_acousteme(
+        db_session,
+        "ruth-a-historia-de-rute",
+        codebook_version="terena-v1",
+        audio_object="ruth/v1.mp3",
+        created_at=ingested_together,
+    )
+    await make_acousteme(
+        db_session,
+        "ruth-a-historia-de-rute",
+        codebook_version="terena-v2",
+        audio_object="ruth/v2.mp3",
+        created_at=ingested_together,
+    )
+
+    listing = await client.get(f"{SN}/projects/{project.id}/audios", headers=headers)
+    assert listing.status_code == 200, listing.text
+    (audio,) = listing.json()["audios"]
+    assert audio["acousteme"]["codebook_version"] == "terena-v2"
+
+    url = await client.get(f"{SN}/audios/ruth-a-historia-de-rute/url", headers=headers)
+    assert url.status_code == 200, url.text
+    assert signer_calls == [
+        {"bucket": "terena-pilot", "blob": "ruth/v2.mp3", "expiry_minutes": 15}
+    ], "the listing advertised terena-v2 but the signer was pointed at another version"
+
+
 # ── Collection consent (§12 / O6) ────────────────────────────────────────────
 
 
