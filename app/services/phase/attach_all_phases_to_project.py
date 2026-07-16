@@ -32,8 +32,8 @@ async def attach_all_phases_to_project(db: AsyncSession, project_id: str) -> Non
         return
     insert = pg_insert if db.bind.dialect.name == "postgresql" else sqlite_insert
     await db.execute(
-        insert(ProjectPhase).values(rows).on_conflict_do_nothing(
-            index_elements=["project_id", "phase_id"]
-        )
+        insert(ProjectPhase)
+        .values(rows)
+        .on_conflict_do_nothing(index_elements=["project_id", "phase_id"])
     )
     await db.flush()
