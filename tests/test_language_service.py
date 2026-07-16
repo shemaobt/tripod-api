@@ -84,19 +84,19 @@ async def test_deactivate_language_sets_inactive(db_session) -> None:
 
 
 @pytest.mark.asyncio
-async def test_deactivate_language_by_creator(db_session) -> None:
+async def test_deactivate_language_forbidden_for_creator(db_session) -> None:
     creator = await make_user(db_session)
     created = await make_language(db_session, code="kos", created_by=creator.id)
-    deactivated = await language_service.deactivate_language(db_session, created.id, creator)
-    assert deactivated.is_active is False
+    with pytest.raises(AuthorizationError, match="Only platform admins"):
+        await language_service.deactivate_language(db_session, created.id, creator)
 
 
 @pytest.mark.asyncio
-async def test_deactivate_language_forbidden_for_non_creator(db_session) -> None:
+async def test_deactivate_language_forbidden_for_non_admin(db_session) -> None:
     creator = await make_user(db_session, email="creator@example.com")
     other = await make_user(db_session, email="other@example.com")
     created = await make_language(db_session, code="kos", created_by=creator.id)
-    with pytest.raises(AuthorizationError, match="languages you created"):
+    with pytest.raises(AuthorizationError, match="Only platform admins"):
         await language_service.deactivate_language(db_session, created.id, other)
 
 
@@ -111,11 +111,11 @@ async def test_deactivate_language_allowed_when_in_use(db_session) -> None:
 
 
 @pytest.mark.asyncio
-async def test_deactivate_language_blocked_for_creator_when_in_use(db_session) -> None:
+async def test_deactivate_language_forbidden_for_creator_when_in_use(db_session) -> None:
     creator = await make_user(db_session, email="creator@example.com")
     created = await make_language(db_session, code="kos", created_by=creator.id)
     await make_project(db_session, created.id, name="Genesis OBT")
-    with pytest.raises(ConflictError, match="used by 1 project"):
+    with pytest.raises(AuthorizationError, match="Only platform admins"):
         await language_service.deactivate_language(db_session, created.id, creator)
 
 

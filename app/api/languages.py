@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth_middleware import get_current_user
+from app.core.auth_middleware import get_current_user, require_platform_admin
 from app.core.database import get_db
 from app.core.exceptions import NotFoundError
 from app.db.models.auth import User
@@ -15,9 +15,11 @@ router = APIRouter()
 async def list_languages(
     include_inactive: bool = Query(default=False),
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ) -> list[LanguageResponse]:
-    languages = await language_service.list_languages(db, include_inactive=include_inactive)
+    languages = await language_service.list_languages(
+        db, include_inactive=include_inactive and user.is_platform_admin
+    )
     return [LanguageResponse.model_validate(lang) for lang in languages]
 
 
@@ -59,6 +61,6 @@ async def get_language_by_id(
 async def deactivate_language(
     language_id: str,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_platform_admin),
 ) -> None:
     await language_service.deactivate_language(db, language_id, user)
