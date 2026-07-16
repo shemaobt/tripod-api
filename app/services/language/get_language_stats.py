@@ -6,7 +6,6 @@ from app.services.language.get_language_or_404 import get_language_or_404
 
 
 async def get_language_stats(db: AsyncSession, language_id: str) -> list[tuple[str, str]]:
-    """Return the (id, name) of every project using a language, raising 404 if it is unknown."""
     await get_language_or_404(db, language_id)
     stmt = (
         select(Project.id, Project.name)
