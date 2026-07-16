@@ -42,6 +42,17 @@ async def test_update_user_access_role_rejects_platform_admin(db_session) -> Non
 
 
 @pytest.mark.asyncio
+async def test_update_user_access_role_rejects_unknown_user(db_session) -> None:
+    lang = await make_language(db_session, code="kos")
+    project = await make_project(db_session, language_id=lang.id)
+
+    with pytest.raises(NotFoundError, match=r"User .* not found"):
+        await project_service.update_user_access_role(
+            db_session, project.id, "00000000-0000-0000-0000-000000000000", "manager"
+        )
+
+
+@pytest.mark.asyncio
 async def test_list_project_user_access_excludes_platform_admins(db_session) -> None:
     lang = await make_language(db_session, code="kos")
     project = await make_project(db_session, language_id=lang.id)
