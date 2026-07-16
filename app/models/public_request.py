@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 LANGUAGE_CODE_PATTERN = r"^[A-Za-z]{3}$"
 
@@ -30,6 +30,12 @@ class PublicProjectRequestCreate(BaseModel):
     new_language_name: str | None = Field(default=None, max_length=200)
     new_language_code: str | None = Field(default=None, pattern=LANGUAGE_CODE_PATTERN)
     recaptcha_token: str | None = None
+
+    @model_validator(mode="after")
+    def _one_language_mode(self) -> "PublicProjectRequestCreate":
+        if self.language_id and (self.new_language_name or self.new_language_code):
+            raise ValueError("Provide an existing language or a new one, not both")
+        return self
 
 
 class PublicRequestResponse(BaseModel):
