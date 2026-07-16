@@ -101,12 +101,22 @@ async def test_deactivate_language_forbidden_for_non_creator(db_session) -> None
 
 
 @pytest.mark.asyncio
-async def test_deactivate_language_blocked_when_in_use(db_session) -> None:
+async def test_deactivate_language_allowed_when_in_use(db_session) -> None:
     admin = await make_user(db_session, email="admin@example.com", is_platform_admin=True)
     created = await make_language(db_session, code="kos")
+    project = await make_project(db_session, created.id, name="Genesis OBT")
+    deactivated = await language_service.deactivate_language(db_session, created.id, admin)
+    assert deactivated.is_active is False
+    assert project.language_id == created.id
+
+
+@pytest.mark.asyncio
+async def test_deactivate_language_blocked_for_creator_when_in_use(db_session) -> None:
+    creator = await make_user(db_session, email="creator@example.com")
+    created = await make_language(db_session, code="kos", created_by=creator.id)
     await make_project(db_session, created.id, name="Genesis OBT")
     with pytest.raises(ConflictError, match="used by 1 project"):
-        await language_service.deactivate_language(db_session, created.id, admin)
+        await language_service.deactivate_language(db_session, created.id, creator)
 
 
 @pytest.mark.asyncio
