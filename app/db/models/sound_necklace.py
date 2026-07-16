@@ -118,3 +118,35 @@ class SnSessionState(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+
+class SnAudioRef(Base):
+    """The audios of one project's bucket.
+
+    An acousteme artifact is standalone by design — it carries no project, no
+    recording, and its ``audio_id`` is a caller-minted slug rather than a foreign key
+    (``oc_acousteme_artifacts``). This row is what gives such an audio a project, and
+    that is the whole of its job: without it there is nothing for a project gate to
+    stand on, and the audios would only be reachable through the Oral Collector's own
+    routes, which have no project scoping at all.
+
+    ``consent_present`` is the collection consent of §12/O6. It is recorded here rather
+    than derived: the consent a storyteller gave at recording time lives in
+    ``oc_storytellers`` and is reachable only from a recording, which a pilot audio does
+    not have. It defaults to False — an unrecorded consent is an absent one, never an
+    assumed one.
+
+    One project per audio, mirroring ``oc_recordings``. Sharing one audio across
+    projects would widen the key, and nothing asks for that.
+    """
+
+    __tablename__ = "sn_audio_refs"
+
+    # Matches oc_acousteme_artifacts.audio_id, which this joins to by convention and
+    # not by constraint — the acousteme table is deliberately free of foreign keys.
+    audio_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    project_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
+    consent_present: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
