@@ -1,9 +1,5 @@
 """normalize legacy project_phase status values
 
-Older rows could carry a status outside the PhaseStatus enum (the column used to
-accept any free string). Reads coerce status through PhaseStatus(...), so a
-legacy value would raise; reset anything unknown to the default before it is read.
-
 Revision ID: 20260715_0002
 Revises: 20260715_0001
 Create Date: 2026-07-15

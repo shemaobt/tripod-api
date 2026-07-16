@@ -16,7 +16,6 @@ from tests.baker import (
 
 @pytest.fixture()
 async def client(db_session):
-    """ASGI client over the phase routers, exercising the real auth dependency chain."""
     from fastapi import FastAPI
 
     from app.api.phases import router as phases_router

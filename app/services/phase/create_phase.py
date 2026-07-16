@@ -6,7 +6,6 @@ from app.services.phase.attach_phase_to_all_projects import attach_phase_to_all_
 
 
 async def create_phase(db: AsyncSession, payload: PhaseCreate) -> Phase:
-    """Create a platform phase and attach it to every existing project."""
     phase = Phase(name=payload.name, description=payload.description)
     db.add(phase)
     await db.flush()

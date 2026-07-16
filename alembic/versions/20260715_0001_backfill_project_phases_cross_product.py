@@ -1,14 +1,5 @@
 """backfill project_phases so every phase belongs to every project
 
-Phases became a platform-owned catalog that is global to all projects: every
-(project, phase) pair must have exactly one project_phases row carrying the
-status. This inserts the rows missing from the cross-product with the default
-status, leaving statuses already set untouched.
-
-downgrade is a no-op: the backfilled rows are valid under the previous model
-(where the pairing was an explicit per-project attachment), so dropping them
-would destroy attachments a user may have made on purpose.
-
 Revision ID: 20260715_0001
 Revises: 20260713_0001
 Create Date: 2026-07-15
