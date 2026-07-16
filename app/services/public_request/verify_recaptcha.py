@@ -25,7 +25,7 @@ async def verify_recaptcha(token: str | None) -> None:
         raise ValidationError("reCAPTCHA token is required")
     try:
         verified = await _siteverify(secret, token)
-    except httpx.HTTPError as exc:
+    except (httpx.HTTPError, ValueError, AttributeError) as exc:
         raise ValidationError("reCAPTCHA verification is unavailable. Please try again.") from exc
     if not verified:
         raise ValidationError("reCAPTCHA verification failed")
