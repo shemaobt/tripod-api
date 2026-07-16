@@ -2,7 +2,7 @@ import threading
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.access_requests import router as access_requests_router
@@ -16,6 +16,7 @@ from app.api.health import router as health_router
 from app.api.languages import router as languages_router
 from app.api.meaning_maps import router as meaning_maps_router
 from app.api.notifications import router as notifications_router
+from app.api.oral_collector.acoustemes import acoustemes_router as oc_acoustemes_router
 from app.api.oral_collector.genres import genres_router as oc_genres_router
 from app.api.oral_collector.genres import subcategories_router as oc_subcategories_router
 from app.api.oral_collector.invites import invites_router as oc_invites_router
@@ -36,6 +37,7 @@ from app.api.project_health import router as project_health_router
 from app.api.projects import router as projects_router
 from app.api.rag import router as rag_router
 from app.api.roles import router as roles_router
+from app.api.sound_necklace import router as sound_necklace_router
 from app.api.translation_helper import router as translation_helper_router
 from app.api.uploads import router as uploads_router
 from app.api.users import router as users_router
@@ -134,6 +136,13 @@ def create_app() -> FastAPI:
         annotation_studio_router, prefix="/api/annotation-studio", tags=["annotation-studio"]
     )
     app.include_router(
+        sound_necklace_router,
+        prefix="/api/sound-necklace",
+        tags=["sound-necklace"],
+        # Every route is still a contract stub; say so in the schema the SPA reads.
+        responses={status.HTTP_501_NOT_IMPLEMENTED: {"description": "Not implemented yet"}},
+    )
+    app.include_router(
         project_health_router,
         prefix="/api/project-health",
         tags=["project-health"],
@@ -172,6 +181,11 @@ def create_app() -> FastAPI:
         oc_recordings_router,
         prefix="/api/oc/recordings",
         tags=["oc-recordings"],
+    )
+    app.include_router(
+        oc_acoustemes_router,
+        prefix="/api/oc/acoustemes",
+        tags=["oc-acoustemes"],
     )
     app.include_router(
         oc_stats_router,
