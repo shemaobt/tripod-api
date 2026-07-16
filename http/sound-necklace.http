@@ -4,9 +4,9 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Sound Necklace — /api/sound-necklace
 #
-# Sessions, the audio bucket and the artifacts are implemented. The remaining routes
-# (lock, voice answers) are still STUBS returning 501 — they exist so the emitted OpenAPI
-# carries the full contract and the SPA can generate its TypeScript types:
+# Sessions, the audio bucket, the artifacts and the voice answers are implemented. The
+# lock is still a STUB returning 501 — it exists so the emitted OpenAPI carries the full
+# contract and the SPA can generate its TypeScript types:
 #
 #   # with the app running (uvicorn app.main:app):
 #   npx openapi-typescript@7 http://localhost:8000/openapi.json -o sound-necklace-types.ts
