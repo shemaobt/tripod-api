@@ -59,6 +59,24 @@ async def test_list_languages_by_projects(db_session) -> None:
 
 
 @pytest.mark.asyncio
+async def test_list_languages_by_projects_excludes_inactive(db_session) -> None:
+    admin = await make_user(db_session, email="lbpi-admin@scope.com", is_platform_admin=True)
+    active = await make_language(db_session, code="lca")
+    inactive = await make_language(db_session, code="lci")
+    managed = await make_project(db_session, language_id=active.id, name="Managed Active")
+    managed_inactive = await make_project(
+        db_session, language_id=inactive.id, name="Managed Inactive"
+    )
+    await language_service.deactivate_language(db_session, inactive.id, admin)
+
+    languages = await language_service.list_languages_by_projects(
+        db_session, [managed.id, managed_inactive.id]
+    )
+
+    assert [lng.code for lng in languages] == ["lca"]
+
+
+@pytest.mark.asyncio
 async def test_list_phases_by_projects(db_session) -> None:
     lang = await make_language(db_session, code="lpp")
     managed = await make_project(db_session, language_id=lang.id, name="Managed")

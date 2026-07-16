@@ -9,6 +9,10 @@ async def list_languages_by_projects(db: AsyncSession, project_ids: list[str]) -
     if not project_ids:
         return []
     language_ids_subq = select(Project.language_id).where(Project.id.in_(project_ids)).distinct()
-    stmt = select(Language).where(Language.id.in_(language_ids_subq)).order_by(Language.code)
+    stmt = (
+        select(Language)
+        .where(Language.id.in_(language_ids_subq), Language.is_active.is_(True))
+        .order_by(Language.code)
+    )
     result = await db.execute(stmt)
     return list(result.scalars().all())
