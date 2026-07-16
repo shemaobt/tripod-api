@@ -1,8 +1,11 @@
 import importlib
 
+import httpx
 import pytest
+from pydantic import ValidationError as PydanticValidationError
 
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
+from app.models.public_request import PublicProjectRequestCreate
 from app.services import public_request_service
 from tests.baker import make_language
 
@@ -216,3 +219,40 @@ async def test_verify_recaptcha_accepts_valid_token(monkeypatch):
     monkeypatch.setattr(verify_recaptcha_module, "get_settings", lambda: _Settings())
     monkeypatch.setattr(verify_recaptcha_module, "_siteverify", _ok_siteverify)
     await public_request_service.verify_recaptcha("good-token")
+
+
+async def test_verify_recaptcha_unavailable_on_http_error(monkeypatch):
+    class _Settings:
+        recaptcha_secret_key = "secret"
+
+    async def _raise_http(secret: str, token: str) -> bool:
+        raise httpx.HTTPError("boom")
+
+    monkeypatch.setattr(verify_recaptcha_module, "get_settings", lambda: _Settings())
+    monkeypatch.setattr(verify_recaptcha_module, "_siteverify", _raise_http)
+    with pytest.raises(ValidationError, match="unavailable"):
+        await public_request_service.verify_recaptcha("good-token")
+
+
+async def test_verify_recaptcha_unavailable_on_malformed_response(monkeypatch):
+    class _Settings:
+        recaptcha_secret_key = "secret"
+
+    async def _raise_value(secret: str, token: str) -> bool:
+        raise ValueError("not json")
+
+    monkeypatch.setattr(verify_recaptcha_module, "get_settings", lambda: _Settings())
+    monkeypatch.setattr(verify_recaptcha_module, "_siteverify", _raise_value)
+    with pytest.raises(ValidationError, match="unavailable"):
+        await public_request_service.verify_recaptcha("good-token")
+
+
+def test_public_project_request_rejects_both_language_modes():
+    with pytest.raises(PydanticValidationError):
+        PublicProjectRequestCreate(
+            requester_name="Ana",
+            requester_email="ana@example.com",
+            name="Projeto",
+            language_id="lang-1",
+            new_language_name="Arara",
+        )
