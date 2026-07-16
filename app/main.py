@@ -2,7 +2,7 @@ import threading
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, status
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.access_requests import router as access_requests_router
@@ -111,6 +111,9 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        # ETag is not CORS-safelisted: without this a browser client cannot read it,
+        # and the sound-necklace autosave version guard rides on it.
+        expose_headers=["ETag"],
     )
 
     app.include_router(health_router)
@@ -139,8 +142,6 @@ def create_app() -> FastAPI:
         sound_necklace_router,
         prefix="/api/sound-necklace",
         tags=["sound-necklace"],
-        # Every route is still a contract stub; say so in the schema the SPA reads.
-        responses={status.HTTP_501_NOT_IMPLEMENTED: {"description": "Not implemented yet"}},
     )
     app.include_router(
         project_health_router,

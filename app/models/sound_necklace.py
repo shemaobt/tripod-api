@@ -15,31 +15,17 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.db.models.sound_necklace import GranularityLevel, SessionStatus, SessionStep
+
 # Vendor extension marking every schema in this module as provisional.
 _EXPERIMENTAL: dict[str, Any] = {"x-stability": "experimental"}
 
 
 # ── Enums ───────────────────────────────────────────────────────────────────
-
-
-class SessionStatus(StrEnum):
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
-
-
-class SessionStep(StrEnum):
-    LISTEN = "listen"
-    CUT = "cut"
-    TRIAGE = "triage"
-    PHRASES = "phrases"
-    CONVERSATION = "conversation"
-    SAVE = "save"
-
-
-class GranularityLevel(StrEnum):
-    SMALL = "small"
-    MEDIUM = "medium"
-    LARGE = "large"
+#
+# The session enums are imported above rather than defined here: they now back
+# real columns, and the database constrains them to exactly these values. Keeping
+# them with the table is what forces a value change to come with a migration.
 
 
 class ArtifactKind(StrEnum):
@@ -100,10 +86,12 @@ class SessionListResponse(BaseModel):
 class SessionCreate(BaseModel):
     model_config = ConfigDict(json_schema_extra=_EXPERIMENTAL)
 
-    audio_id: str
+    # The text lengths mirror their columns: unbounded here, an over-long value would
+    # reach Postgres and fail the insert instead of failing validation.
+    audio_id: str = Field(max_length=255)
     project_id: str
-    story_name: str
-    story_slug: str
+    story_name: str = Field(max_length=255)
+    story_slug: str = Field(max_length=255)
     granularity_level: GranularityLevel
     bead_sec: float = Field(gt=0)
     manifest_id: str = Field(pattern=MANIFEST_ID_PATTERN)
