@@ -9,9 +9,9 @@ downgrade is a no-op: the backfilled rows are valid under the previous model
 (where the pairing was an explicit per-project attachment), so dropping them
 would destroy attachments a user may have made on purpose.
 
-Revision ID: 20260713_0001
-Revises: 20260609_0001
-Create Date: 2026-07-13
+Revision ID: 20260715_0001
+Revises: 20260713_0001
+Create Date: 2026-07-15
 
 """
 
@@ -19,10 +19,11 @@ import uuid
 from collections.abc import Sequence
 
 import sqlalchemy as sa
+
 from alembic import op
 
-revision: str = "20260713_0001"
-down_revision: str | None = "20260609_0001"
+revision: str = "20260715_0001"
+down_revision: str | None = "20260713_0001"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
