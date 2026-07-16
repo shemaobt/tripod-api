@@ -7,7 +7,6 @@ from app.api.projects._deps import assert_project_access
 from app.core.auth_middleware import get_current_user
 from app.core.database import get_db
 from app.db.models.auth import User
-from app.db.models.project import Project
 from app.models.project import (
     ProjectCreate,
     ProjectLocationUpdate,
@@ -17,19 +16,6 @@ from app.models.project import (
 from app.services import project_service
 
 router = APIRouter()
-
-
-async def _serialize_projects(db: AsyncSession, projects: list[Project]) -> list[ProjectResponse]:
-    team_sizes = await project_service.count_project_team_sizes(db, [p.id for p in projects])
-    return [
-        ProjectResponse.model_validate(p).model_copy(update={"team_size": team_sizes.get(p.id, 0)})
-        for p in projects
-    ]
-
-
-async def _serialize_project(db: AsyncSession, project: Project) -> ProjectResponse:
-    (response,) = await _serialize_projects(db, [project])
-    return response
 
 
 @router.get("", response_model=list[ProjectResponse])
@@ -42,7 +28,7 @@ async def list_projects(
     projects = await project_service.list_projects_for_user(
         db, user, str(organization_id) if organization_id else None, language_id
     )
-    return await _serialize_projects(db, projects)
+    return await project_service.serialize_projects(db, projects)
 
 
 @router.post("", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
@@ -61,7 +47,7 @@ async def create_project(
         location_display_name=payload.location_display_name,
         creator_user_id=str(user.id),
     )
-    return await _serialize_project(db, project)
+    return await project_service.serialize_project(db, project)
 
 
 @router.get("/{project_id}", response_model=ProjectResponse)
@@ -72,7 +58,7 @@ async def get_project(
 ) -> ProjectResponse:
     project = await project_service.get_project_or_404(db, project_id)
     await assert_project_access(db, user, project_id)
-    return await _serialize_project(db, project)
+    return await project_service.serialize_project(db, project)
 
 
 @router.patch("/{project_id}", response_model=ProjectResponse)
@@ -90,7 +76,7 @@ async def update_project(
         description=payload.description,
         language_id=payload.language_id,
     )
-    return await _serialize_project(db, project)
+    return await project_service.serialize_project(db, project)
 
 
 @router.patch("/{project_id}/location", response_model=ProjectResponse)
@@ -108,4 +94,4 @@ async def update_project_location(
         longitude=payload.longitude,
         location_display_name=payload.location_display_name,
     )
-    return await _serialize_project(db, project)
+    return await project_service.serialize_project(db, project)
