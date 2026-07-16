@@ -10,8 +10,6 @@ from app.services.project.is_project_manager import is_project_manager
 async def assert_can_modify_member_role(
     db: AsyncSession, actor: User, project_id: str, target_user_id: str
 ) -> None:
-    """Platform admins may change or revoke any member; a project manager may act only on
-    members, never on another manager (only a platform admin can demote or remove a manager)."""
     if actor.is_platform_admin:
         return
     if not await is_project_manager(db, actor.id, project_id):

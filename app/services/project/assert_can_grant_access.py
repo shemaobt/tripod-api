@@ -6,7 +6,6 @@ from app.services.project.is_project_manager import is_project_manager
 
 
 async def assert_can_grant_access(db: AsyncSession, actor: User, project_id: str) -> None:
-    """Only a platform admin or a manager of the project may grant project access."""
     if actor.is_platform_admin:
         return
     if not await is_project_manager(db, actor.id, project_id):
