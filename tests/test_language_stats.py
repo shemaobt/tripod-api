@@ -9,13 +9,12 @@ from tests.baker import make_language, make_project
 async def test_language_stats_lists_projects(db_session) -> None:
     lang = await make_language(db_session, code="ksa")
     other = await make_language(db_session, code="oth")
-    await make_project(db_session, language_id=lang.id, name="P1")
-    await make_project(db_session, language_id=lang.id, name="P2")
+    p1 = await make_project(db_session, language_id=lang.id, name="P1")
+    p2 = await make_project(db_session, language_id=lang.id, name="P2")
     await make_project(db_session, language_id=other.id, name="P3")
 
     projects = await language_service.get_language_stats(db_session, lang.id)
-    assert len(projects) == 2
-    assert {name for _, name in projects} == {"P1", "P2"}
+    assert projects == [(p1.id, p1.name), (p2.id, p2.name)]
 
 
 @pytest.mark.asyncio
