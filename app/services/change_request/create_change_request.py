@@ -12,7 +12,6 @@ from app.models.change_request import ChangeRequestCreate
 async def create_change_request(
     db: AsyncSession, requester_id: str, payload: ChangeRequestCreate
 ) -> ChangeRequest:
-    """Validate a manager's change request per kind and store it as pending."""
     if payload.kind == "create_project":
         if not payload.name:
             raise ValidationError("A project request needs a name")

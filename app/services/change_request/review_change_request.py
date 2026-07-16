@@ -19,7 +19,6 @@ async def review_change_request(
     reason: str | None,
     grant_manager_access: bool,
 ) -> tuple[ChangeRequest, User]:
-    """Approve or reject a pending change request; approving applies the change."""
     request = await db.get(ChangeRequest, request_id)
     if request is None:
         raise NotFoundError("Change request not found")

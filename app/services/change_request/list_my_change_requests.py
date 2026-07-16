@@ -8,7 +8,6 @@ from app.db.models.change_request import ChangeRequest
 async def list_my_change_requests(
     db: AsyncSession, requester_id: str
 ) -> list[tuple[ChangeRequest, User]]:
-    """List a requester's own change requests, newest first."""
     stmt = (
         select(ChangeRequest, User)
         .join(User, User.id == ChangeRequest.requester_user_id)
