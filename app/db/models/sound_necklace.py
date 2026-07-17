@@ -111,6 +111,20 @@ class SnSession(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # The advisory single-editor lease. Null is unheld, which is why it lives here
+    # rather than in a table of its own: a lock row per session would have to be
+    # upserted into existence on every acquire, and there is no upsert that spells the
+    # same on Postgres and on the SQLite the tests run against.
+    # SET NULL, never CASCADE: a holder is not an owner. Nothing sweeps lapsed leases, so
+    # this column keeps naming whoever last opened the session — and under CASCADE,
+    # deleting that user would take the session, its state and its artifacts with it.
+    # Null is already the right end state for a deleted holder: unheld.
+    locked_by: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    # Expiry is decided on read; nothing sweeps lapsed leases. A crashed tab therefore
+    # frees its session without anyone unlocking it by hand.
+    lock_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class SnSessionState(Base):
