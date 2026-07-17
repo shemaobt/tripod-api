@@ -138,6 +138,41 @@ Authorization: Bearer {{accessToken}}
 # A caller who is both locked out AND stale gets SESSION_LOCKED: telling them to reload
 # and retry would loop forever.
 
+### Consent: record one, or re-confirm it (§12 / O6)
+# The record is the authoritative evidence of the lawful basis. The `pipeline_consent`
+# boolean on the session is write-only — the SPA sends it on create and then reads its own
+# copy out of the state document; no response carries it. Recording a consent keeps that
+# boolean in step so the two cannot disagree, but the record is what to read.
+#
+# `type` is the whole body. Who confirmed it is the bearer and when is the server's clock
+# — neither is the client's to assert. Idempotent per (session, type): re-confirming
+# updates the record and its timestamp instead of opening a second one, and 201 either way.
+#
+# Two types, and they are two different speakers:
+#   pipeline_use  → the facilitator attests the story may be processed
+#   voice_answers → the listener consents to their own voice being recorded (§8.7 records
+#                   21+ files of it). The listener holds no account, so `confirmed_by` is
+#                   the facilitator who WITNESSED it — the witness, never the subject.
+#
+# Creating a session with `pipeline_consent: true` already records the pipeline_use one,
+# in the same transaction. `false` records nothing at all: absent, denied and granted are
+# three different claims and only the last is a consent.
+POST {{baseUrl}}/api/sound-necklace/sessions/sess_1/consent
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "type": "pipeline_use"
+}
+
+### Consent: what is held for this session
+# An empty list is not an error — it is a session for which no consent was recorded.
+# The oral form §12 admits (a consent audio for a speaker who cannot sign) will read back
+# here once an upload route fills it — it is a nullable column on our own table, added with
+# that route rather than shipped empty ahead of it.
+GET {{baseUrl}}/api/sound-necklace/sessions/sess_1/consent
+Authorization: Bearer {{accessToken}}
+
 ### Artifacts: upload the three on completion (RAW bytes — byte-identical custody)
 POST {{baseUrl}}/api/sound-necklace/sessions/sess_1/artifacts
 Authorization: Bearer {{accessToken}}

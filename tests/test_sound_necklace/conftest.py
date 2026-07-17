@@ -12,6 +12,7 @@ from app.db.models.oc_acousteme import OC_AcoustemeArtifact  # noqa: F401 (creat
 from app.db.models.sound_necklace import (  # noqa: F401 (create_all)
     SnArtifact,
     SnAudioRef,
+    SnConsent,
     SnSession,
     SnSessionState,
     SnVoiceAnswer,

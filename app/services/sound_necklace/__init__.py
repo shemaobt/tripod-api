@@ -12,11 +12,13 @@ from app.services.sound_necklace.delete_voice_answer import delete_voice_answer
 from app.services.sound_necklace.get_audio_project_id import get_audio_project_id
 from app.services.sound_necklace.get_lock_status import get_lock_status
 from app.services.sound_necklace.get_session import get_session
+from app.services.sound_necklace.list_consents import list_consents
 from app.services.sound_necklace.list_project_audios import list_project_audios
 from app.services.sound_necklace.list_sessions import list_sessions
 from app.services.sound_necklace.list_voice_answers import list_voice_answers
 from app.services.sound_necklace.load_state import load_state
 from app.services.sound_necklace.lock_fence import SessionLockedByOther
+from app.services.sound_necklace.record_consent import record_consent
 from app.services.sound_necklace.release_lock import release_lock
 from app.services.sound_necklace.reopen_session import reopen_session
 from app.services.sound_necklace.store_artifacts import store_artifacts
@@ -37,10 +39,12 @@ __all__ = [
     "get_audio_project_id",
     "get_lock_status",
     "get_session",
+    "list_consents",
     "list_project_audios",
     "list_sessions",
     "list_voice_answers",
     "load_state",
+    "record_consent",
     "release_lock",
     "reopen_session",
     "step_for",
