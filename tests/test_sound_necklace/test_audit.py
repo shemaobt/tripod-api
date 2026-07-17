@@ -170,6 +170,10 @@ async def test_uploading_artifacts_is_recorded_once_for_the_triple(
     (event,) = await events(db_session, AuditEvent.ARTIFACT_UPLOADED)
     assert event.session_id == session_id
     assert event.project_id == project.id
+    # The ref is the three kinds in the same vocabulary artifact_url_issued uses (kind
+    # values), sorted and joined — derived from what was stored, not a literal that could
+    # drift from the kinds or from the download event's words.
+    assert event.resource_ref == "anchoring,manifest,report"
 
 
 async def test_issuing_a_voice_url_is_recorded(client, facilitator, db_session, audio_url_patch):

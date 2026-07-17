@@ -31,7 +31,6 @@ def _event(row: SnAuditEvent) -> AuditEventResponse:
         user_id=row.user_id,
         session_id=row.session_id,
         resource_ref=row.resource_ref,
-        ip=row.ip,
     )
 
 

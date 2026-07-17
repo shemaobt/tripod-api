@@ -244,8 +244,11 @@ class AuditEventResponse(BaseModel):
     assertions the framework enforces on the way out, and one unlucky row would 500 the
     whole listing — in the one place whose job is to still answer when things went wrong.
 
-    ``ip`` is always null for now: behind Cloud Run's proxy there is no address this API
-    can honestly attribute to the caller.
+    ``ip`` is on the table but not here. Nothing writes it yet (behind Cloud Run's proxy
+    there is no address this API can honestly attribute to the caller), and a response
+    field is additive — it can join the day something fills the column, without breaking
+    the SPA. Shipping it now would only generate an ``ip: string | null`` the SPA might
+    build a screen column for, forever null.
     """
 
     model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
@@ -256,7 +259,6 @@ class AuditEventResponse(BaseModel):
     user_id: str | None = None
     session_id: str | None = None
     resource_ref: str
-    ip: str | None = None
 
 
 class AuditListResponse(BaseModel):

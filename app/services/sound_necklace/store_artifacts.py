@@ -108,12 +108,18 @@ async def store_artifacts(
     # triple is never stored — so three rows would describe three transfers that cannot
     # happen apart. This is the one audit point where the bytes really did pass through
     # the API, which is why it is the only name here that claims a transfer.
+    #
+    # The ref is derived from what was actually stored, in the same kind.value vocabulary
+    # artifact_url_issued writes, sorted so the string is stable — not a hand-written
+    # literal that could drift from the kinds or from that other event's words. The
+    # download names one kind; the upload is the whole triple, so its ref is the join.
+    uploaded_ref = ",".join(sorted(kind.value for kind in payloads))
     await record_audit_event(
         db,
         event=AuditEvent.ARTIFACT_UPLOADED,
         user_id=actor_user_id,
         project_id=session.project_id,
-        resource_ref="manifest+anchoring+report",
+        resource_ref=uploaded_ref,
         session_id=session_id,
     )
     await db.commit()
