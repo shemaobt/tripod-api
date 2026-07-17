@@ -7,9 +7,13 @@ from __future__ import annotations
 PREFIX = "/api/sound-necklace"
 METHODS = {"get", "post", "put", "delete", "patch"}
 
-# Implemented (ENG-260 sessions, ENG-261 audios, ENG-263 artifacts, ENG-264 resources).
-# The rest answer 501.
+# Implemented (ENG-260 sessions, ENG-261 audios, ENG-263 artifacts, ENG-264 resources,
+# ENG-262 lock). Nothing answers 501 any more; the set is kept because the check runs
+# both ways and a future stub must still be caught.
 IMPLEMENTED_OPERATIONS = {
+    ("/sessions/{session_id}/lock", "put"),
+    ("/sessions/{session_id}/lock", "get"),
+    ("/sessions/{session_id}/lock", "delete"),
     ("/sessions", "post"),
     ("/sessions", "get"),
     ("/sessions/{session_id}", "get"),
@@ -71,6 +75,35 @@ def test_the_autosave_advertises_its_conflict():
     operations = {(path, method): op for path, method, op in _operations()}
     autosave = operations[("/sessions/{session_id}/state", "put")]
     assert "409" in autosave["responses"]
+
+
+def test_the_lock_status_carries_exactly_the_three_keys_the_spa_parses():
+    """The SPA reads this under z.strictObject: a fourth key throws on the client.
+
+    The throw is swallowed by the app shell's catch, which also skips wiring autosave —
+    so an extra field here costs the user their session silently. The fencing counter is
+    deliberately server-side only for this reason; if it ever needs to be on the wire,
+    the SPA's contract has to change first.
+    """
+    from app.main import app
+
+    schemas = app.openapi()["components"]["schemas"]
+    assert set(schemas["LockStatusResponse"]["properties"]) == {"held", "holder", "expires_at"}
+    # LockHolder is nested inside it and parsed just as strictly.
+    assert set(schemas["LockHolder"]["properties"]) == {"user_id", "display_name"}
+
+
+def test_every_fenced_write_advertises_the_lock_conflict_it_can_raise():
+    """A tab that lost the lease learns it from the schema, not from production."""
+    operations = {(path, method): op for path, method, op in _operations()}
+    fenced = [
+        ("/sessions/{session_id}/state", "put"),
+        ("/sessions/{session_id}/complete", "post"),
+        ("/sessions/{session_id}/reopen", "post"),
+        ("/sessions/{session_id}/artifacts", "post"),
+    ]
+    silent = [f"{m.upper()} {p}" for p, m in fenced if "409" not in operations[(p, m)]["responses"]]
+    assert not silent, f"fenced writes not advertising their 409: {silent}"
 
 
 def test_artifact_download_declares_a_redirect_not_an_empty_body():

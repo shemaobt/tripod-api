@@ -4,9 +4,9 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Sound Necklace — /api/sound-necklace
 #
-# Sessions, the audio bucket, the artifacts and the voice answers are implemented. The
-# lock is still a STUB returning 501 — it exists so the emitted OpenAPI carries the full
-# contract and the SPA can generate its TypeScript types:
+# Every resource is implemented: sessions, the audio bucket, the artifacts, the voice
+# answers and the advisory editor lock. Nothing answers 501 any more. The emitted OpenAPI
+# is the contract the SPA generates its TypeScript types from:
 #
 #   # with the app running (uvicorn app.main:app):
 #   npx openapi-typescript@7 http://localhost:8000/openapi.json -o sound-necklace-types.ts
@@ -98,9 +98,45 @@ Authorization: Bearer {{accessToken}}
 POST {{baseUrl}}/api/sound-necklace/sessions/sess_1/reopen
 Authorization: Bearer {{accessToken}}
 
-### Lock: acquire / renew
+### Lock: acquire / renew (one route — they are the same operation)
+# The client heartbeats this every 15s against a 60s lease. Idempotent for the holder.
+# Losing is NOT an error: a session held by someone else answers 200 with THEIR name, and
+# the SPA opens in review mode off it —
+#   {"held": true, "holder": {"user_id": "u_2", "display_name": "Alice"},
+#    "expires_at": "2026-07-17T10:31:00+00:00"}
+# Exactly those three keys, always. The SPA parses this under z.strictObject, so a fourth
+# key throws on the client — and the app shell swallows that throw together with the
+# autosave wiring behind it. The fencing counter is server-side only for this reason.
 PUT {{baseUrl}}/api/sound-necklace/sessions/sess_1/lock
 Authorization: Bearer {{accessToken}}
+
+### Lock: who holds it (the review-mode gate reads this on open)
+# Unheld, or held by a lease that has lapsed, both read as:
+#   {"held": false, "holder": null, "expires_at": null}
+GET {{baseUrl}}/api/sound-necklace/sessions/sess_1/lock
+Authorization: Bearer {{accessToken}}
+
+### Lock: release (the SPA calls this on unload)
+# 204 always: releasing a lease that lapsed, that another tab took, or that never existed
+# is a no-op. Only ever releases your own — a stale tab cannot unlock the current holder.
+DELETE {{baseUrl}}/api/sound-necklace/sessions/sess_1/lock
+Authorization: Bearer {{accessToken}}
+
+### Lock: what a fenced write looks like (by a non-holder)
+# Fenced: PUT /state, POST /complete, POST /reopen, POST /artifacts. NOT fenced: the
+# voice /resources routes — ENG-264 left that guard out deliberately and tightening it is
+# its own issue.
+# The holder is the bearer's user, not a per-tab token — the SPA sends no token anywhere.
+# So this only bites while somebody ELSE holds a live lease; an unlocked session autosaves
+# exactly as it always did. 409 with:
+#   {"detail": "This session is being edited by Alice.", "code": "SESSION_LOCKED",
+#    "holder_name": "Alice", "expires_at": "2026-07-17T10:31:00+00:00"}
+#
+# Two different 409s live on PUT /state and `code` is what tells them apart:
+#   CONFLICT       → your copy is stale; body carries current_version; reload and retry
+#   SESSION_LOCKED → someone else is editing; stop writing and open in review
+# A caller who is both locked out AND stale gets SESSION_LOCKED: telling them to reload
+# and retry would loop forever.
 
 ### Artifacts: upload the three on completion (RAW bytes — byte-identical custody)
 POST {{baseUrl}}/api/sound-necklace/sessions/sess_1/artifacts

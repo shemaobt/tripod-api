@@ -424,3 +424,50 @@ async def test_every_kind_of_artifact_is_reachable(client, facilitator, storage)
             follow_redirects=False,
         )
         assert res.status_code == 307, f"{kind.value} is not reachable: {res.text}"
+
+
+# ── The editor lock fences the upload too (ENG-262) ──────────────────────────
+#
+# The artifacts are the output of a completion, so leaving them open while `complete`
+# is fenced would let the loser's artifacts land on the winner's session anyway. Unlike
+# the autosave, the guard here cannot ride in the write statement: the write is to GCS,
+# and an external side effect is outside anything a SQL predicate can fence. It is a
+# check-then-act with a real (small) window — the honest best available.
+
+
+async def test_uploading_artifacts_to_a_session_someone_else_holds_is_refused(
+    client, alice, bob, project, storage
+):
+    _alice_user, alice_headers = alice
+    _bob_user, bob_headers = bob
+    session_id = await new_session(client, alice_headers, project.id)
+    await client.put(f"{SN}/sessions/{session_id}/lock", headers=bob_headers)
+
+    res = await upload(client, alice_headers, session_id)
+
+    assert res.status_code == 409, res.text
+    assert res.json()["code"] == "SESSION_LOCKED"
+    assert res.json()["holder_name"] == "Bob"
+    # Refused before the bytes moved: a rejected upload must not leave objects behind.
+    assert storage.objects == {}
+
+
+async def test_uploading_artifacts_to_an_unlocked_session_still_works(
+    client, alice, project, storage
+):
+    _user, headers = alice
+    session_id = await new_session(client, headers, project.id)
+
+    res = await upload(client, headers, session_id)
+
+    assert res.status_code == 201, res.text
+
+
+async def test_the_holder_can_upload_artifacts(client, alice, project, storage):
+    _user, headers = alice
+    session_id = await new_session(client, headers, project.id)
+    await client.put(f"{SN}/sessions/{session_id}/lock", headers=headers)
+
+    res = await upload(client, headers, session_id)
+
+    assert res.status_code == 201, res.text
