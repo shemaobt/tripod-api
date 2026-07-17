@@ -282,13 +282,19 @@ async def test_the_event_is_committed_not_merely_added(client, facilitator):
 
 
 async def test_reading_a_session_and_autosaving_write_no_audit_event(
-    client, facilitator, db_session
+    client, facilitator, db_session, audio_url_patch
 ):
     """The listener's work is never surveilled (§14).
 
     Reading a session and autosaving are what a pass over a story IS — the equivalent of
     watching someone work. §12 asks for a record of reaching protected voice, not of
     somebody doing their job.
+
+    Uploading a voice answer is the sharpest case, and the one this test exists to pin:
+    it is the listener recording their own voice. Issuing the URL to play it back IS
+    logged — that is a reach for the voice — but storing it is not, because that is the
+    listener at work. Without the PUT below, nothing here defends that distinction, and a
+    hook added to store_voice_answer would pass every other test in this file.
     """
     _user, project, headers = facilitator
     session_id = await new_session(client, headers, project.id, consent=False)
@@ -301,6 +307,12 @@ async def test_reading_a_session_and_autosaving_write_no_audit_event(
         f"{SN}/sessions/{session_id}/state",
         headers=headers,
         json={"schema_version": 1, "mode": "escuta"},
+    )
+    await client.put(
+        f"{SN}/sessions/{session_id}/resources",
+        headers=headers,
+        params={"path": "respostas/level1/quem_conta.webm"},
+        content=b"x",
     )
     await client.get(f"{SN}/projects/{project.id}/audios", headers=headers)
     await client.get(f"{SN}/sessions/{session_id}/resources", headers=headers)
@@ -427,6 +439,59 @@ async def test_the_log_filters_by_since(client, facilitator, project_admin, db_s
 
 def _long_ago() -> datetime:
     return datetime(2020, 1, 1, tzinfo=UTC)
+
+
+async def test_the_log_filters_by_until(client, facilitator, project_admin, db_session):
+    """`until` is the upper bound the newest-first view lacks — a historical window (the
+    March pilot, say) needs both ends, or raising `since` only ever strips older rows and
+    the window's far end stays pinned to now."""
+    _user, project, headers = facilitator
+    _admin, admin_headers = project_admin
+    session_id = await new_session(client, headers, project.id, consent=True)
+    await client.post(f"{SN}/sessions/{session_id}/complete", headers=headers)
+    # The consent event moves to 2020; the completion stays at "now". `until` in 2021 must
+    # keep the first and drop the second — an upper bound, not a lower one, and not inclusive.
+    await db_session.execute(
+        text("UPDATE sn_audit_events SET occurred_at = :w WHERE event = 'consent_recorded'"),
+        {"w": _long_ago()},
+    )
+    await db_session.commit()
+
+    res = await client.get(
+        f"{SN}/projects/{project.id}/audit",
+        headers=admin_headers,
+        params={"until": datetime(2021, 1, 1, tzinfo=UTC).isoformat()},
+    )
+
+    assert res.status_code == 200, res.text
+    assert [e["event"] for e in res.json()["events"]] == ["consent_recorded"]
+
+
+async def test_since_is_normalised_to_utc(client, facilitator, project_admin, db_session):
+    """A non-UTC `since` must filter by the same instant on SQLite and Postgres.
+
+    SQLite's datetime bind drops the tzinfo, so a `since` carrying a -03:00 offset would
+    filter three hours early under test (and correctly in production) unless it is
+    normalised to UTC first. The event sits at 12:00Z; a `since` of 10:00-03:00 is 13:00Z,
+    which is AFTER it — so a correctly-normalised filter returns nothing.
+    """
+    _user, project, headers = facilitator
+    _admin, admin_headers = project_admin
+    await new_session(client, headers, project.id, consent=True)
+    await db_session.execute(
+        text("UPDATE sn_audit_events SET occurred_at = :w"),
+        {"w": datetime(2026, 6, 1, 12, 0, tzinfo=UTC)},
+    )
+    await db_session.commit()
+
+    res = await client.get(
+        f"{SN}/projects/{project.id}/audit",
+        headers=admin_headers,
+        params={"since": "2026-06-01T10:00:00-03:00"},
+    )
+
+    assert res.status_code == 200, res.text
+    assert res.json()["events"] == [], "the -03:00 offset was dropped — filtered by wall clock"
 
 
 async def test_the_log_is_newest_first(client, facilitator, project_admin, db_session):
