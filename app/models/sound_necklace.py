@@ -14,12 +14,16 @@ actually mints them (ENG-261).
 
 from __future__ import annotations
 
-from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.db.models.sound_necklace import GranularityLevel, SessionStatus, SessionStep
+from app.db.models.sound_necklace import (
+    ArtifactKind,
+    GranularityLevel,
+    SessionStatus,
+    SessionStep,
+)
 
 # Vendor extension marking every schema in this module as provisional.
 _EXPERIMENTAL: dict[str, Any] = {"x-stability": "experimental"}
@@ -27,20 +31,9 @@ _EXPERIMENTAL: dict[str, Any] = {"x-stability": "experimental"}
 
 # ── Enums ───────────────────────────────────────────────────────────────────
 #
-# The session enums are imported above rather than defined here: they now back
-# real columns, and the database constrains them to exactly these values. Keeping
+# Every enum here is imported from the db model rather than defined here: they all
+# back real columns, and the database constrains each to exactly these values. Keeping
 # them with the table is what forces a value change to come with a migration.
-
-
-class ArtifactKind(StrEnum):
-    """Which of the three artifacts. The stored FILENAMES stay Portuguese
-    (``manifesto-contas.json``, ``retorno-ancoragem.json``,
-    ``relatorio-mapeamento.md``): PRD §10 freezes them as part of the contract
-    shared with the downstream pipeline. The kind is the handle, not the file."""
-
-    MANIFEST = "manifest"
-    ANCHORING = "anchoring"
-    REPORT = "report"
 
 
 # ── Artifacts ───────────────────────────────────────────────────────────────
@@ -55,7 +48,11 @@ class ArtifactResponse(BaseModel):
 
     kind: ArtifactKind
     size: int
+    # Both checksums the API recorded, so a consumer can verify a fetched artifact
+    # against what was stored rather than trusting the transfer. crc32c is what GCS
+    # validates on the way in; sha256 is ours, provider-independent.
     crc32c: str
+    sha256: str
 
 
 # ── Sessions ────────────────────────────────────────────────────────────────
@@ -137,20 +134,39 @@ class LockStatusResponse(BaseModel):
 
 # ── Voice-answer resources (canonical respostas/... path) ────────────────────
 
+# The logical, contract-frozen path the SPA builds for each answer (§10.4). It is an
+# allowlist, not a hint: the three shapes are all that can name an object, which is what
+# lets the path be trusted as an object-name suffix — no traversal, no free-form key.
+#
+# The segments are LENGTH-BOUNDED, and that bound is load-bearing, not cosmetic. The path
+# is used verbatim as the object-name suffix and stored in a VARCHAR(255); an unbounded k
+# would pass validation, upload the bytes to the private bucket, then fail the INSERT on
+# Postgres — a 500 with an LGPD-sensitive recording orphaned where the API can't reach
+# it. The question keys are short human-authored strings, so 64 is generous.
 RESOURCE_PATH_PATTERN = (
-    r"^respostas/(level1/[a-z0-9_]+"
-    r"|level2/PT[1-9][0-9]*/[a-z0-9_]+"
-    r"|level3/P[1-9][0-9]*/[a-z0-9_]+)\.webm$"
+    r"^respostas/(level1/[a-z0-9_]{1,64}"
+    r"|level2/PT[1-9][0-9]{0,3}/[a-z0-9_]{1,64}"
+    r"|level3/P[1-9][0-9]{0,3}/[a-z0-9_]{1,64})\.webm$"
 )
 
 
-class ResourceRef(BaseModel):
-    model_config = ConfigDict(json_schema_extra=_EXPERIMENTAL)
+class ResourceSummary(BaseModel):
+    """One recorded answer in the listing — the path is what the Mapeamento screen keys
+    on to know which questions are answered."""
 
-    path: str = Field(pattern=RESOURCE_PATH_PATTERN)
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    path: str
+    size: int
 
 
-class ResourcePresignResponse(BaseModel):
+class ResourceListResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    resources: list[ResourceSummary]
+
+
+class ResourceUrlResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
 
     url: str

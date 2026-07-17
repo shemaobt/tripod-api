@@ -4,9 +4,9 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Sound Necklace — /api/sound-necklace
 #
-# Sessions and the audio bucket are implemented. The remaining routes (lock, voice
-# answers, artifacts) are still STUBS returning 501 — they exist so the emitted OpenAPI
-# carries the full contract and the SPA can generate its TypeScript types:
+# Sessions, the audio bucket, the artifacts and the voice answers are implemented. The
+# lock is still a STUB returning 501 — it exists so the emitted OpenAPI carries the full
+# contract and the SPA can generate its TypeScript types:
 #
 #   # with the app running (uvicorn app.main:app):
 #   npx openapi-typescript@7 http://localhost:8000/openapi.json -o sound-necklace-types.ts
@@ -124,7 +124,11 @@ Content-Type: text/markdown
 < ./relatorio-mapeamento.md
 ------boundary--
 
-### Artifacts: download one (redirects to a signed URL)
+### Artifacts: download one (redirects to a signed URL — audit point)
+# 307 to a short-TTL signed GET; storage serves the bytes verbatim and the API never
+# proxies them, which is what keeps the download byte-identical to the upload. The
+# frozen filename (PRD §10) rides in the object key, so the browser saves
+# `retorno-ancoragem.json` without the API touching a byte. ENG-266 hooks here.
 GET {{baseUrl}}/api/sound-necklace/sessions/sess_1/artifacts/anchoring
 Authorization: Bearer {{accessToken}}
 
@@ -143,4 +147,25 @@ Authorization: Bearer {{accessToken}}
 # used to mint the same signed URL for the same object behind nothing but
 # get_current_user (no app role, no project scoping); it is retired.
 GET {{baseUrl}}/api/sound-necklace/audios/ruth-a-historia-de-rute/url
+Authorization: Bearer {{accessToken}}
+
+### Voice answers: upload one to its canonical path (raw WebM bytes, replace on re-record)
+# The path is a fixed allowlist — respostas/level{1,2,3}/…/<k>.webm — validated before it
+# names the object, so no traversal and no free-form key can reach storage.
+PUT {{baseUrl}}/api/sound-necklace/sessions/sess_1/resources?path=respostas/level1/recontar.webm
+Authorization: Bearer {{accessToken}}
+Content-Type: audio/webm
+
+< ./recontar.webm
+
+### Voice answers: which questions are answered (the Mapeamento screen reads this)
+GET {{baseUrl}}/api/sound-necklace/sessions/sess_1/resources
+Authorization: Bearer {{accessToken}}
+
+### Voice answers: short-TTL signed URL to play one back (audit point)
+GET {{baseUrl}}/api/sound-necklace/sessions/sess_1/resources/url?path=respostas/level1/recontar.webm
+Authorization: Bearer {{accessToken}}
+
+### Voice answers: delete one (object + row; a path never recorded is a no-op)
+DELETE {{baseUrl}}/api/sound-necklace/sessions/sess_1/resources?path=respostas/level1/recontar.webm
 Authorization: Bearer {{accessToken}}

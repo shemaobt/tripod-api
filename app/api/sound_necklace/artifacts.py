@@ -1,4 +1,4 @@
-"""Artifact stub routes.
+"""Artifact custody.
 
 The three artifacts are produced client-side and must survive byte-identical, so
 they travel as raw multipart bytes on upload and are served straight from storage
@@ -8,8 +8,10 @@ on download — no Pydantic model ever parses a payload.
 from fastapi import APIRouter, File, UploadFile, status
 from fastapi.responses import RedirectResponse
 
-from app.api.sound_necklace._deps import CurrentUser, not_implemented
+from app.api.projects._deps import assert_project_access
+from app.api.sound_necklace._deps import CurrentUser, Db
 from app.models.sound_necklace import ArtifactKind, ArtifactResponse
+from app.services import sound_necklace_service as sn_service
 
 router = APIRouter()
 
@@ -21,13 +23,32 @@ router = APIRouter()
 )
 async def upload_artifacts(
     session_id: str,
+    db: Db,
     user: CurrentUser,
     manifest: UploadFile = File(),
     anchoring: UploadFile = File(),
     report: UploadFile = File(),
 ) -> list[ArtifactResponse]:
-    """Store the three artifacts as opaque bytes, checksummed on the way in."""
-    not_implemented()
+    """Store the three artifacts as opaque bytes, checksummed on the way in.
+
+    ``await file.read()`` is the whole of what happens to a payload here, and it has to
+    stay that way. A JSON body would put the artifact through a parser, and a
+    parsed-then-reserialized artifact is a broken one even while it still looks like
+    perfectly valid JSON.
+    """
+    session = await sn_service.get_session(db, session_id)
+    await assert_project_access(db, user, session.project_id)
+
+    payloads = {
+        ArtifactKind.MANIFEST: await manifest.read(),
+        ArtifactKind.ANCHORING: await anchoring.read(),
+        ArtifactKind.REPORT: await report.read(),
+    }
+    artifacts = await sn_service.store_artifacts(db, session.id, payloads)
+    return [
+        ArtifactResponse(kind=a.kind, size=a.size, crc32c=a.crc32c, sha256=a.sha256)
+        for a in artifacts
+    ]
 
 
 @router.get(
@@ -37,11 +58,15 @@ async def upload_artifacts(
     response_model=None,
 )
 async def download_artifact(
-    session_id: str, kind: ArtifactKind, user: CurrentUser
+    session_id: str, kind: ArtifactKind, db: Db, user: CurrentUser
 ) -> RedirectResponse:
     """Redirect to a short-lived signed URL: storage serves the bytes verbatim.
 
     The API never proxies an artifact's bytes — that is what keeps the download
     byte-identical to the upload.
     """
-    not_implemented()
+    session = await sn_service.get_session(db, session_id)
+    await assert_project_access(db, user, session.project_id)
+
+    url = await sn_service.artifact_download_url(db, session_id, kind)
+    return RedirectResponse(url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
