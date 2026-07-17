@@ -11,22 +11,26 @@ checked-in static `acoustemes.json`, never the API.
 
 The *service* survives. The corpus importer writes through it, and the Sound Necklace
 signs through it. What is gone is the ungated door standing in front of it.
+
+Both guards below read `app.routes`, not `app.openapi()`: a route mounted with
+``include_in_schema=False`` is served but never published, so a schema-based check
+would stay green while the surface is back — the one regression this file exists to
+catch.
 """
 
 from __future__ import annotations
+
+from fastapi.routing import APIRoute
 
 RETIRED_PREFIX = "/api/oc/acoustemes"
 
 
 def test_no_acousteme_route_is_served_at_this_prefix():
-    """Not gated, not deprecated — gone.
-
-    A route that mints a signed URL for a private recording behind nothing but "is
-    logged in" has no safe configuration, so there is nothing here to tighten.
-    """
     from app.main import app
 
-    leaking = [path for path in app.openapi()["paths"] if path.startswith(RETIRED_PREFIX)]
+    leaking = [
+        route.path for route in app.routes if getattr(route, "path", "").startswith(RETIRED_PREFIX)
+    ]
 
     assert not leaking, f"the acousteme HTTP surface is back: {leaking}"
 
@@ -43,28 +47,19 @@ RETIRED_DTOS = {
 
 
 def test_no_route_anywhere_serves_the_retired_dtos():
-    """The prefix test names the obvious regression; this one catches the disguised one.
-
-    FastAPI emits a component schema only when a route references it, so one of these
-    response models in the schema means a route serves it — under *any* prefix, by any
-    method. Re-mounting the surface at, say, ``/api/oc/audio-tokens`` would slip past a
-    prefix check and be caught here.
-    """
     from app.main import app
 
-    serving = RETIRED_DTOS & set(app.openapi()["components"]["schemas"])
+    served = {
+        getattr(route.response_model, "__name__", None)
+        for route in app.routes
+        if isinstance(route, APIRoute) and route.response_model is not None
+    }
+    serving = RETIRED_DTOS & served
 
     assert not serving, f"a route is serving a retired acousteme DTO again: {sorted(serving)}"
 
 
 async def test_the_service_beneath_it_still_resolves_an_artifact(db_session):
-    """Retiring the door must not take the room with it.
-
-    The importer writes acoustemes and the Sound Necklace reads them, both through this
-    service — which the deletion leaves untouched. A behaviour check, not a hasattr:
-    seed a row and resolve it the way the read path does (newest-READY), so a change
-    that breaks resolution fails here rather than passing a name-only assertion.
-    """
     from app.db.models.oc_acousteme import OC_AcoustemeArtifact
     from app.services.oral_collector import acousteme_service
 
