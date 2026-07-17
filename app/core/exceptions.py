@@ -11,6 +11,10 @@ logger = logging.getLogger(__name__)
 ERROR_CODE_UNAUTHORIZED = "UNAUTHORIZED"
 ERROR_CODE_FORBIDDEN = "FORBIDDEN"
 ERROR_CODE_CONFLICT = "CONFLICT"
+# A 409 that means "someone else is editing this", not "your copy is stale". The two
+# land on the same route and demand opposite reactions from the client — reload and
+# retry, versus stop writing and open in review — so they cannot share a code.
+ERROR_CODE_SESSION_LOCKED = "SESSION_LOCKED"
 ERROR_CODE_BAD_REQUEST = "BAD_REQUEST"
 ERROR_CODE_NOT_FOUND = "NOT_FOUND"
 ERROR_CODE_INTERNAL = "INTERNAL_ERROR"

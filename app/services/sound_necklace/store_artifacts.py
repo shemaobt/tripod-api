@@ -13,6 +13,7 @@ from app.services.sound_necklace.constants import (
     ARTIFACT_FILENAMES,
     GCS_SN_BUCKET,
 )
+from app.services.sound_necklace.lock_fence import raise_if_locked_by_other
 
 
 def _crc32c(data: bytes) -> str:
@@ -42,9 +43,17 @@ def _storage_key(session_id: str, kind: ArtifactKind, sha256: str) -> str:
 
 
 async def store_artifacts(
-    db: AsyncSession, session_id: str, payloads: dict[ArtifactKind, bytes]
+    db: AsyncSession, session_id: str, payloads: dict[ArtifactKind, bytes], actor_user_id: str
 ) -> list[SnArtifact]:
     """Hand the three artifacts to storage exactly as they arrived, and record custody.
+
+    Fenced by the editor lock before anything moves. These are the output of a
+    completion, so leaving them open while ``complete_session`` is fenced would let the
+    loser's artifacts land on the winner's session anyway. Unlike the other guarded
+    writes this one cannot ride in the write statement — the write is to storage, and no
+    SQL predicate fences an external side effect. It is a check-then-act, with a window
+    the width of the upload; checking after would leave the refused caller's objects in
+    the bucket.
 
     The payloads arrive as bytes and stay bytes. **Nothing here parses one.** PRD §10.5
     makes that a contract breach and not a style preference: a parse-and-reserialize is
@@ -63,6 +72,8 @@ async def store_artifacts(
     rejected and the object is never created. The same checksum is stored, plus a sha256
     of our own, so a later fetch can be checked against what we recorded.
     """
+    await raise_if_locked_by_other(db, session_id, actor_user_id)
+
     for kind, data in payloads.items():
         if not data:
             raise ValidationError(f"The {kind.value} artifact is empty")
