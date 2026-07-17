@@ -10,7 +10,7 @@ from fastapi import APIRouter, Header, Query, Request, Response, status
 from fastapi.responses import JSONResponse
 
 from app.api.projects._deps import assert_project_access
-from app.api.sound_necklace._deps import CurrentUser, Db
+from app.api.sound_necklace._deps import LOCKED_RESPONSE, CurrentUser, Db, locked_body
 from app.core.exceptions import ERROR_CODE_CONFLICT, ValidationError
 from app.db.models.sound_necklace import SessionStatus, SessionStep, SnSession
 from app.models.sound_necklace import (
@@ -27,7 +27,13 @@ router = APIRouter()
 
 _CONFLICT_RESPONSE: dict[int | str, dict[str, Any]] = {
     status.HTTP_409_CONFLICT: {
-        "description": "A newer version of the state exists; the body carries current_version."
+        "description": (
+            "Refused. `code` says which guard refused it and what to do: CONFLICT means a "
+            "newer version of the state exists and the body carries current_version — "
+            "reload and retry. SESSION_LOCKED means somebody else holds the editor lock "
+            "and the body carries holder_name and expires_at — stop writing and open in "
+            "review mode."
+        )
     }
 }
 
@@ -161,7 +167,10 @@ async def autosave_session(
             # the parser accepted (a UTF-8 BOM, for one)
             fields=payload.model_extra or {},
             expected_version=_expected_version(if_match),
+            actor_user_id=user.id,
         )
+    except sn_service.SessionLockedByOther as exc:
+        return locked_body(exc)
     except sn_service.StateVersionConflict as exc:
         return JSONResponse(
             status_code=status.HTTP_409_CONFLICT,
@@ -176,17 +185,37 @@ async def autosave_session(
     return AutosaveResponse(saved_at=saved_at.isoformat(), schema_version=payload.schema_version)
 
 
-@router.post("/sessions/{session_id}/complete", response_model=SessionSummary)
-async def complete_session(session_id: str, db: Db, user: CurrentUser) -> SessionSummary:
+@router.post(
+    "/sessions/{session_id}/complete",
+    response_model=SessionSummary,
+    responses=LOCKED_RESPONSE,
+)
+async def complete_session(
+    session_id: str, db: Db, user: CurrentUser
+) -> SessionSummary | JSONResponse:
     """Complete a session (its artifacts are uploaded to the artifacts route)."""
     session = await sn_service.get_session(db, session_id)
     await assert_project_access(db, user, session.project_id)
-    return _summary(await sn_service.complete_session(db, session))
+    try:
+        completed = await sn_service.complete_session(db, session, user.id)
+    except sn_service.SessionLockedByOther as exc:
+        return locked_body(exc)
+    return _summary(completed)
 
 
-@router.post("/sessions/{session_id}/reopen", response_model=SessionSummary)
-async def reopen_session(session_id: str, db: Db, user: CurrentUser) -> SessionSummary:
+@router.post(
+    "/sessions/{session_id}/reopen",
+    response_model=SessionSummary,
+    responses=LOCKED_RESPONSE,
+)
+async def reopen_session(
+    session_id: str, db: Db, user: CurrentUser
+) -> SessionSummary | JSONResponse:
     """Reopen a completed session."""
     session = await sn_service.get_session(db, session_id)
     await assert_project_access(db, user, session.project_id)
-    return _summary(await sn_service.reopen_session(db, session))
+    try:
+        reopened = await sn_service.reopen_session(db, session, user.id)
+    except sn_service.SessionLockedByOther as exc:
+        return locked_body(exc)
+    return _summary(reopened)

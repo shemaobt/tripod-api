@@ -20,6 +20,7 @@ from sqlalchemy import (
     Enum,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -48,6 +49,49 @@ class GranularityLevel(enum.StrEnum):
     SMALL = "small"
     MEDIUM = "medium"
     LARGE = "large"
+
+
+class ConsentType(enum.StrEnum):
+    """Which consent a record attests to.
+
+    Both values exist from the first migration, and the second one is not speculation:
+    §12 requires recorded consent PER SPEAKER, and the Colar records two people. The
+    story is one of them; the listener is the other, and the app captures 21+ recordings
+    of their voice (§8.7). Adding the value later would mean an ``ALTER TYPE`` on the
+    database six production apps share, to say something already known today.
+    """
+
+    # The facilitator attests that the story may be processed by the pipeline.
+    PIPELINE_USE = "pipeline_use"
+    # The listener consents to their own voice being recorded and processed. They never
+    # hold an account (they may not read at all), so ``confirmed_by`` names the
+    # facilitator who witnessed it — the witness, never the subject.
+    VOICE_ANSWERS = "voice_answers"
+
+
+class AuditEvent(enum.StrEnum):
+    """What was recorded (§12).
+
+    Every URL name says ISSUED, and that is the whole of what this API can honestly
+    claim. The bytes are served by storage against a short-lived signed URL and never
+    pass through here, so a download is something it never witnesses: the URL may be used
+    once, ten times, shared, or never opened. An ``audio_downloaded`` would be a lie the
+    next reader would build a retention or a breach report on.
+
+    ``ARTIFACT_UPLOADED`` is the only event here that claims a transfer, and those bytes
+    really do come through the API. It is not the only upload that does — a voice answer is
+    also posted through it — but that one is the listener recording their own voice, and
+    §14 forbids logging the listener working. Reaching for a voice already recorded is the
+    facilitator action §12 asks about; making one is not.
+    """
+
+    AUDIO_URL_ISSUED = "audio_url_issued"
+    ARTIFACT_UPLOADED = "artifact_uploaded"
+    ARTIFACT_URL_ISSUED = "artifact_url_issued"
+    VOICE_URL_ISSUED = "voice_url_issued"
+    SESSION_COMPLETED = "session_completed"
+    SESSION_REOPENED = "session_reopened"
+    CONSENT_RECORDED = "consent_recorded"
 
 
 class ArtifactKind(enum.StrEnum):
@@ -83,6 +127,16 @@ _GRANULARITY_TYPE = Enum(
     name="sn_granularity_level_enum",
     values_callable=lambda enum_cls: [m.value for m in enum_cls],
 )
+_CONSENT_TYPE = Enum(
+    ConsentType,
+    name="sn_consent_type_enum",
+    values_callable=lambda enum_cls: [m.value for m in enum_cls],
+)
+_AUDIT_EVENT_TYPE = Enum(
+    AuditEvent,
+    name="sn_audit_event_enum",
+    values_callable=lambda enum_cls: [m.value for m in enum_cls],
+)
 
 
 class SnSession(Base):
@@ -111,6 +165,20 @@ class SnSession(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # The advisory single-editor lease. Null is unheld, which is why it lives here
+    # rather than in a table of its own: a lock row per session would have to be
+    # upserted into existence on every acquire, and there is no upsert that spells the
+    # same on Postgres and on the SQLite the tests run against.
+    # SET NULL, never CASCADE: a holder is not an owner. Nothing sweeps lapsed leases, so
+    # this column keeps naming whoever last opened the session — and under CASCADE,
+    # deleting that user would take the session, its state and its artifacts with it.
+    # Null is already the right end state for a deleted holder: unheld.
+    locked_by: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    # Expiry is decided on read; nothing sweeps lapsed leases. A crashed tab therefore
+    # frees its session without anyone unlocking it by hand.
+    lock_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class SnSessionState(Base):
@@ -200,6 +268,109 @@ class SnVoiceAnswer(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+
+class SnConsent(Base):
+    """One consent, recorded as evidence of a lawful basis (§12 / O6).
+
+    This row is the authoritative evidence. ``sn_sessions.pipeline_consent`` predates it
+    and is write-only — the SPA sends it on create and then reads its own copy out of the
+    state document; no response has ever carried it. ``record_consent`` keeps it in step
+    so the two cannot contradict each other, but it is not a source of truth: read this.
+
+    The table holds consents that were GIVEN — there is no row meaning "refused". Absent,
+    denied and granted are three different things, and only the last one is a consent, so
+    silence is left as silence rather than written down as a false.
+
+    Keyed by (session, type), so re-confirming updates the record instead of stacking a
+    second one: the question it answers is "is this consent held, and as of when",
+    which has one answer per session and type.
+
+    ``confirmed_at`` is set in Python, never by ``onupdate``. A re-confirmation changes
+    no other column, so the ORM would emit no UPDATE at all and the timestamp would
+    quietly keep the first confirmation's time — a record that misdates itself is worse
+    than no record.
+
+    The oral form §12 admits — a consent audio for a speaker who cannot sign — is a
+    nullable column on this table, which is the cheap ALTER-later case. It ships with the
+    route that fills it, not before: there is no upload route and no screen that records
+    one yet, so a column now would be a shape to migrate around, not evidence.
+    """
+
+    __tablename__ = "sn_consents"
+
+    session_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("sn_sessions.id", ondelete="CASCADE"), primary_key=True
+    )
+    type: Mapped[ConsentType] = mapped_column(_CONSENT_TYPE, primary_key=True)
+    # SET NULL, never CASCADE: the account that typed the confirmation is not the record.
+    # A second facilitator can re-confirm a consent on somebody else's session, and under
+    # CASCADE deleting that account would erase the evidence while the session itself
+    # stands — proof gone with nothing to explain its absence. Null says the honest thing:
+    # this consent was confirmed by an account that no longer exists. RESTRICT is not the
+    # answer either; `users` is shared with every other Tripod app, and a consent row here
+    # must not be what makes deleting a user fail over there.
+    confirmed_by: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    confirmed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class SnAuditEvent(Base):
+    """One recorded reach for protected material (§12).
+
+    Append-only by nature: nothing updates a row here, because an event is a thing that
+    happened. Written in the same transaction as the operation it records, so there is
+    never a signed URL issued without a row to say so — and if the database is unreachable
+    the route has already failed at its own read, long before there is anything to log.
+
+    ``project_id`` is carried rather than joined through the session: an audio is reached
+    before any session exists over it, and the log's whole purpose is to be queryable per
+    project.
+
+    ``resource_ref`` is the LOGICAL reference — the part of the resource's key that is not
+    the session (``audio_id``, the artifact kind, the answer's respostas/… path) — not the
+    storage key. Three reasons, in order: the audio's object name lives in a ``Text``
+    column with no bound at all and would overflow anything declared here; an artifact's
+    storage key is content-addressed, so it changes under a re-upload and a stale key would
+    read as a different file; and the logical ref is what a person auditing this actually
+    recognises. (session_id, resource_ref) is the resource's identity, exactly as its own
+    table keys it. The longest value is an ``audio_id`` at 128 — not the voice path, which
+    its allowlist bounds at 93 — and 128 is a measured number: a Terena pilot slug once
+    hit 83 and forced that column from 64 to 128 (20260713_0001).
+
+    ``ip`` stays null. This runs on Cloud Run, behind a proxy: ``request.client.host`` is
+    the proxy's address, and the client end of ``X-Forwarded-For`` is appended to whatever
+    the caller sent, so it is forgeable. Both would put a number in an evidence log that
+    reads like a fact and is not one. The column exists because adding it later means a
+    migration on a database six production apps share; filling it needs a trusted-proxy
+    policy, which is its own work.
+    """
+
+    __tablename__ = "sn_audit_events"
+
+    __table_args__ = (
+        Index("ix_sn_audit_events_project_occurred", "project_id", "occurred_at", "id"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    # SET NULL, never CASCADE: deleting a user must not erase the record of what that
+    # account reached. That is the one question an audit log exists to answer, and an
+    # account being gone is when it is asked most.
+    user_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    event: Mapped[AuditEvent] = mapped_column(_AUDIT_EVENT_TYPE)
+    # Nullable: an audio is reached outside any session.
+    session_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("sn_sessions.id", ondelete="SET NULL"), nullable=True
+    )
+    project_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("projects.id", ondelete="CASCADE")
+    )
+    resource_ref: Mapped[str] = mapped_column(String(255))
+    ip: Mapped[str | None] = mapped_column(String(45), nullable=True)
 
 
 class SnAudioRef(Base):
