@@ -4,8 +4,8 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Sound Necklace — /api/sound-necklace
 #
-# Sessions and the audio bucket are implemented. The remaining routes (lock, voice
-# answers, artifacts) are still STUBS returning 501 — they exist so the emitted OpenAPI
+# Sessions, the audio bucket and the artifacts are implemented. The remaining routes
+# (lock, voice answers) are still STUBS returning 501 — they exist so the emitted OpenAPI
 # carries the full contract and the SPA can generate its TypeScript types:
 #
 #   # with the app running (uvicorn app.main:app):
@@ -124,7 +124,11 @@ Content-Type: text/markdown
 < ./relatorio-mapeamento.md
 ------boundary--
 
-### Artifacts: download one (redirects to a signed URL)
+### Artifacts: download one (redirects to a signed URL — audit point)
+# 307 to a short-TTL signed GET; storage serves the bytes verbatim and the API never
+# proxies them, which is what keeps the download byte-identical to the upload. The
+# frozen filename (PRD §10) rides in the object key, so the browser saves
+# `retorno-ancoragem.json` without the API touching a byte. ENG-266 hooks here.
 GET {{baseUrl}}/api/sound-necklace/sessions/sess_1/artifacts/anchoring
 Authorization: Bearer {{accessToken}}
 

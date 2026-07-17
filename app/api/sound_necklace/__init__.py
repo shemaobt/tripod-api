@@ -1,8 +1,8 @@
 """Sound Necklace API surface, mounted at ``/api/sound-necklace``.
 
-Sessions and the audio bucket are implemented. The remaining resources are still
-contract stubs returning 501; they exist so the emitted OpenAPI carries the full
-contract for the SPA to generate its TypeScript types. The 501 is declared on the
+Sessions, the audio bucket and the artifacts are implemented. The remaining resources
+are still contract stubs returning 501; they exist so the emitted OpenAPI carries the
+full contract for the SPA to generate its TypeScript types. The 501 is declared on the
 stubs only — a blanket declaration would keep advertising it for routes that now
 answer for real.
 """
@@ -20,6 +20,7 @@ STUB_RESPONSES: dict[int | str, dict[str, Any]] = {
 router = APIRouter()
 router.include_router(sessions.router)
 router.include_router(audios.router)
+router.include_router(artifacts.router)
 
-for _sub in (lock, resources, artifacts):
+for _sub in (lock, resources):
     router.include_router(_sub.router, responses=STUB_RESPONSES)

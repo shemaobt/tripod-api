@@ -14,12 +14,16 @@ actually mints them (ENG-261).
 
 from __future__ import annotations
 
-from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.db.models.sound_necklace import GranularityLevel, SessionStatus, SessionStep
+from app.db.models.sound_necklace import (
+    ArtifactKind,
+    GranularityLevel,
+    SessionStatus,
+    SessionStep,
+)
 
 # Vendor extension marking every schema in this module as provisional.
 _EXPERIMENTAL: dict[str, Any] = {"x-stability": "experimental"}
@@ -27,20 +31,9 @@ _EXPERIMENTAL: dict[str, Any] = {"x-stability": "experimental"}
 
 # ── Enums ───────────────────────────────────────────────────────────────────
 #
-# The session enums are imported above rather than defined here: they now back
-# real columns, and the database constrains them to exactly these values. Keeping
+# Every enum here is imported from the db model rather than defined here: they all
+# back real columns, and the database constrains each to exactly these values. Keeping
 # them with the table is what forces a value change to come with a migration.
-
-
-class ArtifactKind(StrEnum):
-    """Which of the three artifacts. The stored FILENAMES stay Portuguese
-    (``manifesto-contas.json``, ``retorno-ancoragem.json``,
-    ``relatorio-mapeamento.md``): PRD §10 freezes them as part of the contract
-    shared with the downstream pipeline. The kind is the handle, not the file."""
-
-    MANIFEST = "manifest"
-    ANCHORING = "anchoring"
-    REPORT = "report"
 
 
 # ── Artifacts ───────────────────────────────────────────────────────────────
@@ -55,7 +48,11 @@ class ArtifactResponse(BaseModel):
 
     kind: ArtifactKind
     size: int
+    # Both checksums the API recorded, so a consumer can verify a fetched artifact
+    # against what was stored rather than trusting the transfer. crc32c is what GCS
+    # validates on the way in; sha256 is ours, provider-independent.
     crc32c: str
+    sha256: str
 
 
 # ── Sessions ────────────────────────────────────────────────────────────────

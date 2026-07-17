@@ -8,6 +8,7 @@ from sqlalchemy import select
 from app.db.models.auth import Role
 from app.db.models.oc_acousteme import OC_AcoustemeArtifact  # noqa: F401 (create_all)
 from app.db.models.sound_necklace import (  # noqa: F401 (create_all)
+    SnArtifact,
     SnAudioRef,
     SnSession,
     SnSessionState,

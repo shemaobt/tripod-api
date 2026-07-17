@@ -7,7 +7,7 @@ from __future__ import annotations
 PREFIX = "/api/sound-necklace"
 METHODS = {"get", "post", "put", "delete", "patch"}
 
-# Implemented (ENG-260 sessions, ENG-261 audios). Everything else still answers 501.
+# Implemented (ENG-260 sessions, ENG-261 audios, ENG-263 artifacts). The rest answer 501.
 IMPLEMENTED_OPERATIONS = {
     ("/sessions", "post"),
     ("/sessions", "get"),
@@ -18,6 +18,8 @@ IMPLEMENTED_OPERATIONS = {
     ("/sessions/{session_id}/reopen", "post"),
     ("/projects/{project_id}/audios", "get"),
     ("/audios/{audio_id}/url", "get"),
+    ("/sessions/{session_id}/artifacts", "post"),
+    ("/sessions/{session_id}/artifacts/{kind}", "get"),
 }
 
 
