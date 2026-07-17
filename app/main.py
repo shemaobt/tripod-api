@@ -32,12 +32,14 @@ from app.api.organizations import router as organizations_router
 from app.api.pericopes import router as pericopes_router
 from app.api.phases import router as phases_router
 from app.api.places import router as places_router
+from app.api.platform import router as platform_router
 from app.api.project_health import router as project_health_router
 from app.api.projects import router as projects_router
 from app.api.public import router as public_router
 from app.api.public_requests import router as public_requests_router
 from app.api.rag import router as rag_router
 from app.api.roles import router as roles_router
+from app.api.sound_necklace import router as sound_necklace_router
 from app.api.translation_helper import router as translation_helper_router
 from app.api.uploads import router as uploads_router
 from app.api.users import router as users_router
@@ -111,6 +113,10 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        # Neither is CORS-safelisted: without this a browser client cannot read them at all.
+        # The sound-necklace autosave version guard rides on ETag; X-Tts-Cached is what makes
+        # TTS cache warming observable.
+        expose_headers=["ETag", "X-Tts-Cached"],
     )
 
     app.include_router(health_router)
@@ -122,6 +128,7 @@ def create_app() -> FastAPI:
     app.include_router(apps_router, prefix="/api/apps", tags=["apps"])
     app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
     app.include_router(roles_router, prefix="/api/roles", tags=["roles"])
+    app.include_router(platform_router, prefix="/api/platform", tags=["platform"])
     app.include_router(uploads_router, prefix="/api/uploads", tags=["uploads"])
     app.include_router(users_router, prefix="/api/users", tags=["users"])
     app.include_router(languages_router, prefix="/api/languages", tags=["languages"])
@@ -140,6 +147,11 @@ def create_app() -> FastAPI:
     app.include_router(meaning_maps_router, prefix="/api/meaning-maps", tags=["meaning-maps"])
     app.include_router(
         annotation_studio_router, prefix="/api/annotation-studio", tags=["annotation-studio"]
+    )
+    app.include_router(
+        sound_necklace_router,
+        prefix="/api/sound-necklace",
+        tags=["sound-necklace"],
     )
     app.include_router(
         project_health_router,
