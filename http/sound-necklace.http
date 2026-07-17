@@ -128,7 +128,7 @@ Content-Type: text/markdown
 # 307 to a short-TTL signed GET; storage serves the bytes verbatim and the API never
 # proxies them, which is what keeps the download byte-identical to the upload. The
 # frozen filename (PRD §10) rides in the object key, so the browser saves
-# `<slug>-retorno-ancoragem.json` without the API touching a byte. ENG-266 hooks here.
+# `retorno-ancoragem.json` without the API touching a byte. ENG-266 hooks here.
 GET {{baseUrl}}/api/sound-necklace/sessions/sess_1/artifacts/anchoring
 Authorization: Bearer {{accessToken}}
 
