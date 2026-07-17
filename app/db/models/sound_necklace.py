@@ -260,11 +260,10 @@ class SnConsent(Base):
     quietly keep the first confirmation's time — a record that misdates itself is worse
     than no record.
 
-    ``oral_recording_path`` is the oral form §12 admits: a consent audio in the private
-    bucket, for a speaker who cannot sign. Nothing fills it yet — there is no upload
-    route and no screen that records one — but the column ships now because a speaker
-    who cannot sign is exactly who this app is built for, and null is the honest answer
-    meanwhile.
+    The oral form §12 admits — a consent audio for a speaker who cannot sign — is a
+    nullable column on this table, which is the cheap ALTER-later case. It ships with the
+    route that fills it, not before: there is no upload route and no screen that records
+    one yet, so a column now would be a shape to migrate around, not evidence.
     """
 
     __tablename__ = "sn_consents"
@@ -284,7 +283,6 @@ class SnConsent(Base):
         String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     confirmed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    oral_recording_path: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
 
 class SnAudioRef(Base):

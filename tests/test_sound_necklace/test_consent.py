@@ -378,40 +378,6 @@ async def test_deleting_the_confirming_user_keeps_the_record(
     assert rows[0].type is ConsentType.PIPELINE_USE
 
 
-# ── The oral form ────────────────────────────────────────────────────────────
-
-
-async def test_the_oral_form_is_absent_until_something_records_one(client, facilitator):
-    """The column is ready for the oral consent audio; no route fills it yet.
-
-    Null is the honest answer for "was this consent given orally?" — not a claim
-    either way. The field is on the wire so that the day the upload route lands, the
-    record already reads back complete.
-    """
-    _user, project, headers = facilitator
-    session_id = await new_session(client, headers, project.id)
-
-    res = await client.get(f"{SN}/sessions/{session_id}/consent", headers=headers)
-
-    (record,) = res.json()["consents"]
-    assert record["oral_recording_path"] is None
-
-
-async def test_an_oral_recording_reads_back_on_the_record(client, facilitator, db_session):
-    """Written straight to the row: there is deliberately no route that sets this yet,
-    so this is what proves the schema is actually ready to carry one."""
-    _user, project, headers = facilitator
-    session_id = await new_session(client, headers, project.id)
-    record = await db_session.get(SnConsent, (session_id, ConsentType.PIPELINE_USE))
-    record.oral_recording_path = f"consent/{ConsentType.PIPELINE_USE.value}.webm"
-    await db_session.commit()
-
-    res = await client.get(f"{SN}/sessions/{session_id}/consent", headers=headers)
-
-    (listed,) = res.json()["consents"]
-    assert listed["oral_recording_path"] == "consent/pipeline_use.webm"
-
-
 # ── The wire ─────────────────────────────────────────────────────────────────
 
 

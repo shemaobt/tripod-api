@@ -34,7 +34,6 @@ def _record(consent: SnConsent) -> ConsentResponse:
         type=consent.type,
         confirmed_by=consent.confirmed_by,
         confirmed_at=as_utc(consent.confirmed_at).isoformat(),
-        oral_recording_path=consent.oral_recording_path,
     )
 
 

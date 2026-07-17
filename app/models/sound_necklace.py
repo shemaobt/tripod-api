@@ -192,9 +192,6 @@ class ConsentResponse(BaseModel):
     a deleted user leaves the consent standing and its confirmer null. It names whoever
     OPERATED the app, which for ``voice_answers`` is the facilitator who witnessed the
     listener — the listener never holds an account.
-
-    ``oral_recording_path`` is null until a consent audio exists; no route records one
-    yet.
     """
 
     model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
@@ -202,7 +199,6 @@ class ConsentResponse(BaseModel):
     type: ConsentType
     confirmed_by: str | None = None
     confirmed_at: str
-    oral_recording_path: str | None = None
 
 
 class ConsentListResponse(BaseModel):

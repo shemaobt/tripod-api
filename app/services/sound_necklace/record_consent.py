@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.exceptions import NotFoundError
 from app.db.models.sound_necklace import ConsentType, SnConsent, SnSession
 
 
@@ -21,10 +22,11 @@ async def record_consent(
     first confirmation. The one thing this record must never get wrong is when it was
     confirmed.
 
-    The commit is what makes this composable from ``create_session``: called with a
-    session still pending, it writes the session, its state and the consent in one
-    transaction, so a session can never be stored claiming a consent that was not
-    recorded alongside it.
+    It commits, and that is not a free choice: routers in this repo may not, so the
+    explicit ``POST /consent`` route needs the write persisted here — every other
+    write-service in the module commits for the same reason. Called mid-transaction from
+    ``create_session`` the same commit closes that transaction too, so the session, its
+    state row and the consent land together.
     """
     record = await db.get(SnConsent, (session_id, consent_type))
     if record is None:
@@ -34,15 +36,16 @@ async def record_consent(
     record.confirmed_at = datetime.now(UTC)
 
     if consent_type is ConsentType.PIPELINE_USE:
-        # Keep the session's boolean from contradicting the record. It is write-only
-        # today — no response carries it and the SPA reads its own copy out of the state
-        # document — but two columns claiming the same fact must not disagree: a session
-        # opened without consent whose consent is recorded afterwards would otherwise sit
-        # there reading `false` next to an authoritative record saying granted, and
-        # whoever wires the first read of it inherits a lie.
+        # Keep the session's write-only boolean from contradicting the record — two
+        # columns claiming the same fact must not disagree. (The SPA reads its own copy
+        # out of the state document; no response carries this one.)
         session = await db.get(SnSession, session_id)
-        if session is not None:
-            session.pipeline_consent = True
+        if session is None:
+            # Unreachable: the route 404s on get_session first, create_session just
+            # flushed it, and the consent's own FK is NOT NULL. Raise rather than skip —
+            # a silent skip would drop the boolean sync this function promises.
+            raise NotFoundError("Session not found")
+        session.pipeline_consent = True
 
     await db.commit()
     return record

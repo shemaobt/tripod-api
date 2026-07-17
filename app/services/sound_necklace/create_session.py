@@ -37,11 +37,11 @@ async def create_session(db: AsyncSession, user: User, payload: SessionCreate) -
     await db.flush()
     db.add(SnSessionState(session_id=session.id))
     if payload.pipeline_consent:
-        # It commits, and that commit closes the transaction the session and its state
-        # row are already in — the three land together or not at all. The commit below
-        # stays unconditional anyway: it is what stores a session created without
-        # consent, and this function should not depend on where someone else commits.
+        # record_consent commits — the session, its state row and the consent land
+        # together in that one transaction.
         await record_consent(db, session.id, ConsentType.PIPELINE_USE, user.id)
-    await db.commit()
+    else:
+        # No consent to record: this is the commit that stores the session and its state.
+        await db.commit()
     await db.refresh(session)
     return session

@@ -8,9 +8,9 @@ ever carried it. record_consent keeps the two from contradicting each other.
 Both enum values ship in this first migration on purpose. The Colar records two speakers
 — the story and the listener whose voice answers 21+ questions — and adding the second
 value later would mean an ALTER TYPE on the database six production apps share, to say
-something already known today. oral_recording_path ships for the same reason: consent may
-be given orally, by a speaker who cannot sign, and that is exactly who this app is for.
-Nothing fills it yet.
+something already known today. The oral consent audio §12 admits does NOT ship here: it is
+a nullable column on our own table, the cheap ALTER-later case, and it comes with the
+upload route that fills it rather than sitting empty as a shape to migrate around.
 
 Creates only the sn_* table and its enum type. This database is shared with every other
 Tripod app, so nothing here alters or drops anything it did not create.
@@ -47,7 +47,6 @@ def upgrade() -> None:
         # other column, and the ORM emits no UPDATE at all when nothing is dirty — an
         # onupdate here would leave the record misdating itself.
         sa.Column("confirmed_at", sa.DateTime(timezone=True), nullable=False),
-        sa.Column("oral_recording_path", sa.String(length=255), nullable=True),
         sa.ForeignKeyConstraint(["session_id"], ["sn_sessions.id"], ondelete="CASCADE"),
         # SET NULL, never CASCADE: a second facilitator can re-confirm a consent on
         # somebody else's session, and under CASCADE deleting that account would erase the
