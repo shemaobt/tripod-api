@@ -299,8 +299,30 @@ async def test_reading_a_session_and_autosaving_write_no_audit_event(
         json={"schema_version": 1, "mode": "escuta"},
     )
     await client.get(f"{SN}/projects/{project.id}/audios", headers=headers)
+    await client.get(f"{SN}/sessions/{session_id}/resources", headers=headers)
+    await client.get(f"{SN}/sessions/{session_id}/consent", headers=headers)
 
     assert len(await events(db_session)) == before, "a listener-equivalent path was logged"
+
+
+async def test_the_lock_heartbeat_writes_no_audit_event(client, facilitator, db_session):
+    """The lock is pinned separately because it is the worst thing to get wrong here.
+
+    The SPA heartbeats PUT /lock every 15 seconds against a 60s lease. A hook there would
+    write 240 rows an hour per session, and what those rows would describe is precisely
+    when the listener was at work and for how long — the §14 surveillance, recorded at a
+    resolution nothing else in this app comes close to, plus a table that grows forever.
+    """
+    _user, project, headers = facilitator
+    session_id = await new_session(client, headers, project.id, consent=False)
+    before = len(await events(db_session))
+
+    await client.put(f"{SN}/sessions/{session_id}/lock", headers=headers)
+    await client.put(f"{SN}/sessions/{session_id}/lock", headers=headers)
+    await client.get(f"{SN}/sessions/{session_id}/lock", headers=headers)
+    await client.delete(f"{SN}/sessions/{session_id}/lock", headers=headers)
+
+    assert len(await events(db_session)) == before, "the lock heartbeat is being logged"
 
 
 # ── The query route ──────────────────────────────────────────────────────────

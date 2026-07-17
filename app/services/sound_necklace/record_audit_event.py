@@ -23,9 +23,10 @@ async def record_audit_event(
 
     No try/except either. If this write fails the operation must fail with it — the
     alternative is a signed URL handed out with no record of who got it, which is the one
-    outcome the log exists to prevent. There is no "audit down, operation up" case worth
-    engineering for: this is the same session and the same database the route already read
-    from, so a database that cannot take this row already failed the route upstream.
+    outcome the log exists to prevent. Swallowing the error would buy an "audit down,
+    operation up" mode nobody asked for, on the same session and the same database the
+    route just read from: the failures left over (a concurrently deleted project, a dropped
+    connection) are ones the caller should hear about, not ones worth serving through.
 
     ``ip`` is not a parameter. Behind Cloud Run's proxy the only addresses available are
     the proxy's own and a forgeable ``X-Forwarded-For``, and a number that reads like the

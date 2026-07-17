@@ -20,6 +20,7 @@ from sqlalchemy import (
     Enum,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -77,8 +78,11 @@ class AuditEvent(enum.StrEnum):
     once, ten times, shared, or never opened. An ``audio_downloaded`` would be a lie the
     next reader would build a retention or a breach report on.
 
-    ``ARTIFACT_UPLOADED`` is the exception, and the only one: those bytes really do come
-    through the API.
+    ``ARTIFACT_UPLOADED`` is the only event here that claims a transfer, and those bytes
+    really do come through the API. It is not the only upload that does — a voice answer is
+    also posted through it — but that one is the listener recording their own voice, and
+    §14 forbids logging the listener working. Reaching for a voice already recorded is the
+    facilitator action §12 asks about; making one is not.
     """
 
     AUDIO_URL_ISSUED = "audio_url_issued"
@@ -331,7 +335,9 @@ class SnAuditEvent(Base):
     storage key is content-addressed, so it changes under a re-upload and a stale key would
     read as a different file; and the logical ref is what a person auditing this actually
     recognises. (session_id, resource_ref) is the resource's identity, exactly as its own
-    table keys it.
+    table keys it. The longest value is an ``audio_id`` at 128 — not the voice path, which
+    its allowlist bounds at 93 — and 128 is a measured number: a Terena pilot slug once
+    hit 83 and forced that column from 64 to 128 (20260713_0001).
 
     ``ip`` stays null. This runs on Cloud Run, behind a proxy: ``request.client.host`` is
     the proxy's address, and the client end of ``X-Forwarded-For`` is appended to whatever
@@ -343,21 +349,23 @@ class SnAuditEvent(Base):
 
     __tablename__ = "sn_audit_events"
 
+    __table_args__ = (Index("ix_sn_audit_events_project_occurred", "project_id", "occurred_at"),)
+
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     # SET NULL, never CASCADE: deleting a user must not erase the record of what that
     # account reached. That is the one question an audit log exists to answer, and an
     # account being gone is when it is asked most.
     user_id: Mapped[str | None] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
-    event: Mapped[AuditEvent] = mapped_column(_AUDIT_EVENT_TYPE, index=True)
+    event: Mapped[AuditEvent] = mapped_column(_AUDIT_EVENT_TYPE)
     # Nullable: an audio is reached outside any session.
     session_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("sn_sessions.id", ondelete="SET NULL"), nullable=True
     )
     project_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("projects.id", ondelete="CASCADE"), index=True
+        String(36), ForeignKey("projects.id", ondelete="CASCADE")
     )
     resource_ref: Mapped[str] = mapped_column(String(255))
     ip: Mapped[str | None] = mapped_column(String(45), nullable=True)

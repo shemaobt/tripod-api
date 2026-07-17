@@ -25,5 +25,7 @@ async def list_audit_events(
         stmt = stmt.where(SnAuditEvent.occurred_at >= since)
     if event is not None:
         stmt = stmt.where(SnAuditEvent.event == event)
-    stmt = stmt.order_by(SnAuditEvent.occurred_at.desc()).limit(limit)
+    # id breaks the tie: two events in the same instant would otherwise come back in
+    # whatever order the scan produced, and a paging auditor would see one twice or never.
+    stmt = stmt.order_by(SnAuditEvent.occurred_at.desc(), SnAuditEvent.id).limit(limit)
     return list((await db.execute(stmt)).scalars().all())
