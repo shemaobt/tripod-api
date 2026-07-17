@@ -242,8 +242,9 @@ async def make_project_user_access(
     db: AsyncSession,
     project_id: str,
     user_id: str,
+    role: str = "member",
 ) -> ProjectUserAccess:
-    access = ProjectUserAccess(project_id=project_id, user_id=user_id)
+    access = ProjectUserAccess(project_id=project_id, user_id=user_id, role=role)
     db.add(access)
     await db.commit()
     await db.refresh(access)
