@@ -1,27 +1,17 @@
 """Sound Necklace API surface, mounted at ``/api/sound-necklace``.
 
-Sessions, the audio bucket, the artifacts and the voice-answer resources are
-implemented. The lock is still a contract stub returning 501; it exists so the emitted
-OpenAPI carries the full contract for the SPA to generate its TypeScript types. The 501
-is declared on the stub only — a blanket declaration would keep advertising it for
-routes that now answer for real.
+Every resource is implemented: sessions, the audio bucket, the artifacts, the
+voice-answer resources and the advisory editor lock. Nothing here answers 501 any
+more, so nothing declares it.
 """
 
-from typing import Any
-
-from fastapi import APIRouter, status
+from fastapi import APIRouter
 
 from app.api.sound_necklace import artifacts, audios, lock, resources, sessions
-
-STUB_RESPONSES: dict[int | str, dict[str, Any]] = {
-    status.HTTP_501_NOT_IMPLEMENTED: {"description": "Not implemented yet"}
-}
 
 router = APIRouter()
 router.include_router(sessions.router)
 router.include_router(audios.router)
 router.include_router(artifacts.router)
 router.include_router(resources.router)
-
-for _sub in (lock,):
-    router.include_router(_sub.router, responses=STUB_RESPONSES)
+router.include_router(lock.router)

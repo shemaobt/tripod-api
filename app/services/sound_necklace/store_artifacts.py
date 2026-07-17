@@ -13,6 +13,7 @@ from app.services.sound_necklace.constants import (
     ARTIFACT_FILENAMES,
     GCS_SN_BUCKET,
 )
+from app.services.sound_necklace.lock_fence import raise_if_locked_by_other
 
 
 def _crc32c(data: bytes) -> str:
@@ -42,27 +43,20 @@ def _storage_key(session_id: str, kind: ArtifactKind, sha256: str) -> str:
 
 
 async def store_artifacts(
-    db: AsyncSession, session_id: str, payloads: dict[ArtifactKind, bytes]
+    db: AsyncSession, session_id: str, payloads: dict[ArtifactKind, bytes], actor_user_id: str
 ) -> list[SnArtifact]:
     """Hand the three artifacts to storage exactly as they arrived, and record custody.
 
     The payloads arrive as bytes and stay bytes. **Nothing here parses one.** PRD §10.5
     makes that a contract breach and not a style preference: a parse-and-reserialize is
     invisible in review — the output is still valid, plausible JSON — and fatal to the
-    pipeline, which diffs these files byte for byte against a golden reference. Key
-    order, whitespace, unicode escaping and the trailing newline are all part of the
-    artifact.
+    pipeline, which diffs these files byte for byte against a golden reference.
 
-    Custody is recorded only after every object is safely in storage. The uploads are
-    content-addressed, so they cannot overwrite the session's current triple: if the
-    third upload fails, the first two are orphans nothing points at, and the pointers in
-    the database still describe the last triple that completed as a whole. The pipeline
-    never reads a half-written export.
-
-    The upload sends a CRC32C that GCS validates on receipt, so a corrupted transfer is
-    rejected and the object is never created. The same checksum is stored, plus a sha256
-    of our own, so a later fetch can be checked against what we recorded.
+    Fenced by the editor lock, before the bytes move and again before the pointers do.
+    Raises ``SessionLockedByOther`` if somebody else holds the session.
     """
+    await raise_if_locked_by_other(db, session_id, actor_user_id)
+
     for kind, data in payloads.items():
         if not data:
             raise ValidationError(f"The {kind.value} artifact is empty")
@@ -85,6 +79,15 @@ async def store_artifacts(
             for kind, data, key, _ in staged
         )
     )
+
+    # Checked again, because the check above went stale while the bytes were in flight:
+    # three round trips is long enough for a lease to lapse and be taken, after which the
+    # pointers below would land on a session somebody else is now editing. This narrows
+    # the window from the width of the upload to the width of the write — it does not
+    # close it, and holding a row lock across the uploads to do so would trade an
+    # advisory lock for a transaction pinned open on a network call. The objects already
+    # sent are orphans nothing references; the pointers are what must not move.
+    await raise_if_locked_by_other(db, session_id, actor_user_id)
 
     artifacts = []
     for kind, data, key, sha256 in staged:

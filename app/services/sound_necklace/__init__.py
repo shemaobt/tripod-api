@@ -1,3 +1,4 @@
+from app.services.sound_necklace.acquire_lock import LOCK_TTL, acquire_lock
 from app.services.sound_necklace.artifact_download_url import artifact_download_url
 from app.services.sound_necklace.audio_signed_url import audio_signed_url
 from app.services.sound_necklace.autosave_state import (
@@ -9,18 +10,24 @@ from app.services.sound_necklace.complete_session import complete_session
 from app.services.sound_necklace.create_session import create_session
 from app.services.sound_necklace.delete_voice_answer import delete_voice_answer
 from app.services.sound_necklace.get_audio_project_id import get_audio_project_id
+from app.services.sound_necklace.get_lock_status import get_lock_status
 from app.services.sound_necklace.get_session import get_session
 from app.services.sound_necklace.list_project_audios import list_project_audios
 from app.services.sound_necklace.list_sessions import list_sessions
 from app.services.sound_necklace.list_voice_answers import list_voice_answers
 from app.services.sound_necklace.load_state import load_state
+from app.services.sound_necklace.lock_fence import SessionLockedByOther
+from app.services.sound_necklace.release_lock import release_lock
 from app.services.sound_necklace.reopen_session import reopen_session
 from app.services.sound_necklace.store_artifacts import store_artifacts
 from app.services.sound_necklace.store_voice_answer import store_voice_answer
 from app.services.sound_necklace.voice_answer_url import voice_answer_url
 
 __all__ = [
+    "LOCK_TTL",
+    "SessionLockedByOther",
     "StateVersionConflict",
+    "acquire_lock",
     "artifact_download_url",
     "audio_signed_url",
     "autosave_state",
@@ -28,11 +35,13 @@ __all__ = [
     "create_session",
     "delete_voice_answer",
     "get_audio_project_id",
+    "get_lock_status",
     "get_session",
     "list_project_audios",
     "list_sessions",
     "list_voice_answers",
     "load_state",
+    "release_lock",
     "reopen_session",
     "step_for",
     "store_artifacts",

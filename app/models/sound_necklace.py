@@ -14,10 +14,11 @@ actually mints them (ENG-261).
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.core.exceptions import ERROR_CODE_SESSION_LOCK_CHANGED, ERROR_CODE_SESSION_LOCKED
 from app.db.models.sound_necklace import (
     ArtifactKind,
     GranularityLevel,
@@ -130,6 +131,31 @@ class LockStatusResponse(BaseModel):
     held: bool
     holder: LockHolder | None = None
     expires_at: str | None = None
+
+
+class SessionLockedResponse(BaseModel):
+    """The 409 of a write refused while somebody else holds the editor lock.
+
+    `code` is what the client branches on and the other two are what it renders, so this
+    is a contract and not a debug body — hence a model the SPA can generate types from
+    rather than a description in prose.
+    """
+
+    model_config = ConfigDict(json_schema_extra=_EXPERIMENTAL)
+
+    detail: str
+    code: Literal["SESSION_LOCKED"] = ERROR_CODE_SESSION_LOCKED
+    holder_name: str
+    expires_at: str
+
+
+class SessionLockChangedResponse(BaseModel):
+    """The 409 of a write the lease refused and then lapsed on. Retry; no holder to show."""
+
+    model_config = ConfigDict(json_schema_extra=_EXPERIMENTAL)
+
+    detail: str
+    code: Literal["SESSION_LOCK_CHANGED"] = ERROR_CODE_SESSION_LOCK_CHANGED
 
 
 # ── Voice-answer resources (canonical respostas/... path) ────────────────────
