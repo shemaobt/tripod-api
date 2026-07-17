@@ -12,6 +12,7 @@ SEED_APPS = [
     ("oral-collector", "Oral Collector", "https://oralcollector.shemaywam.com"),
     ("avita", "AViTA", "https://avita.shemaywam.com"),
     ("annotation-studio", "Annotation Studio", "https://annotationstudio.shemaywam.com"),
+    ("sound-necklace", "Sound Necklace", "https://soundnecklace.shemaywam.com"),
 ]
 
 DEFAULT_ROLES = [
@@ -28,6 +29,7 @@ DEFAULT_ROLES = [
 APP_ROLES_OVERRIDE: dict[str, list[str]] = {
     "oral-collector": ["member", "manager"],
     "annotation-studio": ["admin", "facilitator"],
+    "sound-necklace": ["facilitator", "project_admin"],
 }
 
 
