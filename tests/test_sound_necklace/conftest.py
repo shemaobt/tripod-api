@@ -150,3 +150,17 @@ async def set_lease_expiry(db_session, session_id: str, when: datetime) -> None:
 async def expire_lease(db_session, session_id: str) -> None:
     """Age the lease past its TTL — the crashed-tab case."""
     await set_lease_expiry(db_session, session_id, datetime.now(UTC) - timedelta(seconds=1))
+
+
+async def hand_lease_to(db_session, session_id: str, user_id: str) -> None:
+    """Give the lease to somebody else, the way a takeover mid-request would.
+
+    Writes behind the ORM's back for the same reason ``set_lease_expiry`` does: the app
+    under test runs on this very session, so the alternative is a reload outside the
+    greenlet. Use it where the turnover has to land *during* a request the test is
+    already awaiting, which a second HTTP call cannot express.
+    """
+    await db_session.execute(
+        text("UPDATE sn_sessions SET locked_by = :uid, lock_expires_at = :when WHERE id = :sid"),
+        {"uid": user_id, "when": datetime.now(UTC) + timedelta(seconds=60), "sid": session_id},
+    )

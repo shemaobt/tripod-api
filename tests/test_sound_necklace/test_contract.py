@@ -106,6 +106,38 @@ def test_every_fenced_write_advertises_the_lock_conflict_it_can_raise():
     assert not silent, f"fenced writes not advertising their 409: {silent}"
 
 
+def test_the_lock_conflict_body_is_a_schema_the_spa_can_generate_from():
+    """A description is prose; the SPA generates types from schemas.
+
+    `holder_name` and `expires_at` are what the "sessão em uso por…" screen renders, and
+    `code` is what decides between review mode and a reload — none of it reaches the
+    client's types unless the 409 names a model.
+    """
+    from app.main import app
+
+    schemas = app.openapi()["components"]["schemas"]
+    locked = schemas["SessionLockedResponse"]
+    assert set(locked["properties"]) == {"detail", "code", "holder_name", "expires_at"}
+    assert locked["properties"]["code"]["const"] == "SESSION_LOCKED"
+    changed = schemas["SessionLockChangedResponse"]
+    assert set(changed["properties"]) == {"detail", "code"}
+    assert changed["properties"]["code"]["const"] == "SESSION_LOCK_CHANGED"
+
+
+def test_the_lifecycle_409s_reference_both_codes_they_can_answer_with():
+    """Complete and reopen refuse for two reasons and the client must tell them apart."""
+    operations = {(path, method): op for path, method, op in _operations()}
+    for path, method in [
+        ("/sessions/{session_id}/complete", "post"),
+        ("/sessions/{session_id}/reopen", "post"),
+    ]:
+        body = operations[(path, method)]["responses"]["409"]["content"]["application/json"]
+        referenced = {ref["$ref"].rsplit("/", 1)[-1] for ref in body["schema"]["anyOf"]}
+        assert referenced == {"SessionLockedResponse", "SessionLockChangedResponse"}, (
+            f"{method.upper()} {path} advertises {referenced}"
+        )
+
+
 def test_artifact_download_declares_a_redirect_not_an_empty_body():
     """Bytes are served by storage, never proxied — the schema must say redirect."""
     operations = {(path, method): operation for path, method, operation in _operations()}

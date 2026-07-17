@@ -23,7 +23,7 @@ import pytest
 from app.db.models.sound_necklace import ArtifactKind
 from app.services.oral_collector import gcs_utils
 from tests.baker import make_language, make_project, make_project_user_access, make_user
-from tests.test_sound_necklace.conftest import auth_header, grant_role
+from tests.test_sound_necklace.conftest import auth_header, grant_role, hand_lease_to
 
 SN = "/api/sound-necklace"
 
@@ -471,3 +471,38 @@ async def test_the_holder_can_upload_artifacts(client, alice, project, storage):
     res = await upload(client, headers, session_id)
 
     assert res.status_code == 201, res.text
+
+
+async def test_a_takeover_during_the_upload_stops_the_pointers_from_landing(
+    client, db_session, alice, bob, project, storage, monkeypatch
+):
+    """The preflight check goes stale while the bytes are in flight.
+
+    Three uploads are three network round trips, and a lease can lapse and be taken
+    across them — after which the old caller would still publish its pointers onto the
+    session the new holder is now editing. The objects it already sent are orphans
+    nothing references, which is what content-addressed keys are for; the pointers are
+    what must not move.
+    """
+    _alice_user, alice_headers = alice
+    bob_user, bob_headers = bob
+    session_id = await new_session(client, alice_headers, project.id)
+
+    sent = storage.upload
+
+    async def bob_takes_it_over_mid_flight(*args, **kwargs):
+        await hand_lease_to(db_session, session_id, bob_user.id)
+        return await sent(*args, **kwargs)
+
+    monkeypatch.setattr(gcs_utils, "upload_gcs_object", bob_takes_it_over_mid_flight)
+
+    res = await upload(client, alice_headers, session_id)
+
+    assert res.status_code == 409, res.text
+    assert res.json()["code"] == "SESSION_LOCKED"
+    manifest = await client.get(
+        f"{SN}/sessions/{session_id}/artifacts/manifest",
+        headers=bob_headers,
+        follow_redirects=False,
+    )
+    assert manifest.status_code == 404, "the refused caller's pointers landed anyway"

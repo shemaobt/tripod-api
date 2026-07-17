@@ -12,6 +12,7 @@ tests here pin the code that tells them apart, not just the status.
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from importlib import import_module
 
 from tests.test_sound_necklace.conftest import SN, expire_lease, new_session
 
@@ -223,3 +224,63 @@ async def test_the_holder_can_reopen(client, alice, project):
     res = await client.post(f"{SN}/sessions/{session_id}/reopen", headers=headers)
 
     assert res.status_code == 200, res.text
+
+
+# ── Refused, but the holder is already gone ──────────────────────────────────
+#
+# The guarded UPDATE refuses, and by the time the diagnosis read runs the lease has
+# lapsed — there is no holder left to name. The write landed nothing, so the honest
+# answer is "try again", and it needs a code of its own: CONFLICT is defined as a stale
+# version with a `current_version` to reload from, and these two routes have no version
+# at all. A client handed CONFLICT here reloads and retries against nothing, forever.
+#
+# The window is microseconds wide, so the diagnosis is stubbed to find nobody — which is
+# precisely what it returns when the lease expires inside it.
+
+
+def lease_lapsed_before_the_diagnosis(monkeypatch, service: str) -> None:
+    """Make the diagnosis read find nobody, as it would if the lease expired inside it.
+
+    Imported by path: the package re-exports each service function under its module's
+    own name, so a plain ``from ... import complete_session`` hands back the function.
+    """
+    module = import_module(f"app.services.sound_necklace.{service}")
+
+    async def nobody_holds_it(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(module, "raise_if_locked_by_other", nobody_holds_it)
+
+
+async def test_a_complete_refused_by_a_lease_that_then_lapsed_is_not_a_stale_version(
+    client, alice, bob, project, monkeypatch
+):
+    _alice_user, alice_headers = alice
+    _bob_user, bob_headers = bob
+    session_id = await new_session(client, alice_headers, project.id)
+    await client.put(f"{SN}/sessions/{session_id}/lock", headers=bob_headers)
+    lease_lapsed_before_the_diagnosis(monkeypatch, "complete_session")
+
+    res = await client.post(f"{SN}/sessions/{session_id}/complete", headers=alice_headers)
+
+    assert res.status_code == 409, res.text
+    assert res.json()["code"] == "SESSION_LOCK_CHANGED"
+    # Refused, not silently dropped: the session must still be open.
+    still = await client.get(f"{SN}/sessions/{session_id}", headers=bob_headers)
+    assert still.json()["status"] == "in_progress"
+
+
+async def test_a_reopen_refused_by_a_lease_that_then_lapsed_is_not_a_stale_version(
+    client, alice, bob, project, monkeypatch
+):
+    _alice_user, alice_headers = alice
+    _bob_user, bob_headers = bob
+    session_id = await new_session(client, alice_headers, project.id)
+    await client.post(f"{SN}/sessions/{session_id}/complete", headers=alice_headers)
+    await client.put(f"{SN}/sessions/{session_id}/lock", headers=bob_headers)
+    lease_lapsed_before_the_diagnosis(monkeypatch, "reopen_session")
+
+    res = await client.post(f"{SN}/sessions/{session_id}/reopen", headers=alice_headers)
+
+    assert res.status_code == 409, res.text
+    assert res.json()["code"] == "SESSION_LOCK_CHANGED"
