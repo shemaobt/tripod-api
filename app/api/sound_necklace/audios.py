@@ -41,4 +41,8 @@ async def audio_signed_url(audio_id: str, db: Db, user: CurrentUser) -> AudioUrl
     """
     project_id = await sn_service.get_audio_project_id(db, audio_id)
     await assert_project_access(db, user, project_id)
-    return AudioUrlResponse(url=await sn_service.audio_signed_url(db, audio_id))
+    return AudioUrlResponse(
+        url=await sn_service.audio_signed_url(
+            db, audio_id, project_id=project_id, actor_user_id=user.id
+        )
+    )

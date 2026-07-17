@@ -3,7 +3,8 @@ from datetime import UTC, datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError
-from app.db.models.sound_necklace import ConsentType, SnConsent, SnSession
+from app.db.models.sound_necklace import AuditEvent, ConsentType, SnConsent, SnSession
+from app.services.sound_necklace.record_audit_event import record_audit_event
 
 
 async def record_consent(
@@ -35,17 +36,30 @@ async def record_consent(
     record.confirmed_by = confirmed_by
     record.confirmed_at = datetime.now(UTC)
 
+    session = await db.get(SnSession, session_id)
+    if session is None:
+        # Unreachable: the route 404s on get_session first, create_session just flushed
+        # it, and the consent's own FK is NOT NULL. Raise rather than skip — a silent skip
+        # would drop the boolean sync and the audit trail this function promises, and the
+        # audit below reads session.project_id anyway.
+        raise NotFoundError("Session not found")
+
     if consent_type is ConsentType.PIPELINE_USE:
         # Keep the session's write-only boolean from contradicting the record — two
         # columns claiming the same fact must not disagree. (The SPA reads its own copy
         # out of the state document; no response carries this one.)
-        session = await db.get(SnSession, session_id)
-        if session is None:
-            # Unreachable: the route 404s on get_session first, create_session just
-            # flushed it, and the consent's own FK is NOT NULL. Raise rather than skip —
-            # a silent skip would drop the boolean sync this function promises.
-            raise NotFoundError("Session not found")
         session.pipeline_consent = True
+
+    # Filing a consent is a facilitator action on protected material, so it leaves a trail
+    # of its own (§12) — the record says what was agreed, this says who filed it.
+    await record_audit_event(
+        db,
+        event=AuditEvent.CONSENT_RECORDED,
+        user_id=confirmed_by,
+        project_id=session.project_id,
+        resource_ref=consent_type.value,
+        session_id=session_id,
+    )
 
     await db.commit()
     return record

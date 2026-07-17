@@ -21,6 +21,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.core.exceptions import ERROR_CODE_SESSION_LOCK_CHANGED, ERROR_CODE_SESSION_LOCKED
 from app.db.models.sound_necklace import (
     ArtifactKind,
+    AuditEvent,
     ConsentType,
     GranularityLevel,
     SessionStatus,
@@ -231,6 +232,37 @@ class ConsentListResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
 
     consents: list[ConsentResponse]
+
+
+# ── Audit log (§12) ──────────────────────────────────────────────────────────
+
+
+class AuditEventResponse(BaseModel):
+    """One recorded reach, as stored.
+
+    Every field is nullable exactly where the row is: constraints on a RESPONSE model are
+    assertions the framework enforces on the way out, and one unlucky row would 500 the
+    whole listing — in the one place whose job is to still answer when things went wrong.
+
+    ``ip`` is always null for now: behind Cloud Run's proxy there is no address this API
+    can honestly attribute to the caller.
+    """
+
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    id: str
+    occurred_at: str
+    event: AuditEvent
+    user_id: str | None = None
+    session_id: str | None = None
+    resource_ref: str
+    ip: str | None = None
+
+
+class AuditListResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    events: list[AuditEventResponse]
 
 
 # ── Bucket audios ─────────────────────────────────────────────────────────────

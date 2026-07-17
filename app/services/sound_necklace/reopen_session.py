@@ -4,8 +4,9 @@ from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import SessionLockChanged
-from app.db.models.sound_necklace import SessionStatus, SnSession
+from app.db.models.sound_necklace import AuditEvent, SessionStatus, SnSession
 from app.services.sound_necklace.lock_fence import raise_if_locked_by_other
+from app.services.sound_necklace.record_audit_event import record_audit_event
 
 
 async def reopen_session(db: AsyncSession, session: SnSession, actor_user_id: str) -> SnSession:
@@ -44,6 +45,14 @@ async def reopen_session(db: AsyncSession, session: SnSession, actor_user_id: st
         # falling through would answer 200 with a session still marked complete.
         raise SessionLockChanged("The session lock changed hands. Try reopening again.")
 
+    await record_audit_event(
+        db,
+        event=AuditEvent.SESSION_REOPENED,
+        user_id=actor_user_id,
+        project_id=session.project_id,
+        resource_ref=session.id,
+        session_id=session.id,
+    )
     await db.commit()
     await db.refresh(session)
     return session
