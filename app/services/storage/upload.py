@@ -4,6 +4,8 @@ import uuid
 from fastapi import UploadFile
 from google.cloud import storage
 
+from app.core.exceptions import StorageUnavailableError
+
 GCS_UPLOADS_BUCKET = "tripod-image-uploads"
 GCS_PROJECT = "gen-lang-client-0886209230"
 
@@ -28,7 +30,13 @@ async def upload_image(file: UploadFile, folder: str = "images") -> str:
         blob = bucket.blob(blob_name)
         blob.upload_from_string(contents, content_type=file.content_type)
 
-    await asyncio.to_thread(_blocking)
+    try:
+        await asyncio.to_thread(_blocking)
+    except Exception as e:
+        raise StorageUnavailableError(
+            "Image storage is unavailable. The server could not reach Google Cloud Storage; "
+            "check the service account credentials for this deployment."
+        ) from e
     return f"https://storage.googleapis.com/{GCS_UPLOADS_BUCKET}/{blob_name}"
 
 
