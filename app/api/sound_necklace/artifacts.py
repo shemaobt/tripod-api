@@ -6,10 +6,10 @@ on download — no Pydantic model ever parses a payload.
 """
 
 from fastapi import APIRouter, File, UploadFile, status
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 
 from app.api.projects._deps import assert_project_access
-from app.api.sound_necklace._deps import CurrentUser, Db
+from app.api.sound_necklace._deps import LOCKED_RESPONSE, CurrentUser, Db, locked_body
 from app.models.sound_necklace import ArtifactKind, ArtifactResponse
 from app.services import sound_necklace_service as sn_service
 
@@ -20,6 +20,7 @@ router = APIRouter()
     "/sessions/{session_id}/artifacts",
     response_model=list[ArtifactResponse],
     status_code=status.HTTP_201_CREATED,
+    responses=LOCKED_RESPONSE,
 )
 async def upload_artifacts(
     session_id: str,
@@ -28,7 +29,7 @@ async def upload_artifacts(
     manifest: UploadFile = File(),
     anchoring: UploadFile = File(),
     report: UploadFile = File(),
-) -> list[ArtifactResponse]:
+) -> list[ArtifactResponse] | JSONResponse:
     """Store the three artifacts as opaque bytes, checksummed on the way in.
 
     ``await file.read()`` is the whole of what happens to a payload here, and it has to
@@ -44,7 +45,10 @@ async def upload_artifacts(
         ArtifactKind.ANCHORING: await anchoring.read(),
         ArtifactKind.REPORT: await report.read(),
     }
-    artifacts = await sn_service.store_artifacts(db, session.id, payloads)
+    try:
+        artifacts = await sn_service.store_artifacts(db, session, payloads, user.id)
+    except sn_service.SessionLockedByOther as exc:
+        return locked_body(exc)
     return [
         ArtifactResponse(kind=a.kind, size=a.size, crc32c=a.crc32c, sha256=a.sha256)
         for a in artifacts
@@ -68,5 +72,5 @@ async def download_artifact(
     session = await sn_service.get_session(db, session_id)
     await assert_project_access(db, user, session.project_id)
 
-    url = await sn_service.artifact_download_url(db, session_id, kind)
+    url = await sn_service.artifact_download_url(db, session, kind, user.id)
     return RedirectResponse(url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)

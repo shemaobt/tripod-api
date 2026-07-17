@@ -81,7 +81,7 @@ async def resource_url(
     session = await sn_service.get_session(db, session_id)
     await assert_project_access(db, user, session.project_id)
 
-    return ResourceUrlResponse(url=await sn_service.voice_answer_url(db, session_id, path))
+    return ResourceUrlResponse(url=await sn_service.voice_answer_url(db, session, path, user.id))
 
 
 @router.delete("/sessions/{session_id}/resources", status_code=status.HTTP_204_NO_CONTENT)

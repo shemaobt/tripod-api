@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ConflictError
 from app.db.models.sound_necklace import SessionStep, SnSession, SnSessionState
+from app.services.sound_necklace.lock_fence import not_locked_by_other, raise_if_locked_by_other
 
 
 class StateVersionConflict(ConflictError):
@@ -50,6 +51,7 @@ async def autosave_state(
     document: str,
     fields: Mapping[str, Any],
     expected_version: int | None,
+    actor_user_id: str,
 ) -> tuple[int, datetime]:
     """Store the state document verbatim; return its new version and save time.
 
@@ -66,19 +68,31 @@ async def autosave_state(
     up a concurrent writer's version instead of this one, and handing that back as the
     caller's own would let a later guarded write clobber the very work the guard exists
     to protect.
+
+    The lease guard rides in the same statement for the same reason it exists at all: a
+    tab that checked the lock and then wrote would be racing the takeover it meant to
+    catch. It only bites while somebody else holds a live lease, so a session nobody
+    locked autosaves exactly as it did before.
     """
     now = datetime.now(UTC)
-    stmt = update(SnSessionState).where(SnSessionState.session_id == session.id)
+    stmt = update(SnSessionState).where(
+        SnSessionState.session_id == session.id,
+        not_locked_by_other(session.id, actor_user_id, now),
+    )
     if expected_version is not None:
         stmt = stmt.where(SnSessionState.version == expected_version)
-    stmt = stmt.values(
-        state=document, version=SnSessionState.version + 1, updated_at=now
-    ).returning(SnSessionState.version)
+    stmt = (
+        stmt.values(state=document, version=SnSessionState.version + 1, updated_at=now)
+        .returning(SnSessionState.version)
+        .execution_options(synchronize_session=False)
+    )
 
     version = (await db.execute(stmt)).scalar_one_or_none()
     if version is None:
         # Nothing matched, so nothing is pending: leave the transaction to the caller's
         # teardown rather than rolling back a session shared with the rest of the request.
+        # Which guard refused it is only decided here, on the path that already lost.
+        await raise_if_locked_by_other(db, session.id, actor_user_id)
         raise StateVersionConflict(await _current_version(db, session.id))
 
     session.current_step = step_for(fields)

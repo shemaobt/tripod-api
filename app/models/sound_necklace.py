@@ -14,12 +14,15 @@ actually mints them (ENG-261).
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.core.exceptions import ERROR_CODE_SESSION_LOCK_CHANGED, ERROR_CODE_SESSION_LOCKED
 from app.db.models.sound_necklace import (
     ArtifactKind,
+    AuditEvent,
+    ConsentType,
     GranularityLevel,
     SessionStatus,
     SessionStep,
@@ -132,6 +135,31 @@ class LockStatusResponse(BaseModel):
     expires_at: str | None = None
 
 
+class SessionLockedResponse(BaseModel):
+    """The 409 of a write refused while somebody else holds the editor lock.
+
+    `code` is what the client branches on and the other two are what it renders, so this
+    is a contract and not a debug body — hence a model the SPA can generate types from
+    rather than a description in prose.
+    """
+
+    model_config = ConfigDict(json_schema_extra=_EXPERIMENTAL)
+
+    detail: str
+    code: Literal["SESSION_LOCKED"] = ERROR_CODE_SESSION_LOCKED
+    holder_name: str
+    expires_at: str
+
+
+class SessionLockChangedResponse(BaseModel):
+    """The 409 of a write the lease refused and then lapsed on. Retry; no holder to show."""
+
+    model_config = ConfigDict(json_schema_extra=_EXPERIMENTAL)
+
+    detail: str
+    code: Literal["SESSION_LOCK_CHANGED"] = ERROR_CODE_SESSION_LOCK_CHANGED
+
+
 # ── Voice-answer resources (canonical respostas/... path) ────────────────────
 
 # The logical, contract-frozen path the SPA builds for each answer (§10.4). It is an
@@ -170,6 +198,73 @@ class ResourceUrlResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
 
     url: str
+
+
+# ── Consent records (§12 / O6) ───────────────────────────────────────────────
+
+
+class ConsentCreate(BaseModel):
+    """Record a consent. Which one is the whole body: who confirmed it is the caller,
+    and when is now — neither is the client's to assert."""
+
+    model_config = ConfigDict(json_schema_extra=_EXPERIMENTAL)
+
+    type: ConsentType
+
+
+class ConsentResponse(BaseModel):
+    """One consent record — the evidence, as stored.
+
+    ``confirmed_by`` is nullable because the record outlives the account that typed it:
+    a deleted user leaves the consent standing and its confirmer null. It names whoever
+    OPERATED the app, which for ``voice_answers`` is the facilitator who witnessed the
+    listener — the listener never holds an account.
+    """
+
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    type: ConsentType
+    confirmed_by: str | None = None
+    confirmed_at: str
+
+
+class ConsentListResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    consents: list[ConsentResponse]
+
+
+# ── Audit log (§12) ──────────────────────────────────────────────────────────
+
+
+class AuditEventResponse(BaseModel):
+    """One recorded reach, as stored.
+
+    Every field is nullable exactly where the row is: constraints on a RESPONSE model are
+    assertions the framework enforces on the way out, and one unlucky row would 500 the
+    whole listing — in the one place whose job is to still answer when things went wrong.
+
+    ``ip`` is on the table but not here. Nothing writes it yet (behind Cloud Run's proxy
+    there is no address this API can honestly attribute to the caller), and a response
+    field is additive — it can join the day something fills the column, without breaking
+    the SPA. Shipping it now would only generate an ``ip: string | null`` the SPA might
+    build a screen column for, forever null.
+    """
+
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    id: str
+    occurred_at: str
+    event: AuditEvent
+    user_id: str | None = None
+    session_id: str | None = None
+    resource_ref: str
+
+
+class AuditListResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    events: list[AuditEventResponse]
 
 
 # ── Bucket audios ─────────────────────────────────────────────────────────────
