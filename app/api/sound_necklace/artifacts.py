@@ -46,7 +46,7 @@ async def upload_artifacts(
         ArtifactKind.REPORT: await report.read(),
     }
     try:
-        artifacts = await sn_service.store_artifacts(db, session.id, payloads, user.id)
+        artifacts = await sn_service.store_artifacts(db, session, payloads, user.id)
     except sn_service.SessionLockedByOther as exc:
         return locked_body(exc)
     return [
@@ -72,5 +72,5 @@ async def download_artifact(
     session = await sn_service.get_session(db, session_id)
     await assert_project_access(db, user, session.project_id)
 
-    url = await sn_service.artifact_download_url(db, session_id, kind)
+    url = await sn_service.artifact_download_url(db, session, kind, user.id)
     return RedirectResponse(url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)

@@ -20,6 +20,7 @@ from sqlalchemy import (
     Enum,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -68,6 +69,31 @@ class ConsentType(enum.StrEnum):
     VOICE_ANSWERS = "voice_answers"
 
 
+class AuditEvent(enum.StrEnum):
+    """What was recorded (§12).
+
+    Every URL name says ISSUED, and that is the whole of what this API can honestly
+    claim. The bytes are served by storage against a short-lived signed URL and never
+    pass through here, so a download is something it never witnesses: the URL may be used
+    once, ten times, shared, or never opened. An ``audio_downloaded`` would be a lie the
+    next reader would build a retention or a breach report on.
+
+    ``ARTIFACT_UPLOADED`` is the only event here that claims a transfer, and those bytes
+    really do come through the API. It is not the only upload that does — a voice answer is
+    also posted through it — but that one is the listener recording their own voice, and
+    §14 forbids logging the listener working. Reaching for a voice already recorded is the
+    facilitator action §12 asks about; making one is not.
+    """
+
+    AUDIO_URL_ISSUED = "audio_url_issued"
+    ARTIFACT_UPLOADED = "artifact_uploaded"
+    ARTIFACT_URL_ISSUED = "artifact_url_issued"
+    VOICE_URL_ISSUED = "voice_url_issued"
+    SESSION_COMPLETED = "session_completed"
+    SESSION_REOPENED = "session_reopened"
+    CONSENT_RECORDED = "consent_recorded"
+
+
 class ArtifactKind(enum.StrEnum):
     """Which of the three artifacts. The stored FILENAMES stay Portuguese
     (``manifesto-contas.json``, ``retorno-ancoragem.json``,
@@ -104,6 +130,11 @@ _GRANULARITY_TYPE = Enum(
 _CONSENT_TYPE = Enum(
     ConsentType,
     name="sn_consent_type_enum",
+    values_callable=lambda enum_cls: [m.value for m in enum_cls],
+)
+_AUDIT_EVENT_TYPE = Enum(
+    AuditEvent,
+    name="sn_audit_event_enum",
     values_callable=lambda enum_cls: [m.value for m in enum_cls],
 )
 
@@ -283,6 +314,63 @@ class SnConsent(Base):
         String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     confirmed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class SnAuditEvent(Base):
+    """One recorded reach for protected material (§12).
+
+    Append-only by nature: nothing updates a row here, because an event is a thing that
+    happened. Written in the same transaction as the operation it records, so there is
+    never a signed URL issued without a row to say so — and if the database is unreachable
+    the route has already failed at its own read, long before there is anything to log.
+
+    ``project_id`` is carried rather than joined through the session: an audio is reached
+    before any session exists over it, and the log's whole purpose is to be queryable per
+    project.
+
+    ``resource_ref`` is the LOGICAL reference — the part of the resource's key that is not
+    the session (``audio_id``, the artifact kind, the answer's respostas/… path) — not the
+    storage key. Three reasons, in order: the audio's object name lives in a ``Text``
+    column with no bound at all and would overflow anything declared here; an artifact's
+    storage key is content-addressed, so it changes under a re-upload and a stale key would
+    read as a different file; and the logical ref is what a person auditing this actually
+    recognises. (session_id, resource_ref) is the resource's identity, exactly as its own
+    table keys it. The longest value is an ``audio_id`` at 128 — not the voice path, which
+    its allowlist bounds at 93 — and 128 is a measured number: a Terena pilot slug once
+    hit 83 and forced that column from 64 to 128 (20260713_0001).
+
+    ``ip`` stays null. This runs on Cloud Run, behind a proxy: ``request.client.host`` is
+    the proxy's address, and the client end of ``X-Forwarded-For`` is appended to whatever
+    the caller sent, so it is forgeable. Both would put a number in an evidence log that
+    reads like a fact and is not one. The column exists because adding it later means a
+    migration on a database six production apps share; filling it needs a trusted-proxy
+    policy, which is its own work.
+    """
+
+    __tablename__ = "sn_audit_events"
+
+    __table_args__ = (
+        Index("ix_sn_audit_events_project_occurred", "project_id", "occurred_at", "id"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    # SET NULL, never CASCADE: deleting a user must not erase the record of what that
+    # account reached. That is the one question an audit log exists to answer, and an
+    # account being gone is when it is asked most.
+    user_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    event: Mapped[AuditEvent] = mapped_column(_AUDIT_EVENT_TYPE)
+    # Nullable: an audio is reached outside any session.
+    session_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("sn_sessions.id", ondelete="SET NULL"), nullable=True
+    )
+    project_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("projects.id", ondelete="CASCADE")
+    )
+    resource_ref: Mapped[str] = mapped_column(String(255))
+    ip: Mapped[str | None] = mapped_column(String(45), nullable=True)
 
 
 class SnAudioRef(Base):

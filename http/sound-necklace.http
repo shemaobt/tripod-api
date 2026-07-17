@@ -173,6 +173,33 @@ Content-Type: application/json
 GET {{baseUrl}}/api/sound-necklace/sessions/sess_1/consent
 Authorization: Bearer {{accessToken}}
 
+### Audit: who reached whose voice, and when (§12)
+# project_admin only (platform admin bypasses), AND project membership on top — the role
+# alone would let an admin of one project read another's trail. A facilitator gets 403:
+# reading who reached what is not part of doing the work.
+#
+# Every URL event says ISSUED, and that is all this API can honestly claim. The bytes are
+# served by storage against a short-lived signed URL and never pass through here, so it
+# never sees a download: the URL may be used once, ten times, shared, or never opened.
+#   audio_url_issued | artifact_url_issued | voice_url_issued  → a URL was minted
+#   artifact_uploaded → the ONLY event that claims a real transfer; those bytes do come
+#                       through the API. One event for the triple: the upload is atomic.
+#   session_completed | session_reopened | consent_recorded    → lifecycle acts
+#
+# NOT logged, ever: the listener's behaviour (§14). Reading a session, autosaving, listing
+# the bucket — none of them write a row. Those are someone doing their job, not a reach
+# for protected voice.
+#
+# `resource_ref` is the logical ref, never the storage key: the audio id, the artifact
+# kind, the answer's respostas/… path. With session_id it is the resource's identity.
+# `ip` is always null — behind Cloud Run's proxy there is no address this API can
+# honestly attribute to the caller, and a number that reads like one and is not is worse
+# than none in an evidence log.
+#
+# `since` is an ISO instant; an empty list is an answer, not an error.
+GET {{baseUrl}}/api/sound-necklace/projects/prj_1/audit?since=2026-07-01T00:00:00Z&event=voice_url_issued&limit=100
+Authorization: Bearer {{accessToken}}
+
 ### Artifacts: upload the three on completion (RAW bytes — byte-identical custody)
 POST {{baseUrl}}/api/sound-necklace/sessions/sess_1/artifacts
 Authorization: Bearer {{accessToken}}

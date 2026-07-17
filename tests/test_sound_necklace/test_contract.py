@@ -8,8 +8,8 @@ PREFIX = "/api/sound-necklace"
 METHODS = {"get", "post", "put", "delete", "patch"}
 
 # Implemented (ENG-260 sessions, ENG-261 audios, ENG-263 artifacts, ENG-264 resources,
-# ENG-262 lock, ENG-265 consent). Nothing answers 501 any more; the set is kept because
-# the check runs both ways and a future stub must still be caught.
+# ENG-262 lock, ENG-265 consent, ENG-266 audit). Nothing answers 501 any more; the set is
+# kept because the check runs both ways and a future stub must still be caught.
 IMPLEMENTED_OPERATIONS = {
     ("/sessions/{session_id}/lock", "put"),
     ("/sessions/{session_id}/lock", "get"),
@@ -31,6 +31,7 @@ IMPLEMENTED_OPERATIONS = {
     ("/sessions/{session_id}/resources/url", "get"),
     ("/sessions/{session_id}/consent", "post"),
     ("/sessions/{session_id}/consent", "get"),
+    ("/projects/{project_id}/audit", "get"),
 }
 
 

@@ -6,7 +6,7 @@ import google_crc32c
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ValidationError
-from app.db.models.sound_necklace import ArtifactKind, SnArtifact
+from app.db.models.sound_necklace import ArtifactKind, AuditEvent, SnArtifact, SnSession
 from app.services.oral_collector import gcs_utils
 from app.services.sound_necklace.constants import (
     ARTIFACT_CONTENT_TYPES,
@@ -14,6 +14,7 @@ from app.services.sound_necklace.constants import (
     GCS_SN_BUCKET,
 )
 from app.services.sound_necklace.lock_fence import raise_if_locked_by_other
+from app.services.sound_necklace.record_audit_event import record_audit_event
 
 
 def _crc32c(data: bytes) -> str:
@@ -43,7 +44,7 @@ def _storage_key(session_id: str, kind: ArtifactKind, sha256: str) -> str:
 
 
 async def store_artifacts(
-    db: AsyncSession, session_id: str, payloads: dict[ArtifactKind, bytes], actor_user_id: str
+    db: AsyncSession, session: SnSession, payloads: dict[ArtifactKind, bytes], actor_user_id: str
 ) -> list[SnArtifact]:
     """Hand the three artifacts to storage exactly as they arrived, and record custody.
 
@@ -55,6 +56,7 @@ async def store_artifacts(
     Fenced by the editor lock, before the bytes move and again before the pointers do.
     Raises ``SessionLockedByOther`` if somebody else holds the session.
     """
+    session_id = session.id
     await raise_if_locked_by_other(db, session_id, actor_user_id)
 
     for kind, data in payloads.items():
@@ -102,5 +104,23 @@ async def store_artifacts(
         artifact.content_type = ARTIFACT_CONTENT_TYPES[kind]
         artifacts.append(artifact)
 
+    # One event for the triple, not three. The upload is atomic (§10.5) — a partial
+    # triple is never stored — so three rows would describe three transfers that cannot
+    # happen apart. This is the one audit point where the bytes really did pass through
+    # the API, which is why it is the only name here that claims a transfer.
+    #
+    # The ref is derived from what was actually stored, in the same kind.value vocabulary
+    # artifact_url_issued writes, sorted so the string is stable — not a hand-written
+    # literal that could drift from the kinds or from that other event's words. The
+    # download names one kind; the upload is the whole triple, so its ref is the join.
+    uploaded_ref = ",".join(sorted(kind.value for kind in payloads))
+    await record_audit_event(
+        db,
+        event=AuditEvent.ARTIFACT_UPLOADED,
+        user_id=actor_user_id,
+        project_id=session.project_id,
+        resource_ref=uploaded_ref,
+        session_id=session_id,
+    )
     await db.commit()
     return artifacts
