@@ -185,11 +185,6 @@ def create_app() -> FastAPI:
         prefix="/api/oc/recordings",
         tags=["oc-recordings"],
     )
-    # The acousteme routes were mounted here. They minted a signed URL for a private
-    # recording behind nothing but `get_current_user` — no app role, no project scoping —
-    # and listed every id in a collection to anyone with any Tripod account. Retired in
-    # ENG-290. The Sound Necklace will reach the same bytes through a project-scoped
-    # route (ENG-261), and the corpus importer writes through the service — which stays.
     app.include_router(
         oc_stats_router,
         prefix="/api/oc",
