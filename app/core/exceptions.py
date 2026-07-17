@@ -1,4 +1,5 @@
 import logging
+from typing import Final
 
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
@@ -14,7 +15,12 @@ ERROR_CODE_CONFLICT = "CONFLICT"
 # A 409 that means "someone else is editing this", not "your copy is stale". The two
 # land on the same route and demand opposite reactions from the client — reload and
 # retry, versus stop writing and open in review — so they cannot share a code.
-ERROR_CODE_SESSION_LOCKED = "SESSION_LOCKED"
+ERROR_CODE_SESSION_LOCKED: Final = "SESSION_LOCKED"
+# A third reaction: the lease refused the write and then lapsed, so there is nobody to
+# name and nothing to reload from. Neither of the other two fits — CONFLICT promises a
+# current_version these routes do not have, and SESSION_LOCKED promises a holder that no
+# longer exists. Just try again.
+ERROR_CODE_SESSION_LOCK_CHANGED: Final = "SESSION_LOCK_CHANGED"
 ERROR_CODE_BAD_REQUEST = "BAD_REQUEST"
 ERROR_CODE_NOT_FOUND = "NOT_FOUND"
 ERROR_CODE_INTERNAL = "INTERNAL_ERROR"
@@ -31,6 +37,15 @@ class AuthorizationError(Exception):
 
 class ConflictError(Exception):
     pass
+
+
+class SessionLockChanged(ConflictError):
+    """A guarded write was refused by a lease that had lapsed by the time we looked.
+
+    Its own exception rather than a bare ConflictError because the handler is what puts
+    the code on the wire, and the generic one says CONFLICT — which this API defines as
+    a stale version carrying a current_version to reload from.
+    """
 
 
 class RoleError(Exception):
@@ -92,6 +107,13 @@ async def handle_conflict_error(_request: Request, exc: ConflictError) -> JSONRe
     return JSONResponse(
         status_code=status.HTTP_409_CONFLICT,
         content=_error_body(str(exc), ERROR_CODE_CONFLICT),
+    )
+
+
+async def handle_session_lock_changed(_request: Request, exc: SessionLockChanged) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_409_CONFLICT,
+        content=_error_body(str(exc), ERROR_CODE_SESSION_LOCK_CHANGED),
     )
 
 
@@ -173,6 +195,9 @@ def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(AuthenticationError, handle_authentication_error)  # type: ignore[arg-type]
     app.add_exception_handler(AuthorizationError, handle_authorization_error)  # type: ignore[arg-type]
     app.add_exception_handler(ConflictError, handle_conflict_error)  # type: ignore[arg-type]
+    # Starlette walks the raised class's MRO, so the subclass wins over ConflictError
+    # above regardless of the order these are registered in.
+    app.add_exception_handler(SessionLockChanged, handle_session_lock_changed)  # type: ignore[arg-type]
     app.add_exception_handler(RoleError, handle_role_error)  # type: ignore[arg-type]
     app.add_exception_handler(InvalidTokenError, handle_invalid_token)  # type: ignore[arg-type]
     app.add_exception_handler(NotFoundError, handle_not_found_error)  # type: ignore[arg-type]

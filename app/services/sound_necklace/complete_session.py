@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import ConflictError
+from app.core.exceptions import SessionLockChanged
 from app.db.models.sound_necklace import SessionStatus, SnSession
 from app.services.sound_necklace.lock_fence import raise_if_locked_by_other
 
@@ -53,7 +53,7 @@ async def complete_session(db: AsyncSession, session: SnSession, actor_user_id: 
         # left to name. Falling through would commit nothing and answer 200 with an
         # uncompleted session — a no-op reported as success. Say what happened instead;
         # the client's next attempt finds the session free.
-        raise ConflictError("The session lock changed hands. Try completing again.")
+        raise SessionLockChanged("The session lock changed hands. Try completing again.")
 
     await db.commit()
     await db.refresh(session)

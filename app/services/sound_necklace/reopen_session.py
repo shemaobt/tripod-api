@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import ConflictError
+from app.core.exceptions import SessionLockChanged
 from app.db.models.sound_necklace import SessionStatus, SnSession
 from app.services.sound_necklace.lock_fence import raise_if_locked_by_other
 
@@ -42,7 +42,7 @@ async def reopen_session(db: AsyncSession, session: SnSession, actor_user_id: st
         await raise_if_locked_by_other(db, session.id, actor_user_id)
         # Refused, but the lease lapsed before we could name the holder. Nothing landed;
         # falling through would answer 200 with a session still marked complete.
-        raise ConflictError("The session lock changed hands. Try reopening again.")
+        raise SessionLockChanged("The session lock changed hands. Try reopening again.")
 
     await db.commit()
     await db.refresh(session)
