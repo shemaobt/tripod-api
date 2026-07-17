@@ -1,9 +1,10 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.auth import User
-from app.db.models.sound_necklace import SnSession, SnSessionState
+from app.db.models.sound_necklace import ConsentType, SnSession, SnSessionState
 from app.models.sound_necklace import SessionCreate
 from app.services.project.get_project_or_404 import get_project_or_404
+from app.services.sound_necklace.record_consent import record_consent
 
 
 async def create_session(db: AsyncSession, user: User, payload: SessionCreate) -> SnSession:
@@ -11,6 +12,12 @@ async def create_session(db: AsyncSession, user: User, payload: SessionCreate) -
 
     The state row is created empty alongside the session so that every autosave is a
     plain conditional UPDATE — there is no insert-or-update race on the first save.
+
+    The consent the setup screen confirms is recorded here, in the same transaction: this
+    is the path the SPA actually takes, so a consent record written only by the explicit
+    route would have no caller and the boolean below would go on being the only truth.
+    A false records nothing at all — the table holds consents that were given, and absent
+    is not the same claim as refused.
     """
     # A platform admin skips assert_project_access, so a nonexistent project_id would
     # otherwise reach the FK as a 500 instead of a 404.
@@ -29,6 +36,13 @@ async def create_session(db: AsyncSession, user: User, payload: SessionCreate) -
     db.add(session)
     await db.flush()
     db.add(SnSessionState(session_id=session.id))
+    if payload.pipeline_consent:
+        # Its commit closes the transaction the session, the state row and the consent
+        # all sit in, so the three land together or not at all. The commit below stays
+        # unconditional rather than moving into an else: it is what stores a session
+        # created without consent, and leaving it here keeps this function correct on
+        # its own instead of depending on where somebody else's commit happens to be.
+        await record_consent(db, session.id, ConsentType.PIPELINE_USE, user.id)
     await db.commit()
     await db.refresh(session)
     return session

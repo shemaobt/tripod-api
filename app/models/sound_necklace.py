@@ -20,6 +20,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.db.models.sound_necklace import (
     ArtifactKind,
+    ConsentType,
     GranularityLevel,
     SessionStatus,
     SessionStep,
@@ -170,6 +171,44 @@ class ResourceUrlResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
 
     url: str
+
+
+# ── Consent records (§12 / O6) ───────────────────────────────────────────────
+
+
+class ConsentCreate(BaseModel):
+    """Record a consent. Which one is the whole body: who confirmed it is the caller,
+    and when is now — neither is the client's to assert."""
+
+    model_config = ConfigDict(json_schema_extra=_EXPERIMENTAL)
+
+    type: ConsentType
+
+
+class ConsentResponse(BaseModel):
+    """One consent record — the evidence, as stored.
+
+    ``confirmed_by`` is nullable because the record outlives the account that typed it:
+    a deleted user leaves the consent standing and its confirmer null. It names whoever
+    OPERATED the app, which for ``voice_answers`` is the facilitator who witnessed the
+    listener — the listener never holds an account.
+
+    ``oral_recording_path`` is null until a consent audio exists; no route records one
+    yet.
+    """
+
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    type: ConsentType
+    confirmed_by: str | None = None
+    confirmed_at: str
+    oral_recording_path: str | None = None
+
+
+class ConsentListResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    consents: list[ConsentResponse]
 
 
 # ── Bucket audios ─────────────────────────────────────────────────────────────
