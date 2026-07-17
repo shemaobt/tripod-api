@@ -12,8 +12,8 @@ terena-pilot bucket and upserting the pointer row.
         --corpus gs://terena-pilot/acoustemes-raw/ruth_corpus.json
 
 The audios themselves are already in gs://terena-pilot/ruth/; this only writes
-the acousteme streams + DB rows. After it runs, Beads can consume the pilot via
-GET /api/oc/acoustemes?collection=terena-ruth.
+the acousteme streams + DB rows. The Sound Necklace reads them through its own
+project-scoped routes (the ungated /api/oc/acoustemes surface was retired in ENG-290).
 """
 
 from __future__ import annotations
