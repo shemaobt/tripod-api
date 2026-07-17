@@ -9,9 +9,11 @@ from app.services import (
     notifications,
     org,
     phase,
+    platform,
     project,
     project_health,
     rag,
+    sound_necklace,
     translation_helper,
     user,
 )
@@ -26,9 +28,11 @@ meaning_map_service = meaning_map
 notification_service = notifications
 organization_service = org
 phase_service = phase
+platform_service = platform
 project_service = project
 project_health_service = project_health
 rag_service = rag
+sound_necklace_service = sound_necklace
 translation_helper_service = translation_helper
 user_service = user
 
@@ -53,12 +57,16 @@ __all__ = [
     "organization_service",
     "phase",
     "phase_service",
+    "platform",
+    "platform_service",
     "project",
     "project_health",
     "project_health_service",
     "project_service",
     "rag",
     "rag_service",
+    "sound_necklace",
+    "sound_necklace_service",
     "translation_helper",
     "translation_helper_service",
     "user",
