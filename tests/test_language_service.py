@@ -156,3 +156,62 @@ async def test_get_language_or_404_raises_when_missing(db_session) -> None:
         await language_service.get_language_or_404(
             db_session, "00000000-0000-0000-0000-000000000000"
         )
+
+
+@pytest.mark.asyncio
+async def test_get_visible_language_hides_inactive_from_non_admin(db_session) -> None:
+    admin = await make_user(db_session, email="admin@example.com", is_platform_admin=True)
+    manager = await make_user(db_session, email="manager@example.com")
+    language = await make_language(db_session, code="kos")
+    await language_service.deactivate_language(db_session, language.id, admin)
+
+    with pytest.raises(NotFoundError, match=r"Language .* not found"):
+        await language_service.get_visible_language_or_404(db_session, language.id, manager)
+
+
+@pytest.mark.asyncio
+async def test_get_visible_language_allows_admin_to_see_inactive(db_session) -> None:
+    admin = await make_user(db_session, email="admin@example.com", is_platform_admin=True)
+    language = await make_language(db_session, code="kos")
+    await language_service.deactivate_language(db_session, language.id, admin)
+
+    found = await language_service.get_visible_language_or_404(db_session, language.id, admin)
+    assert found.id == language.id
+    assert found.is_active is False
+
+
+@pytest.mark.asyncio
+async def test_get_visible_language_returns_active_for_non_admin(db_session) -> None:
+    manager = await make_user(db_session, email="manager@example.com")
+    language = await make_language(db_session, code="kos")
+
+    found = await language_service.get_visible_language_or_404(db_session, language.id, manager)
+    assert found.id == language.id
+
+
+@pytest.mark.asyncio
+async def test_get_visible_language_by_code_hides_inactive_from_non_admin(db_session) -> None:
+    admin = await make_user(db_session, email="admin@example.com", is_platform_admin=True)
+    manager = await make_user(db_session, email="manager@example.com")
+    language = await make_language(db_session, code="kos")
+    await language_service.deactivate_language(db_session, language.id, admin)
+
+    with pytest.raises(NotFoundError, match="Language not found"):
+        await language_service.get_visible_language_by_code_or_404(db_session, "kos", manager)
+
+
+@pytest.mark.asyncio
+async def test_get_visible_language_by_code_allows_admin_to_see_inactive(db_session) -> None:
+    admin = await make_user(db_session, email="admin@example.com", is_platform_admin=True)
+    language = await make_language(db_session, code="kos")
+    await language_service.deactivate_language(db_session, language.id, admin)
+
+    found = await language_service.get_visible_language_by_code_or_404(db_session, "kos", admin)
+    assert found.id == language.id
+
+
+@pytest.mark.asyncio
+async def test_get_visible_language_by_code_missing_raises_not_found(db_session) -> None:
+    manager = await make_user(db_session, email="manager@example.com")
+    with pytest.raises(NotFoundError, match="Language not found"):
+        await language_service.get_visible_language_by_code_or_404(db_session, "zzz", manager)

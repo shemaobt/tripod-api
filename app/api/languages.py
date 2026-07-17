@@ -42,11 +42,9 @@ async def create_language(
 async def get_language_by_code(
     code: str,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ) -> LanguageResponse:
-    language = await language_service.get_language_by_code(db, code)
-    if not language:
-        raise NotFoundError("Language not found")
+    language = await language_service.get_visible_language_by_code_or_404(db, code, user)
     return LanguageResponse.model_validate(language)
 
 
@@ -54,9 +52,9 @@ async def get_language_by_code(
 async def get_language_by_id(
     language_id: str,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ) -> LanguageResponse:
-    language = await language_service.get_language_or_404(db, language_id)
+    language = await language_service.get_visible_language_or_404(db, language_id, user)
     return LanguageResponse.model_validate(language)
 
 
