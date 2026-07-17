@@ -16,7 +16,6 @@ from app.api.health import router as health_router
 from app.api.languages import router as languages_router
 from app.api.meaning_maps import router as meaning_maps_router
 from app.api.notifications import router as notifications_router
-from app.api.oral_collector.acoustemes import acoustemes_router as oc_acoustemes_router
 from app.api.oral_collector.genres import genres_router as oc_genres_router
 from app.api.oral_collector.genres import subcategories_router as oc_subcategories_router
 from app.api.oral_collector.invites import invites_router as oc_invites_router
@@ -33,6 +32,7 @@ from app.api.organizations import router as organizations_router
 from app.api.pericopes import router as pericopes_router
 from app.api.phases import router as phases_router
 from app.api.places import router as places_router
+from app.api.platform import router as platform_router
 from app.api.project_health import router as project_health_router
 from app.api.projects import router as projects_router
 from app.api.rag import router as rag_router
@@ -112,6 +112,10 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        # Neither is CORS-safelisted: without this a browser client cannot read them at all.
+        # The sound-necklace autosave version guard rides on ETag; X-Tts-Cached is what makes
+        # TTS cache warming observable.
+        expose_headers=["ETag", "X-Tts-Cached"],
     )
 
     app.include_router(health_router)
@@ -123,6 +127,7 @@ def create_app() -> FastAPI:
     app.include_router(apps_router, prefix="/api/apps", tags=["apps"])
     app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
     app.include_router(roles_router, prefix="/api/roles", tags=["roles"])
+    app.include_router(platform_router, prefix="/api/platform", tags=["platform"])
     app.include_router(uploads_router, prefix="/api/uploads", tags=["uploads"])
     app.include_router(users_router, prefix="/api/users", tags=["users"])
     console_guard = [Depends(require_admin_or_manager)]
@@ -161,8 +166,6 @@ def create_app() -> FastAPI:
         sound_necklace_router,
         prefix="/api/sound-necklace",
         tags=["sound-necklace"],
-        # Every route is still a contract stub; say so in the schema the SPA reads.
-        responses={status.HTTP_501_NOT_IMPLEMENTED: {"description": "Not implemented yet"}},
     )
     app.include_router(
         project_health_router,
@@ -203,11 +206,6 @@ def create_app() -> FastAPI:
         oc_recordings_router,
         prefix="/api/oc/recordings",
         tags=["oc-recordings"],
-    )
-    app.include_router(
-        oc_acoustemes_router,
-        prefix="/api/oc/acoustemes",
-        tags=["oc-acoustemes"],
     )
     app.include_router(
         oc_stats_router,
