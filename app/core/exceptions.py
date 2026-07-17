@@ -15,6 +15,7 @@ ERROR_CODE_BAD_REQUEST = "BAD_REQUEST"
 ERROR_CODE_NOT_FOUND = "NOT_FOUND"
 ERROR_CODE_INTERNAL = "INTERNAL_ERROR"
 ERROR_CODE_UPSTREAM = "UPSTREAM_ERROR"
+ERROR_CODE_STORAGE_UNAVAILABLE = "STORAGE_UNAVAILABLE"
 
 
 class AuthenticationError(Exception):
@@ -51,6 +52,10 @@ class UpstreamServiceError(Exception):
     Kept apart from ValidationError so a provider outage or rate limit does not masquerade
     as a 4xx: a client error page never pages anyone, and the right alert never fires.
     """
+
+
+class StorageUnavailableError(Exception):
+    pass
 
 
 class InvalidCleaningStatusError(ValidationError):
@@ -122,6 +127,16 @@ async def handle_upstream_service_error(
     )
 
 
+async def handle_storage_unavailable_error(
+    _request: Request, exc: StorageUnavailableError
+) -> JSONResponse:
+    logger.error("Object storage unavailable: %s", exc)
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content=_error_body(str(exc), ERROR_CODE_STORAGE_UNAVAILABLE),
+    )
+
+
 async def handle_not_found_error(_request: Request, exc: NotFoundError) -> JSONResponse:
     return JSONResponse(
         status_code=status.HTTP_404_NOT_FOUND,
@@ -174,4 +189,5 @@ def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(NotFoundError, handle_not_found_error)  # type: ignore[arg-type]
     app.add_exception_handler(ValidationError, handle_validation_error)  # type: ignore[arg-type]
     app.add_exception_handler(UpstreamServiceError, handle_upstream_service_error)  # type: ignore[arg-type]
+    app.add_exception_handler(StorageUnavailableError, handle_storage_unavailable_error)  # type: ignore[arg-type]
     app.add_exception_handler(Exception, handle_unexpected)

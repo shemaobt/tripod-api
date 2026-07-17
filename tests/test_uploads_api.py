@@ -66,3 +66,28 @@ async def test_upload_requires_authentication(client) -> None:
     response = await client.post("/api/uploads/image?folder=avatars", files=_png())
 
     assert response.status_code == 401
+
+
+async def test_unsupported_file_type_is_rejected_as_bad_request(db_session, client) -> None:
+    headers = await _auth_header(db_session)
+    files = {"file": ("notes.txt", b"hello", "text/plain")}
+
+    response = await client.post("/api/uploads/image?folder=avatars", files=files, headers=headers)
+
+    assert response.status_code == 400
+    assert "Unsupported file type" in response.json()["detail"]
+
+
+async def test_storage_failure_reports_service_unavailable(db_session, client) -> None:
+    headers = await _auth_header(db_session)
+    boom = IsADirectoryError(21, "Is a directory", "/etc/gcs/signing-key.json")
+
+    with patch("app.services.storage.upload.storage.Client", side_effect=boom):
+        response = await client.post(
+            "/api/uploads/image?folder=avatars", files=_png(), headers=headers
+        )
+
+    assert response.status_code == 503
+    body = response.json()
+    assert body["code"] == "STORAGE_UNAVAILABLE"
+    assert "Image storage is unavailable" in body["detail"]
