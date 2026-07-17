@@ -1,10 +1,10 @@
 """Consent records: the queryable evidence of a lawful basis (§12 / O6).
 
-The record is the authoritative evidence; ``sn_sessions.pipeline_consent`` is the
-convenience copy the SPA reads. These tests are written against the thing that makes
-the record evidence rather than decoration: that it exists for the path the SPA
-actually uses, that a re-confirmation is honest about when it happened, that nothing
-asserts a consent nobody gave, and that the record outlives the operator who typed it.
+The record is the authoritative evidence; ``sn_sessions.pipeline_consent`` is a
+write-only leftover the SPA sends on create and never reads back. These tests are written
+against what makes the record evidence rather than decoration: that it exists for the path
+the SPA actually uses, that a re-confirmation is honest about when it happened, that
+nothing asserts a consent nobody gave, and that it outlives the operator who typed it.
 """
 
 from __future__ import annotations
@@ -66,11 +66,12 @@ def as_utc(when: datetime) -> datetime:
 async def backdate(db_session, session_id: str, when: datetime) -> None:
     """Age a record's confirmed_at without waiting.
 
-    Written behind the ORM's back on purpose: asserting that a re-confirmation moved
-    the timestamp by comparing two wall-clock reads would be a coin flip. The database
-    the suite runs on stores ``func.now()`` at one-second resolution, so two requests
-    in the same second are indistinguishable — the test would pass by luck, not by the
-    code being right.
+    Written behind the ORM's back on purpose. The point is to make the assertion hold
+    no matter how confirmed_at is implemented: a plain two-reads comparison passes today
+    only because the column is a microsecond-resolution Python value, and would go on
+    passing by luck if someone swapped it for ``func.now()`` — which SQLite stores at
+    one-second resolution. Back-dating decades makes the test measure the rule, not the
+    clock.
     """
     await db_session.execute(
         text("UPDATE sn_consents SET confirmed_at = :when WHERE session_id = :sid"),
@@ -128,6 +129,52 @@ async def test_the_explicit_route_records_consent(client, facilitator):
 
     assert res.status_code == 201, res.text
     assert res.json()["type"] == "pipeline_use"
+
+
+async def test_the_sessions_boolean_cannot_contradict_the_record(client, facilitator, db_session):
+    """Two columns claiming the same fact must not disagree.
+
+    Opening a session without consent and recording it afterwards is the path that splits
+    them: the record says granted while the session still says false. Nothing reads the
+    boolean today — no response carries it, and the SPA reads its own copy out of the
+    state document — so this costs nothing now and hands a stale false to whoever wires
+    the first read of it.
+    """
+    _user, project, headers = facilitator
+    session_id = await new_session(client, headers, project.id, consent=False)
+
+    await client.post(
+        f"{SN}/sessions/{session_id}/consent",
+        headers=headers,
+        json={"type": "pipeline_use"},
+    )
+
+    session = await db_session.get(SnSession, session_id)
+    await db_session.refresh(session)
+    assert session.pipeline_consent is True, (
+        "the session still denies a consent the record attests to"
+    )
+
+
+async def test_consenting_to_the_voice_alone_does_not_assert_pipeline_use(
+    client, facilitator, db_session
+):
+    """The two consents are two different claims by two different speakers.
+
+    A listener agreeing to be recorded says nothing about whether the story may be
+    processed, and must not be made to."""
+    _user, project, headers = facilitator
+    session_id = await new_session(client, headers, project.id, consent=False)
+
+    await client.post(
+        f"{SN}/sessions/{session_id}/consent",
+        headers=headers,
+        json={"type": "voice_answers"},
+    )
+
+    session = await db_session.get(SnSession, session_id)
+    await db_session.refresh(session)
+    assert session.pipeline_consent is False
 
 
 async def test_the_listener_can_consent_to_their_own_voice_being_recorded(client, facilitator):
@@ -366,6 +413,21 @@ async def test_an_oral_recording_reads_back_on_the_record(client, facilitator, d
 
 
 # ── The wire ─────────────────────────────────────────────────────────────────
+
+
+async def test_the_confirmed_at_on_the_wire_carries_its_offset(client, facilitator):
+    """A legal record's "when" must be an unambiguous instant on either database.
+
+    Postgres reads a timestamptz back aware and SQLite naive, so a bare isoformat() would
+    ship an offset in production and a bare local-looking string under test.
+    """
+    _user, project, headers = facilitator
+    session_id = await new_session(client, headers, project.id)
+
+    res = await client.get(f"{SN}/sessions/{session_id}/consent", headers=headers)
+
+    (record,) = res.json()["consents"]
+    assert datetime.fromisoformat(record["confirmed_at"]).tzinfo is not None
 
 
 async def test_the_type_is_stored_as_its_value_not_its_member_name(client, facilitator, db_session):

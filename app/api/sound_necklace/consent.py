@@ -1,12 +1,16 @@
 """Consent records — the queryable evidence of a lawful basis (§12 / O6).
 
-The record is the authority; ``sn_sessions.pipeline_consent`` is the convenience copy.
+The record is the authority. ``sn_sessions.pipeline_consent`` is write-only: no response
+carries it and the SPA reads its own copy out of the state document, so nothing here
+reads it back — ``record_consent`` only keeps it from contradicting the record.
+
 Two routes, and neither takes the client's word for anything but WHICH consent: the
 confirmer is the authenticated caller and the timestamp is the server's.
 
-Not fenced by the editor lock, deliberately. The lock guards writes that overwrite each
-other; a consent is idempotent per (session, type), so a second facilitator confirming
-one cannot destroy the first's work.
+Not fenced by the editor lock. Not because a re-confirmation is harmless — it replaces
+the previous attester, which is a real loss under a mutable record — but because
+attesting a consent is not editing the session's work, which is what the lease exists to
+serialize. A facilitator in review mode can still testify to what a speaker agreed to.
 """
 
 from fastapi import APIRouter, status
@@ -16,15 +20,20 @@ from app.api.sound_necklace._deps import CurrentUser, Db
 from app.db.models.sound_necklace import SnConsent
 from app.models.sound_necklace import ConsentCreate, ConsentListResponse, ConsentResponse
 from app.services import sound_necklace_service as sn_service
+from app.services.sound_necklace.get_lock_status import as_utc
 
 router = APIRouter()
 
 
 def _record(consent: SnConsent) -> ConsentResponse:
+    # Through as_utc, like the lease expiry: Postgres reads a timestamptz back aware and
+    # SQLite naive, so a bare isoformat() would put an offset on the wire in production
+    # and none under test. When the field is the "when" of a legal record, the instant has
+    # to be unambiguous wherever it is read.
     return ConsentResponse(
         type=consent.type,
         confirmed_by=consent.confirmed_by,
-        confirmed_at=consent.confirmed_at.isoformat(),
+        confirmed_at=as_utc(consent.confirmed_at).isoformat(),
         oral_recording_path=consent.oral_recording_path,
     )
 

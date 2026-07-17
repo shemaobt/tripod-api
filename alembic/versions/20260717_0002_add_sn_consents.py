@@ -1,8 +1,9 @@
 """add sn_consents
 
 Consent as queryable evidence of a lawful basis (§12 / O6), rather than a boolean on the
-session. The row is the authority; sn_sessions.pipeline_consent stays as the convenience
-copy the SPA reads.
+session. The row is the authority; sn_sessions.pipeline_consent stays, write-only — the SPA
+sends it on create and reads its own copy out of the state document, and no response has
+ever carried it. record_consent keeps the two from contradicting each other.
 
 Both enum values ship in this first migration on purpose. The Colar records two speakers
 — the story and the listener whose voice answers 21+ questions — and adding the second

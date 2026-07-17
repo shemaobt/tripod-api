@@ -139,8 +139,10 @@ Authorization: Bearer {{accessToken}}
 # and retry would loop forever.
 
 ### Consent: record one, or re-confirm it (§12 / O6)
-# The record is the authoritative evidence of the lawful basis; the `pipeline_consent`
-# boolean on the session is the convenience copy the SPA reads.
+# The record is the authoritative evidence of the lawful basis. The `pipeline_consent`
+# boolean on the session is write-only — the SPA sends it on create and then reads its own
+# copy out of the state document; no response carries it. Recording a consent keeps that
+# boolean in step so the two cannot disagree, but the record is what to read.
 #
 # `type` is the whole body. Who confirmed it is the bearer and when is the server's clock
 # — neither is the client's to assert. Idempotent per (session, type): re-confirming

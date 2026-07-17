@@ -242,11 +242,14 @@ class SnVoiceAnswer(Base):
 class SnConsent(Base):
     """One consent, recorded as evidence of a lawful basis (§12 / O6).
 
-    This row is the authoritative evidence; ``sn_sessions.pipeline_consent`` is the
-    convenience copy the SPA reads. The table holds consents that were GIVEN — there is
-    no row meaning "refused". Absent, denied and granted are three different things, and
-    only the last one is a consent, so silence is left as silence rather than written
-    down as a false.
+    This row is the authoritative evidence. ``sn_sessions.pipeline_consent`` predates it
+    and is write-only — the SPA sends it on create and then reads its own copy out of the
+    state document; no response has ever carried it. ``record_consent`` keeps it in step
+    so the two cannot contradict each other, but it is not a source of truth: read this.
+
+    The table holds consents that were GIVEN — there is no row meaning "refused". Absent,
+    denied and granted are three different things, and only the last one is a consent, so
+    silence is left as silence rather than written down as a false.
 
     Keyed by (session, type), so re-confirming updates the record instead of stacking a
     second one: the question it answers is "is this consent held, and as of when",
