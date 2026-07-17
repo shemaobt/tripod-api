@@ -16,8 +16,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.access_control import require_app_access
 from app.core.database import get_db
-from app.core.exceptions import ERROR_CODE_SESSION_LOCKED
 from app.db.models.auth import User
+from app.models.sound_necklace import SessionLockChangedResponse, SessionLockedResponse
 from app.services.sound_necklace.lock_fence import SessionLockedByOther
 
 APP_KEY = "sound-necklace"
@@ -27,26 +27,28 @@ Db = Annotated[AsyncSession, Depends(get_db)]
 
 LOCKED_RESPONSE: dict[int | str, dict[str, Any]] = {
     status.HTTP_409_CONFLICT: {
+        "model": SessionLockedResponse | SessionLockChangedResponse,
         "description": (
-            "Somebody else holds the editor lock; the body carries holder_name and "
-            "expires_at, and `code` is SESSION_LOCKED."
-        )
+            "Refused by the editor lock. `code` says which and what to do: SESSION_LOCKED "
+            "means somebody else holds it — stop writing and open in review mode, off the "
+            "holder_name and expires_at in the body. SESSION_LOCK_CHANGED means the lease "
+            "refused the write and then lapsed, leaving nobody to name — just try again."
+        ),
     }
 }
 
 
 def locked_body(exc: SessionLockedByOther) -> JSONResponse:
-    """The 409 the lease raises, built by hand on every route that can raise it.
+    """The SESSION_LOCKED 409, built by hand on every route that can raise it.
 
     The global ConflictError handler emits {detail, code} and constructs a fresh
     response, so the holder and expiry would not survive it.
     """
     return JSONResponse(
         status_code=status.HTTP_409_CONFLICT,
-        content={
-            "detail": str(exc),
-            "code": ERROR_CODE_SESSION_LOCKED,
-            "holder_name": exc.holder_name,
-            "expires_at": exc.expires_at.isoformat(),
-        },
+        content=SessionLockedResponse(
+            detail=str(exc),
+            holder_name=exc.holder_name,
+            expires_at=exc.expires_at.isoformat(),
+        ).model_dump(),
     )
