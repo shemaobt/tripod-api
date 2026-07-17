@@ -6,6 +6,17 @@ from app.core.auth_middleware import get_current_user
 from app.core.database import get_db
 from app.db.models.auth import User
 from app.db.models.org import MemberRole, Organization, OrganizationMember
+from app.db.models.project import ProjectUserAccess
+
+
+async def get_managed_project_ids(db: AsyncSession, user_id: str) -> list[str]:
+    result = await db.execute(
+        select(ProjectUserAccess.project_id).where(
+            ProjectUserAccess.user_id == user_id,
+            ProjectUserAccess.role == MemberRole.MANAGER,
+        )
+    )
+    return sorted(result.scalars().all())
 
 
 async def get_managed_org_ids(db: AsyncSession, user_id: str) -> list[str]:
