@@ -8,8 +8,7 @@ trusted as the object-name suffix — no traversal, no free-form key.
 
 from typing import Annotated
 
-from fastapi import APIRouter, Query, Request, status
-from fastapi.responses import Response
+from fastapi import APIRouter, HTTPException, Query, Request, status
 
 from app.api.projects._deps import assert_project_access
 from app.api.sound_necklace._deps import CurrentUser, Db
@@ -39,7 +38,7 @@ ResourcePath = Annotated[str, Query(pattern=RESOURCE_PATH_PATTERN)]
 )
 async def put_resource(
     session_id: str, path: ResourcePath, request: Request, db: Db, user: CurrentUser
-) -> ResourceSummary | Response:
+) -> ResourceSummary:
     """Upload a voice answer to a canonical path, replacing any previous take.
 
     The recording is read as raw bytes and moved to storage unchanged — it is opaque
@@ -53,7 +52,10 @@ async def put_resource(
     if len(data) > MAX_VOICE_ANSWER_BYTES:
         # A 413 is the honest status for a payload over the cap — distinct from the 422 a
         # malformed path gets, so a client can tell "too big" from "wrong path".
-        return Response(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="The voice answer is over the size cap",
+        )
 
     answer = await sn_service.store_voice_answer(db, session_id, path, data)
     return ResourceSummary(path=answer.resource_path, size=answer.size)
@@ -83,12 +85,9 @@ async def resource_url(
 
 
 @router.delete("/sessions/{session_id}/resources", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_resource(
-    session_id: str, path: ResourcePath, db: Db, user: CurrentUser
-) -> Response:
+async def delete_resource(session_id: str, path: ResourcePath, db: Db, user: CurrentUser) -> None:
     """Remove one answer — object and row. Deleting a path never recorded is a no-op."""
     session = await sn_service.get_session(db, session_id)
     await assert_project_access(db, user, session.project_id)
 
     await sn_service.delete_voice_answer(db, session_id, path)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)

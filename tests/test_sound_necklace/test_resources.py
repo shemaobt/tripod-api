@@ -228,7 +228,22 @@ async def test_an_oversize_answer_is_rejected_and_nothing_is_stored(client, faci
     res = await put_answer(client, headers, session_id, P1, b"x" * (10 * 1024 * 1024 + 1))
 
     assert res.status_code == 413, res.text
+    assert res.json()["code"], res.text
     assert storage.objects == {}
+
+
+async def test_an_empty_answer_is_rejected_and_nothing_is_stored(client, facilitator, storage):
+    """An empty body is a client bug, not a recording — storing it would mark the question
+    answered with nothing to play back."""
+    _user, project, headers = facilitator
+    session_id = await new_session(client, headers, project.id)
+
+    res = await put_answer(client, headers, session_id, P1, b"")
+
+    assert res.status_code == 400, res.text
+    assert storage.objects == {}
+    listing = await client.get(f"{SN}/sessions/{session_id}/resources", headers=headers)
+    assert listing.json()["resources"] == []
 
 
 # ── Delete is idempotent ─────────────────────────────────────────────────────

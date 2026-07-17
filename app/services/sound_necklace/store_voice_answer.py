@@ -25,8 +25,8 @@ async def store_voice_answer(
     Re-recording overwrites in place — the key is a pure function of session+path, so a
     second take lands on the same object and updates the one row.
 
-    The size cap is the router's job (it returns 413 from the streamed body before this
-    is called). The empty check stays here as the one size rule every caller shares,
+    The size cap is the router's job (it raises 413 from the body before this is
+    called). The empty check stays here as the one size rule every caller shares,
     including a future non-HTTP one that has no router in front of it.
     """
     if not data:
