@@ -74,14 +74,21 @@ def upgrade() -> None:
     )
     # One index, for the one query there is: a project's trail, newest first. It serves
     # the scope, the ORDER BY and the LIMIT together, so nothing sorts a table that only
-    # ever grows. Postgres reads it backwards for DESC, so no ordered index is needed.
+    # ever grows — Postgres reads it backwards for DESC.
     #
-    # Deliberately NOT one index per column. Every INSERT here rides on the hot path — an
-    # audit row is written on every URL issued — and each extra index is paid on all of
-    # them. `event` has seven values and is an optional narrowing of an already-scoped
-    # query; `user_id` is filtered by nothing at all. Add them when a query wants them.
+    # `id` is in it for the tiebreak, and the listing orders DESC on both to match: a
+    # mixed order (occurred_at DESC, id ASC) cannot be read off this index, and Postgres
+    # would sort every one of a project's events before the LIMIT took a hundred. Verified
+    # on a throwaway Postgres, not assumed.
+    #
+    # Deliberately NOT one index per column. Every INSERT here rides the hot path — a row
+    # per URL issued — and pays for each index. `event` has seven values and narrows an
+    # already-scoped query; `user_id` is filtered by nothing at all. Add them when a query
+    # wants them.
     op.create_index(
-        "ix_sn_audit_events_project_occurred", "sn_audit_events", ["project_id", "occurred_at"]
+        "ix_sn_audit_events_project_occurred",
+        "sn_audit_events",
+        ["project_id", "occurred_at", "id"],
     )
 
 

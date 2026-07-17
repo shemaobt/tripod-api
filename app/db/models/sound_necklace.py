@@ -349,7 +349,9 @@ class SnAuditEvent(Base):
 
     __tablename__ = "sn_audit_events"
 
-    __table_args__ = (Index("ix_sn_audit_events_project_occurred", "project_id", "occurred_at"),)
+    __table_args__ = (
+        Index("ix_sn_audit_events_project_occurred", "project_id", "occurred_at", "id"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

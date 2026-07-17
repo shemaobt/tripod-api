@@ -27,5 +27,8 @@ async def list_audit_events(
         stmt = stmt.where(SnAuditEvent.event == event)
     # id breaks the tie: two events in the same instant would otherwise come back in
     # whatever order the scan produced, and a paging auditor would see one twice or never.
-    stmt = stmt.order_by(SnAuditEvent.occurred_at.desc(), SnAuditEvent.id).limit(limit)
+    # DESC on both, matching the index's column order — the tiebreak direction is
+    # arbitrary, but a mixed one (DESC, ASC) cannot be read off the index and makes
+    # Postgres sort every one of a project's events before the LIMIT can take a hundred.
+    stmt = stmt.order_by(SnAuditEvent.occurred_at.desc(), SnAuditEvent.id.desc()).limit(limit)
     return list((await db.execute(stmt)).scalars().all())
