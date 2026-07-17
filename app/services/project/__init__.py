@@ -1,4 +1,5 @@
 from app.services.project.can_access_project import can_access_project
+from app.services.project.count_project_team_sizes import count_project_team_sizes
 from app.services.project.create_project import create_project
 from app.services.project.get_project_by_id import get_project_by_id
 from app.services.project.get_project_or_404 import get_project_or_404
@@ -29,6 +30,7 @@ from app.services.project.update_user_access_role import update_user_access_role
 
 __all__ = [
     "can_access_project",
+    "count_project_team_sizes",
     "create_project",
     "get_project_by_id",
     "get_project_or_404",

@@ -7,6 +7,7 @@ from app.db.models.auth import User
 from app.db.models.phase import ProjectPhase
 from app.db.models.project import Project, ProjectUserAccess
 from app.models.project import ProjectMemberPreview, ProjectResponse
+from app.services.project.count_project_team_sizes import count_project_team_sizes
 
 MEMBERS_PREVIEW_LIMIT = 4
 
@@ -16,34 +17,25 @@ async def serialize_projects(
     projects: Sequence[Project],
 ) -> list[ProjectResponse]:
     project_ids = [p.id for p in projects]
+    team_sizes = await count_project_team_sizes(db, project_ids)
     phase_counts = await _phase_counts_by_project(db, project_ids)
     members_preview = await _members_preview_by_project(db, project_ids)
     return [
-        ProjectResponse(
-            id=p.id,
-            name=p.name,
-            description=p.description,
-            language_id=p.language_id,
-            latitude=p.latitude,
-            longitude=p.longitude,
-            location_display_name=p.location_display_name,
-            image_url=p.image_url,
-            phases_completed=phase_counts.get(p.id, (0, 0))[0],
-            phases_total=phase_counts.get(p.id, (0, 0))[1],
-            members_preview=members_preview.get(p.id, []),
-            created_at=p.created_at,
-            updated_at=p.updated_at,
+        ProjectResponse.model_validate(p).model_copy(
+            update={
+                "team_size": team_sizes.get(p.id, 0),
+                "phases_completed": phase_counts.get(p.id, (0, 0))[0],
+                "phases_total": phase_counts.get(p.id, (0, 0))[1],
+                "members_preview": members_preview.get(p.id, []),
+            }
         )
         for p in projects
     ]
 
 
-async def serialize_project(
-    db: AsyncSession,
-    project: Project,
-) -> ProjectResponse:
-    responses = await serialize_projects(db, [project])
-    return responses[0]
+async def serialize_project(db: AsyncSession, project: Project) -> ProjectResponse:
+    (response,) = await serialize_projects(db, [project])
+    return response
 
 
 async def _phase_counts_by_project(

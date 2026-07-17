@@ -35,6 +35,7 @@ class ProjectBaseResponse(BaseModel):
 
 
 class ProjectResponse(ProjectBaseResponse):
+    team_size: int = 0
     phases_completed: int = 0
     phases_total: int = 0
     members_preview: list[ProjectMemberPreview] = Field(default_factory=list)
