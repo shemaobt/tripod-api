@@ -172,6 +172,36 @@ class SnArtifact(Base):
     )
 
 
+class SnVoiceAnswer(Base):
+    """One spoken Mapeamento answer, kept by the question it answers.
+
+    Like the artifacts, the bytes are not here — they are a WebM/Opus object in the
+    private bucket, and this row is the queryable pointer. The listing is what tells the
+    Mapeamento screen which questions already have an answer, which is why the answers
+    are a table and not just a bucket prefix: a prefix listing is an extra GCS round trip
+    and cannot be joined or scoped in one query.
+
+    ``resource_path`` is the logical, contract-frozen path the SPA builds
+    (``respostas/level{1,2,3}/…/<k>.webm``, §10.4) — validated against a fixed allowlist
+    before it is ever used, so it can be trusted as the object-name suffix. Keyed by
+    (session, path): one file per question (O5), and re-recording replaces in place.
+    """
+
+    __tablename__ = "sn_voice_answers"
+
+    session_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("sn_sessions.id", ondelete="CASCADE"), primary_key=True
+    )
+    resource_path: Mapped[str] = mapped_column(String(255), primary_key=True)
+    storage_key: Mapped[str] = mapped_column(String(512))
+    size: Mapped[int] = mapped_column(Integer)
+    content_type: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
 class SnAudioRef(Base):
     """The audios of one project's bucket.
 

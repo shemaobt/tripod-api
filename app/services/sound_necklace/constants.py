@@ -27,3 +27,9 @@ ARTIFACT_CONTENT_TYPES: dict[ArtifactKind, str] = {
 }
 
 DOWNLOAD_URL_EXPIRY_MINUTES = 15
+
+# A voice answer is a short spoken reply in WebM/Opus — well under a megabyte in
+# practice. The cap is a guard against a client bug or the wrong file being sent, not a
+# real expected size; it is enforced before a byte reaches storage.
+VOICE_ANSWER_CONTENT_TYPE = "audio/webm"
+MAX_VOICE_ANSWER_BYTES = 10 * 1024 * 1024

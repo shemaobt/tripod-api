@@ -1,10 +1,10 @@
 """Sound Necklace API surface, mounted at ``/api/sound-necklace``.
 
-Sessions, the audio bucket and the artifacts are implemented. The remaining resources
-are still contract stubs returning 501; they exist so the emitted OpenAPI carries the
-full contract for the SPA to generate its TypeScript types. The 501 is declared on the
-stubs only — a blanket declaration would keep advertising it for routes that now
-answer for real.
+Sessions, the audio bucket, the artifacts and the voice-answer resources are
+implemented. The lock is still a contract stub returning 501; it exists so the emitted
+OpenAPI carries the full contract for the SPA to generate its TypeScript types. The 501
+is declared on the stub only — a blanket declaration would keep advertising it for
+routes that now answer for real.
 """
 
 from typing import Any
@@ -21,6 +21,7 @@ router = APIRouter()
 router.include_router(sessions.router)
 router.include_router(audios.router)
 router.include_router(artifacts.router)
+router.include_router(resources.router)
 
-for _sub in (lock, resources):
+for _sub in (lock,):
     router.include_router(_sub.router, responses=STUB_RESPONSES)
