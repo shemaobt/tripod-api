@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import hashlib
 
@@ -66,14 +67,24 @@ async def store_artifacts(
         if not data:
             raise ValidationError(f"The {kind.value} artifact is empty")
 
-    # Every object lands before any pointer moves. A failure here raises, get_db rolls
-    # the transaction back, and the session keeps whatever triple it already had.
+    # Every object lands before any pointer moves. The three uploads are independent
+    # network round trips, so they run concurrently rather than one waiting on the last.
+    # Atomicity is unchanged: a failure in any of them raises out of the gather, no
+    # pointer below is reached, get_db rolls the transaction back, and the session keeps
+    # whatever triple it already had. The siblings of a failed upload are not cancelled
+    # and may still land — content-addressed keys make those orphans nothing points at,
+    # which is the same outcome the sequential version had.
     staged = []
     for kind, data in payloads.items():
         sha256 = hashlib.sha256(data).hexdigest()
-        key = _storage_key(session_id, kind, sha256)
-        await gcs_utils.upload_gcs_object(GCS_SN_BUCKET, key, data, ARTIFACT_CONTENT_TYPES[kind])
-        staged.append((kind, data, key, sha256))
+        staged.append((kind, data, _storage_key(session_id, kind, sha256), sha256))
+
+    await asyncio.gather(
+        *(
+            gcs_utils.upload_gcs_object(GCS_SN_BUCKET, key, data, ARTIFACT_CONTENT_TYPES[kind])
+            for kind, data, key, _ in staged
+        )
+    )
 
     artifacts = []
     for kind, data, key, sha256 in staged:
