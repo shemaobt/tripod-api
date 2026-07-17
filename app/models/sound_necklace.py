@@ -1,56 +1,42 @@
 """Pydantic schemas for the sound-necklace app module.
 
 The wire contract the SPA generates its TypeScript types from (code-first
-OpenAPI). Provisional: the ``/api/sound-necklace`` routes are stubs returning 501 until
-each resource is implemented, so every schema is tagged ``x-stability: experimental``
-and mirrors the SPA's provisional contracts (sound-necklace ``contracts/``).
-Artifacts and the session-state envelope are opaque — never parsed or
-re-serialized here.
+OpenAPI). Provisional: the resources not yet implemented are stubs returning 501, so
+every schema is tagged ``x-stability: experimental`` and mirrors the SPA's provisional
+contracts (sound-necklace ``contracts/``). Artifacts and the session-state envelope are
+opaque — never parsed or re-serialized here.
+
+Where this and the SPA's provisional contracts disagree, this wins and the SPA
+regenerates: its ``contracts/bucket.ts`` still types the codebook version as an integer
+and the audio duration as non-null, and both are wrong against the pipeline that
+actually mints them (ENG-261).
 """
 
 from __future__ import annotations
 
-from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from app.core.exceptions import ERROR_CODE_SESSION_LOCK_CHANGED, ERROR_CODE_SESSION_LOCKED
+from app.db.models.sound_necklace import (
+    ArtifactKind,
+    AuditEvent,
+    ConsentType,
+    GranularityLevel,
+    SessionStatus,
+    SessionStep,
+)
 
 # Vendor extension marking every schema in this module as provisional.
 _EXPERIMENTAL: dict[str, Any] = {"x-stability": "experimental"}
 
 
 # ── Enums ───────────────────────────────────────────────────────────────────
-
-
-class SessionStatus(StrEnum):
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
-
-
-class SessionStep(StrEnum):
-    LISTEN = "listen"
-    CUT = "cut"
-    TRIAGE = "triage"
-    PHRASES = "phrases"
-    CONVERSATION = "conversation"
-    SAVE = "save"
-
-
-class GranularityLevel(StrEnum):
-    SMALL = "small"
-    MEDIUM = "medium"
-    LARGE = "large"
-
-
-class ArtifactKind(StrEnum):
-    """Which of the three artifacts. The stored FILENAMES stay Portuguese
-    (``manifesto-contas.json``, ``retorno-ancoragem.json``,
-    ``relatorio-mapeamento.md``): PRD §10 freezes them as part of the contract
-    shared with the downstream pipeline. The kind is the handle, not the file."""
-
-    MANIFEST = "manifest"
-    ANCHORING = "anchoring"
-    REPORT = "report"
+#
+# Every enum here is imported from the db model rather than defined here: they all
+# back real columns, and the database constrains each to exactly these values. Keeping
+# them with the table is what forces a value change to come with a migration.
 
 
 # ── Artifacts ───────────────────────────────────────────────────────────────
@@ -65,7 +51,11 @@ class ArtifactResponse(BaseModel):
 
     kind: ArtifactKind
     size: int
+    # Both checksums the API recorded, so a consumer can verify a fetched artifact
+    # against what was stored rather than trusting the transfer. crc32c is what GCS
+    # validates on the way in; sha256 is ours, provider-independent.
     crc32c: str
+    sha256: str
 
 
 # ── Sessions ────────────────────────────────────────────────────────────────
@@ -100,10 +90,12 @@ class SessionListResponse(BaseModel):
 class SessionCreate(BaseModel):
     model_config = ConfigDict(json_schema_extra=_EXPERIMENTAL)
 
-    audio_id: str
+    # The text lengths mirror their columns: unbounded here, an over-long value would
+    # reach Postgres and fail the insert instead of failing validation.
+    audio_id: str = Field(max_length=255)
     project_id: str
-    story_name: str
-    story_slug: str
+    story_name: str = Field(max_length=255)
+    story_slug: str = Field(max_length=255)
     granularity_level: GranularityLevel
     bead_sec: float = Field(gt=0)
     manifest_id: str = Field(pattern=MANIFEST_ID_PATTERN)
@@ -143,37 +135,166 @@ class LockStatusResponse(BaseModel):
     expires_at: str | None = None
 
 
+class SessionLockedResponse(BaseModel):
+    """The 409 of a write refused while somebody else holds the editor lock.
+
+    `code` is what the client branches on and the other two are what it renders, so this
+    is a contract and not a debug body — hence a model the SPA can generate types from
+    rather than a description in prose.
+    """
+
+    model_config = ConfigDict(json_schema_extra=_EXPERIMENTAL)
+
+    detail: str
+    code: Literal["SESSION_LOCKED"] = ERROR_CODE_SESSION_LOCKED
+    holder_name: str
+    expires_at: str
+
+
+class SessionLockChangedResponse(BaseModel):
+    """The 409 of a write the lease refused and then lapsed on. Retry; no holder to show."""
+
+    model_config = ConfigDict(json_schema_extra=_EXPERIMENTAL)
+
+    detail: str
+    code: Literal["SESSION_LOCK_CHANGED"] = ERROR_CODE_SESSION_LOCK_CHANGED
+
+
 # ── Voice-answer resources (canonical respostas/... path) ────────────────────
 
+# The logical, contract-frozen path the SPA builds for each answer (§10.4). It is an
+# allowlist, not a hint: the three shapes are all that can name an object, which is what
+# lets the path be trusted as an object-name suffix — no traversal, no free-form key.
+#
+# The segments are LENGTH-BOUNDED, and that bound is load-bearing, not cosmetic. The path
+# is used verbatim as the object-name suffix and stored in a VARCHAR(255); an unbounded k
+# would pass validation, upload the bytes to the private bucket, then fail the INSERT on
+# Postgres — a 500 with an LGPD-sensitive recording orphaned where the API can't reach
+# it. The question keys are short human-authored strings, so 64 is generous.
 RESOURCE_PATH_PATTERN = (
-    r"^respostas/(level1/[a-z0-9_]+"
-    r"|level2/PT[1-9][0-9]*/[a-z0-9_]+"
-    r"|level3/P[1-9][0-9]*/[a-z0-9_]+)\.webm$"
+    r"^respostas/(level1/[a-z0-9_]{1,64}"
+    r"|level2/PT[1-9][0-9]{0,3}/[a-z0-9_]{1,64}"
+    r"|level3/P[1-9][0-9]{0,3}/[a-z0-9_]{1,64})\.webm$"
 )
 
 
-class ResourceRef(BaseModel):
-    model_config = ConfigDict(json_schema_extra=_EXPERIMENTAL)
+class ResourceSummary(BaseModel):
+    """One recorded answer in the listing — the path is what the Mapeamento screen keys
+    on to know which questions are answered."""
 
-    path: str = Field(pattern=RESOURCE_PATH_PATTERN)
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    path: str
+    size: int
 
 
-class ResourcePresignResponse(BaseModel):
+class ResourceListResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    resources: list[ResourceSummary]
+
+
+class ResourceUrlResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
 
     url: str
 
 
+# ── Consent records (§12 / O6) ───────────────────────────────────────────────
+
+
+class ConsentCreate(BaseModel):
+    """Record a consent. Which one is the whole body: who confirmed it is the caller,
+    and when is now — neither is the client's to assert."""
+
+    model_config = ConfigDict(json_schema_extra=_EXPERIMENTAL)
+
+    type: ConsentType
+
+
+class ConsentResponse(BaseModel):
+    """One consent record — the evidence, as stored.
+
+    ``confirmed_by`` is nullable because the record outlives the account that typed it:
+    a deleted user leaves the consent standing and its confirmer null. It names whoever
+    OPERATED the app, which for ``voice_answers`` is the facilitator who witnessed the
+    listener — the listener never holds an account.
+    """
+
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    type: ConsentType
+    confirmed_by: str | None = None
+    confirmed_at: str
+
+
+class ConsentListResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    consents: list[ConsentResponse]
+
+
+# ── Audit log (§12) ──────────────────────────────────────────────────────────
+
+
+class AuditEventResponse(BaseModel):
+    """One recorded reach, as stored.
+
+    Every field is nullable exactly where the row is: constraints on a RESPONSE model are
+    assertions the framework enforces on the way out, and one unlucky row would 500 the
+    whole listing — in the one place whose job is to still answer when things went wrong.
+
+    ``ip`` is on the table but not here. Nothing writes it yet (behind Cloud Run's proxy
+    there is no address this API can honestly attribute to the caller), and a response
+    field is additive — it can join the day something fills the column, without breaking
+    the SPA. Shipping it now would only generate an ``ip: string | null`` the SPA might
+    build a screen column for, forever null.
+    """
+
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    id: str
+    occurred_at: str
+    event: AuditEvent
+    user_id: str | None = None
+    session_id: str | None = None
+    resource_ref: str
+
+
+class AuditListResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    events: list[AuditEventResponse]
+
+
 # ── Bucket audios ─────────────────────────────────────────────────────────────
+
+
+class AcoustemeEnvelope(BaseModel):
+    """The granularity grid an audio's bead duration is derived from.
+
+    ``beadSec = granularity_frames[level] x hop_sec`` — the two fields exist together
+    or the envelope is useless, so an audio whose grid is incomplete carries no
+    envelope at all rather than half of one.
+
+    ``codebook_version`` is a string, not a number: it is half of the acousteme
+    artifact's primary key and reads like ``terena-xlsr53-k100-v1``. An integer here
+    would be a version the pipeline never mints.
+    """
+
+    model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
+
+    codebook_version: str
+    hop_sec: float
+    granularity_frames: dict[str, int]
 
 
 class BucketAudioResponse(BaseModel):
     """An audio the facilitator can pick from the project's bucket.
 
-    The acousteme payload is deliberately absent: the acousteme API already
-    serves a concrete shape whose codebook version is a string, so any envelope
-    described here would be known-wrong. It is added when the audio listing is
-    implemented, against that real DTO.
+    ``acousteme`` is null when no servable grid exists for the audio — an ingest that
+    never succeeded, or an audio that was never tokenized. That is a fallback, not an
+    error (PRD §6.1: the levels then map to fixed durations), so the audio still lists.
 
     ``duration_sec`` is nullable because response models are validated on the way
     out: one un-probed audio would otherwise fail validation of the whole listing.
@@ -186,6 +307,7 @@ class BucketAudioResponse(BaseModel):
     filename: str
     duration_sec: float | None = None
     consent_present: bool
+    acousteme: AcoustemeEnvelope | None = None
 
 
 class BucketAudioListResponse(BaseModel):

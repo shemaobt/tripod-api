@@ -44,10 +44,11 @@ async def test_authenticated_without_app_access_is_forbidden(
     assert res.status_code == 403
 
 
-async def test_member_passes_the_gate_and_reaches_the_stub(client, db_session, sound_necklace_app):
+async def test_member_passes_the_gate(client, db_session, sound_necklace_app):
     member = await make_user(db_session, email="member@example.com")
     await grant_role(db_session, sound_necklace_app.id, member.id, "facilitator")
     headers = await auth_header(db_session, member)
     res = await client.get(f"{SN}/sessions", headers=headers)
-    # Gate passed → reaches the not-yet-implemented stub.
-    assert res.status_code == 501
+    # Gate passed → the member reaches the route, and reaches no one else's sessions.
+    assert res.status_code == 200
+    assert res.json() == {"sessions": []}
