@@ -22,19 +22,18 @@ LOCK_TTL = timedelta(seconds=60)
 async def acquire_lock(db: AsyncSession, session: SnSession, user: User) -> LockState:
     """Take or renew the advisory lease; report who holds it either way.
 
-    Acquire and renew are one statement — the WHERE decides which happened. It matches
-    while the session is unheld, while the lease has lapsed, or while the caller
-    already holds it, which is what makes the client's heartbeat idempotent.
+    Acquire and renew are one statement, so the client's heartbeat is idempotent: it
+    matches while the session is unheld, while the lease has lapsed, or while the caller
+    already holds it.
 
-    Losing is not an error: the SPA opens in review mode off the returned holder, and
-    its adapter treats a throw here as a dead session rather than a busy one.
-
-    The guarded UPDATE is the entire mutual exclusion, and the new expiry comes back
-    from the statement itself. Reading it afterwards would be a different question than
-    the one the write answered — on a contended row the SELECT can return the winner's
-    lease to the loser, which is how a loser convinces itself it won.
+    Losing is not an error — the returned state names the current holder, and the SPA
+    opens the session in review mode off it.
     """
     now = datetime.now(UTC)
+    # The guarded UPDATE is the entire mutual exclusion, and the new expiry comes back
+    # from the statement itself. Reading it afterwards would answer a different question
+    # than the write did: on a contended row the SELECT can hand the winner's lease to
+    # the loser, which is how a loser convinces itself it won.
     expires_at = (
         await db.execute(
             update(SnSession)
