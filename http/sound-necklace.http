@@ -196,8 +196,11 @@ Authorization: Bearer {{accessToken}}
 # honestly attribute to the caller, and a number that reads like one and is not is worse
 # than none in an evidence log.
 #
-# `since` is an ISO instant; an empty list is an answer, not an error.
-GET {{baseUrl}}/api/sound-necklace/projects/prj_1/audit?since=2026-07-01T00:00:00Z&event=voice_url_issued&limit=100
+# `since` and `until` are ISO instants bounding the window as [since, until) — `until` is
+# what lets an auditor reach a PAST window (the March pilot), not only the newest events;
+# raising `since` alone only ever strips older rows. Any offset is normalised to UTC. An
+# empty list is an answer, not an error.
+GET {{baseUrl}}/api/sound-necklace/projects/prj_1/audit?since=2026-07-01T00:00:00Z&until=2026-08-01T00:00:00Z&event=voice_url_issued&limit=100
 Authorization: Bearer {{accessToken}}
 
 ### Artifacts: upload the three on completion (RAW bytes — byte-identical custody)
