@@ -40,17 +40,23 @@ Text:
 
 
 _DEFAULT_CLIENT: genai.Client | None = None
+_DEFAULT_CLIENT_KEY: str | None = None
 
 
 def _default_client(api_key: str) -> genai.Client:
     """One client for the process, like the HTTP client in `stt.py`.
 
-    A job translates every answer of a session in a row; a client per answer would open
-    and throw away a connection pool each time, and nothing ever closes them.
+    A job translates every answer of a session in a row; a client per answer would open and
+    throw away a connection pool each time, and nothing ever closes them.
+
+    Kept per key, for the same reason the TTS cache key carries the output format: the key
+    is baked into the client, so a cache that ignores it would serve a client built from a
+    rotated-out credential for the life of the process.
     """
-    global _DEFAULT_CLIENT
-    if _DEFAULT_CLIENT is None:
+    global _DEFAULT_CLIENT, _DEFAULT_CLIENT_KEY
+    if _DEFAULT_CLIENT is None or api_key != _DEFAULT_CLIENT_KEY:
         _DEFAULT_CLIENT = genai.Client(api_key=api_key)
+        _DEFAULT_CLIENT_KEY = api_key
     return _DEFAULT_CLIENT
 
 

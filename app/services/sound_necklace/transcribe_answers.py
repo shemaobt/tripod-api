@@ -18,6 +18,7 @@ from dataclasses import dataclass
 
 import inngest
 from sqlalchemy import select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import SnTranscriptionEvent
@@ -59,6 +60,10 @@ async def start_transcription(
 
     Two queries, never one per answer: a session carries a draft for every question of
     every scene and every phrase, and this runs on the request the report is waiting for.
+
+    Two triggers landing together both read before either commits, so the loser insert hits
+    the primary key. Seeding a draft somebody else just seeded is this caller's goal already
+    met, so the collision is answered with the state that won rather than with a 500.
     """
     answers = (
         (
@@ -72,14 +77,7 @@ async def start_transcription(
         .all()
     )
 
-    existing = {
-        draft.resource_path: draft
-        for draft in (
-            await db.execute(
-                select(SnAnswerTranscript).where(SnAnswerTranscript.session_id == session_id)
-            )
-        ).scalars()
-    }
+    existing = await _existing_drafts(db, session_id)
 
     for answer in answers:
         draft = existing.get(answer.resource_path)
@@ -100,8 +98,20 @@ async def start_transcription(
         draft.translation_en = None
         draft.error = None
 
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+
     return await transcription_progress(db, session_id)
+
+
+async def _existing_drafts(db: AsyncSession, session_id: str) -> dict[str, SnAnswerTranscript]:
+    """Every draft the session already has, by the answer it belongs to."""
+    rows = await db.execute(
+        select(SnAnswerTranscript).where(SnAnswerTranscript.session_id == session_id)
+    )
+    return {draft.resource_path: draft for draft in rows.scalars()}
 
 
 async def transcription_progress(db: AsyncSession, session_id: str) -> TranscriptionProgress:

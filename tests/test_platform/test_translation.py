@@ -89,3 +89,29 @@ async def test_without_an_api_key_it_is_a_configuration_error() -> None:
         await translate_to_english(
             PT, source_language="pt-BR", settings=_settings(google_api_key=""), client=None
         )
+
+
+async def test_a_rotated_key_is_not_served_by_the_cached_client(monkeypatch) -> None:
+    """The key is baked into the client, so it belongs in what the cache is keyed by.
+
+    Same rule as the TTS cache key carrying the output format: an input that changes the
+    object cannot be left out, or the process serves the stale one until it restarts.
+    """
+    from app.services.platform import translation
+
+    monkeypatch.setattr(translation, "_DEFAULT_CLIENT", None)
+    monkeypatch.setattr(translation, "_DEFAULT_CLIENT_KEY", None)
+    built: list[str] = []
+
+    def _fake_client(*, api_key: str) -> SimpleNamespace:
+        built.append(api_key)
+        return _client("english", "english")
+
+    monkeypatch.setattr(translation.genai, "Client", _fake_client)
+
+    for key in ("k1", "k1", "k2"):
+        await translate_to_english(
+            PT, source_language="pt-BR", settings=_settings(google_api_key=key)
+        )
+
+    assert built == ["k1", "k2"]

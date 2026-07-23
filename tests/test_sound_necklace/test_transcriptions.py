@@ -19,6 +19,7 @@ from app.core.exceptions import UpstreamServiceError
 from app.core.inngest_client import inngest_client
 from app.services import sound_necklace_service as sn_service
 from app.services.oral_collector import gcs_utils
+from app.services.sound_necklace import transcribe_answers
 from tests.test_sound_necklace.conftest import SN, new_session
 
 WEBM = b"\x1a\x45\xdf\xa3 fake webm/opus bytes"
@@ -370,3 +371,28 @@ async def test_a_force_that_lands_mid_pass_wins_over_the_take_it_replaced(
     superseded = next(a for a in body["answers"] if a["path"] == P1)
     assert superseded["status"] == "pending"
     assert superseded["transcript_source"] is None
+
+
+async def test_a_double_submit_is_answered_twice_not_crashed_once(
+    client, db_session, session_with_answers, no_background, monkeypatch
+) -> None:
+    """Two triggers landing together must both get an answer.
+
+    Both read before either commits, so both try to insert the same row and the loser
+    hits the composite primary key. Seeding a draft somebody else just seeded is the
+    caller's goal already met, not an error to hand back as a 500.
+
+    The stale read is injected rather than raced: two live sessions against SQLite is what
+    the project_health concurrency tests had to skip for.
+    """
+    session_id, headers = session_with_answers
+    await start(client, headers, session_id)
+
+    async def _stale_read(db, session_id: str) -> dict:
+        return {}
+
+    monkeypatch.setattr(transcribe_answers, "_existing_drafts", _stale_read)
+    res = await start(client, headers, session_id)
+
+    assert res.status_code == 202, res.text
+    assert (res.json()["total"], res.json()["pending"]) == (3, 3)
