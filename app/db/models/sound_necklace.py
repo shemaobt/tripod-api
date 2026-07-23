@@ -20,6 +20,7 @@ from sqlalchemy import (
     Enum,
     Float,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Integer,
     String,
@@ -403,3 +404,69 @@ class SnAudioRef(Base):
     )
     consent_present: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class TranscriptStatus(enum.StrEnum):
+    """Where one answer's draft is. There is no ``running``: a claimed-but-unfinished
+    state survives a crashed worker as a row nothing will ever move again, and the cure
+    (a sweeper, or a heartbeat column) costs more than the disease. A lost worker leaves
+    ``pending``, which the next trigger simply picks up."""
+
+    PENDING = "pending"
+    READY = "ready"
+    FAILED = "failed"
+
+
+_TRANSCRIPT_STATUS_TYPE = Enum(
+    TranscriptStatus,
+    name="sn_transcript_status_enum",
+    values_callable=lambda enum_cls: [m.value for m in enum_cls],
+)
+
+
+class SnAnswerTranscript(Base):
+    """The transcription (and English translation) draft of one voice answer.
+
+    Advisory only. Nothing here is ever merged into an artifact by the API — a human
+    confirms the draft in the SPA, and an unconfirmed draft never leaves (PRD v2 §1.1,
+    §12). That is also why the text lives in its own table rather than in the answer
+    row: the recording is evidence, the draft is a suggestion about it, and ``force``
+    throws the suggestion away without touching the evidence.
+
+    These rows ARE the job's state — there is no job table. ``pending`` is work to do,
+    ``ready`` is work never to pay for twice, ``failed`` carries its own reason and
+    blocks nothing else.
+
+    The key is the answer's, and the foreign key is composite ON DELETE CASCADE: delete
+    or re-record an answer and its draft goes with it, with no cleanup code to forget.
+
+    ``language`` is the interview language the answer was spoken in, as the SPA sends it on
+    the trigger: it is the transcriber's hint and the switch that decides whether a
+    translation is needed. ``generation`` backs the compare-and-swap that keeps a pass in
+    flight from writing its result over a draft a ``force`` has already reset.
+    """
+
+    __tablename__ = "sn_answer_transcripts"
+
+    session_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    resource_path: Mapped[str] = mapped_column(String(255), primary_key=True)
+    status: Mapped[TranscriptStatus] = mapped_column(
+        _TRANSCRIPT_STATUS_TYPE, default=TranscriptStatus.PENDING
+    )
+    language: Mapped[str] = mapped_column(String(16))
+    generation: Mapped[int] = mapped_column(Integer, default=0)
+    transcript_source: Mapped[str | None] = mapped_column(Text, nullable=True)
+    translation_en: Mapped[str | None] = mapped_column(Text, nullable=True)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["session_id", "resource_path"],
+            ["sn_voice_answers.session_id", "sn_voice_answers.resource_path"],
+            ondelete="CASCADE",
+        ),
+    )

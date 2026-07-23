@@ -25,12 +25,20 @@ from app.services.sound_necklace.release_lock import release_lock
 from app.services.sound_necklace.reopen_session import reopen_session
 from app.services.sound_necklace.store_artifacts import store_artifacts
 from app.services.sound_necklace.store_voice_answer import store_voice_answer
+from app.services.sound_necklace.transcribe_answers import (
+    TranscriptionProgress,
+    request_transcription,
+    run_pending,
+    start_transcription,
+    transcription_progress,
+)
 from app.services.sound_necklace.voice_answer_url import voice_answer_url
 
 __all__ = [
     "LOCK_TTL",
     "SessionLockedByOther",
     "StateVersionConflict",
+    "TranscriptionProgress",
     "acquire_lock",
     "artifact_download_url",
     "audio_signed_url",
@@ -51,8 +59,12 @@ __all__ = [
     "record_consent",
     "release_lock",
     "reopen_session",
+    "request_transcription",
+    "run_pending",
+    "start_transcription",
     "step_for",
     "store_artifacts",
     "store_voice_answer",
+    "transcription_progress",
     "voice_answer_url",
 ]

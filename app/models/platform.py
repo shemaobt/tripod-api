@@ -9,3 +9,9 @@ class TtsSpeakRequest(BaseModel):
     #: BCP-47 locale (`pt-BR`, `en-US`) — the locale->voice map lives in
     #: `services/platform/voices.py`.
     language: str = Field(min_length=2, max_length=16)
+
+
+class SttTranscribeResponse(BaseModel):
+    """What one recording said. A draft: no caller is told it is correct."""
+
+    text: str

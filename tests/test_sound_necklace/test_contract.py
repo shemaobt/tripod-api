@@ -32,6 +32,8 @@ IMPLEMENTED_OPERATIONS = {
     ("/sessions/{session_id}/consent", "post"),
     ("/sessions/{session_id}/consent", "get"),
     ("/projects/{project_id}/audit", "get"),
+    ("/sessions/{session_id}/transcriptions", "post"),
+    ("/sessions/{session_id}/transcriptions", "get"),
 }
 
 
@@ -154,3 +156,35 @@ def test_artifact_upload_takes_raw_multipart_bytes():
     operations = {(path, method): operation for path, method, operation in _operations()}
     upload = operations[("/sessions/{session_id}/artifacts", "post")]
     assert list(upload["requestBody"]["content"]) == ["multipart/form-data"]
+
+
+def test_the_transcription_progress_is_a_schema_the_spa_can_poll_from():
+    """The report renders partial state, so partial state has to be in the types.
+
+    Per-answer `status` and `error` are what let one dead answer show as one red row
+    instead of a failed job — and `translation_en` is the field the report reads whatever
+    the interview language was.
+    """
+    from app.main import app
+
+    schemas = app.openapi()["components"]["schemas"]
+    progress = schemas["TranscriptionProgressResponse"]
+    assert set(progress["properties"]) == {"total", "ready", "failed", "pending", "answers"}
+    draft = schemas["AnswerTranscript"]
+    assert set(draft["properties"]) == {
+        "path",
+        "status",
+        "transcript_source",
+        "translation_en",
+        "error",
+    }
+    assert set(schemas["TranscriptStatus"]["enum"]) == {"pending", "ready", "failed"}
+
+
+def test_starting_a_transcription_answers_202_not_200():
+    """The drafts are not ready when the call returns: a 200 would invite the SPA to read
+    them straight off the response instead of polling."""
+    operations = {(path, method): operation for path, method, operation in _operations()}
+    start = operations[("/sessions/{session_id}/transcriptions", "post")]
+    assert "202" in start["responses"]
+    assert "200" not in start["responses"]

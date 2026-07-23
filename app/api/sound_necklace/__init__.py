@@ -7,7 +7,16 @@ more, so nothing declares it.
 
 from fastapi import APIRouter
 
-from app.api.sound_necklace import artifacts, audios, audit, consent, lock, resources, sessions
+from app.api.sound_necklace import (
+    artifacts,
+    audios,
+    audit,
+    consent,
+    lock,
+    resources,
+    sessions,
+    transcriptions,
+)
 
 router = APIRouter()
 router.include_router(sessions.router)
@@ -17,3 +26,4 @@ router.include_router(resources.router)
 router.include_router(lock.router)
 router.include_router(consent.router)
 router.include_router(audit.router)
+router.include_router(transcriptions.router)

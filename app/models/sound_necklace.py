@@ -26,6 +26,7 @@ from app.db.models.sound_necklace import (
     GranularityLevel,
     SessionStatus,
     SessionStep,
+    TranscriptStatus,
 )
 
 # Vendor extension marking every schema in this module as provisional.
@@ -320,3 +321,52 @@ class AudioUrlResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True, json_schema_extra=_EXPERIMENTAL)
 
     url: str
+
+
+# ── Transcription drafts (ENG-325) ───────────────────────────────────────────
+
+
+class TranscriptionRequest(BaseModel):
+    """Start (or restart) the drafts for a session's recorded answers.
+
+    ``language`` is the interview language, and it is the client's to say: the session
+    row does not carry one, and the SPA is what knows which language the questions were
+    asked in. It is a hint for the transcriber and the switch that decides whether a
+    translation is needed at all.
+    """
+
+    model_config = ConfigDict(json_schema_extra=_EXPERIMENTAL)
+
+    #: BCP-47 locale (`pt-BR`, `en-US`).
+    language: str = Field(min_length=2, max_length=16)
+    #: Throw the existing drafts away and transcribe again — the re-record case.
+    force: bool = False
+
+
+class AnswerTranscript(BaseModel):
+    """One answer's draft. Advisory: nothing here reaches an artifact unconfirmed.
+
+    ``translation_en`` carries the English text whatever the interview language was — for
+    an English interview it is the transcript itself — so the report reads one field.
+    ``error`` is the answer's own failure, and it never means the job failed.
+    """
+
+    model_config = ConfigDict(json_schema_extra=_EXPERIMENTAL)
+
+    path: str
+    status: TranscriptStatus
+    transcript_source: str | None = None
+    translation_en: str | None = None
+    error: str | None = None
+
+
+class TranscriptionProgressResponse(BaseModel):
+    """What the SPA polls while the report is open."""
+
+    model_config = ConfigDict(json_schema_extra=_EXPERIMENTAL)
+
+    total: int
+    ready: int
+    failed: int
+    pending: int
+    answers: list[AnswerTranscript]
