@@ -45,6 +45,10 @@ class OCRecordingEvent(StrEnum):
     SPLIT_REQUESTED = "oc/recording.split-requested"
 
 
+class SnTranscriptionEvent(StrEnum):
+    REQUESTED = "sn/transcription.requested"
+
+
 class OCNotificationEvent(StrEnum):
     UPLOAD_VERIFIED = "oc.upload.verified"
     UPLOAD_FAILED = "oc.upload.failed"

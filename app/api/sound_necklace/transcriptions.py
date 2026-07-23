@@ -4,11 +4,13 @@ Two routes: one that starts the job and one the SPA polls. Both answer the same 
 the trigger's reply is already the first frame of progress.
 
 The work is async because it is slow and because the provider key must stay server-side.
-It is triggered when the report opens rather than when an answer is uploaded: a take that
-gets re-recorded first is then never paid for.
+The POST only puts an event on the queue: the pass itself runs in Inngest
+(`app/inngest/sn_transcription.py`), off this process, so a deploy mid-session does not
+strand it. It is triggered when the report opens rather than when an answer is uploaded: a
+take that gets re-recorded first is then never paid for.
 """
 
-from fastapi import APIRouter, BackgroundTasks, status
+from fastapi import APIRouter, status
 
 from app.api.projects._deps import assert_project_access
 from app.api.sound_necklace._deps import CurrentUser, Db
@@ -50,7 +52,6 @@ def _body(progress: TranscriptionProgress) -> TranscriptionProgressResponse:
 async def start_transcriptions(
     session_id: str,
     payload: TranscriptionRequest,
-    background: BackgroundTasks,
     db: Db,
     user: CurrentUser,
 ) -> TranscriptionProgressResponse:
@@ -66,7 +67,7 @@ async def start_transcriptions(
         db, session_id, language=payload.language, force=payload.force
     )
     if progress.pending:
-        background.add_task(sn_service.run_transcription_job, session_id)
+        await sn_service.request_transcription(session_id)
     return _body(progress)
 
 

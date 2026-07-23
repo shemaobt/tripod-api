@@ -27,8 +27,8 @@ from app.services.sound_necklace.store_artifacts import store_artifacts
 from app.services.sound_necklace.store_voice_answer import store_voice_answer
 from app.services.sound_necklace.transcribe_answers import (
     TranscriptionProgress,
+    request_transcription,
     run_pending,
-    run_transcription_job,
     start_transcription,
     transcription_progress,
 )
@@ -59,8 +59,8 @@ __all__ = [
     "record_consent",
     "release_lock",
     "reopen_session",
+    "request_transcription",
     "run_pending",
-    "run_transcription_job",
     "start_transcription",
     "step_for",
     "store_artifacts",

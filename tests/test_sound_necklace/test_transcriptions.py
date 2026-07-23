@@ -14,7 +14,9 @@ from __future__ import annotations
 
 import pytest
 
+from app.core.enums import SnTranscriptionEvent
 from app.core.exceptions import UpstreamServiceError
+from app.core.inngest_client import inngest_client
 from app.services import sound_necklace_service as sn_service
 from app.services.oral_collector import gcs_utils
 from tests.test_sound_necklace.conftest import SN, new_session
@@ -54,13 +56,13 @@ def storage(monkeypatch):
 
 @pytest.fixture()
 def no_background(monkeypatch):
-    """Keep the trigger from launching the real job; record that it asked for one."""
+    """Swallow the queue event; record which sessions the trigger asked work for."""
     launched: list[str] = []
 
-    async def _fake_job(session_id: str) -> None:
+    async def _fake_request(session_id: str) -> None:
         launched.append(session_id)
 
-    monkeypatch.setattr(sn_service, "run_transcription_job", _fake_job)
+    monkeypatch.setattr(sn_service, "request_transcription", _fake_request)
     return launched
 
 
@@ -128,6 +130,42 @@ async def test_the_trigger_queues_one_pending_draft_per_recorded_answer(
     assert (body["total"], body["pending"], body["ready"], body["failed"]) == (3, 3, 0, 0)
     assert [a["path"] for a in body["answers"]] == [P1, P2, P3]
     assert no_background == [session_id]
+
+
+async def test_the_trigger_hands_the_session_to_the_queue(
+    client, db_session, session_with_answers, monkeypatch
+) -> None:
+    """The 202 means queued, not done: the pass runs off the API process.
+
+    Patched at the client, not at the service, so the event that would go on the wire —
+    its name and its data — is what gets asserted.
+    """
+    sent = []
+
+    async def _capture(event) -> list[str]:
+        sent.append(event)
+        return ["evt-1"]
+
+    monkeypatch.setattr(inngest_client, "send", _capture)
+    session_id, headers = session_with_answers
+
+    await start(client, headers, session_id)
+
+    assert [e.name for e in sent] == [SnTranscriptionEvent.REQUESTED]
+    assert sent[0].data == {"session_id": session_id}
+
+
+async def test_a_session_with_nothing_pending_does_not_wake_the_queue(
+    client, db_session, alice, project, monkeypatch
+) -> None:
+    sent = []
+    monkeypatch.setattr(inngest_client, "send", lambda event: sent.append(event))
+    _user, headers = alice
+    session_id = await new_session(client, headers, project.id)
+
+    await start(client, headers, session_id)  # no answers recorded
+
+    assert sent == []
 
 
 async def test_the_job_leaves_a_transcript_and_a_translation_per_answer(

@@ -15,9 +15,12 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
+import inngest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.enums import SnTranscriptionEvent
+from app.core.inngest_client import inngest_client
 from app.db.models.sound_necklace import SnAnswerTranscript, SnVoiceAnswer, TranscriptStatus
 from app.services.oral_collector import gcs_utils
 from app.services.platform.stt import SpeechToText, transcribe_speech
@@ -26,13 +29,6 @@ from app.services.platform.voices import language_hint
 from app.services.sound_necklace.constants import GCS_SN_BUCKET
 
 logger = logging.getLogger(__name__)
-
-#: Sessions with a worker alive in THIS process, so a double trigger does not pay twice.
-#
-# ponytail: per-process, so two API instances could still run the same session's job at
-# once. The trigger fires once per report, so the exposure is small; if it ever matters,
-# the procrastinate queue in `app/core/task_queue.py` already gives single-delivery.
-_running: set[str] = set()
 
 
 @dataclass(frozen=True)
@@ -196,15 +192,21 @@ async def run_pending(
         await db.commit()
 
 
-async def run_transcription_job(session_id: str) -> None:
-    """The background entry point: own session, one worker per session per process."""
-    if session_id in _running:
-        return
-    _running.add(session_id)
-    try:
-        from app.core.database import AsyncSessionLocal
+async def request_transcription(session_id: str) -> None:
+    """Hand the pass to the queue — the request does not wait for it or run it.
 
-        async with AsyncSessionLocal() as db:
-            await run_pending(db, session_id)
-    finally:
-        _running.discard(session_id)
+    The event carries the session and nothing else: the run reads whatever is `pending`
+    when it starts, so a retry or a replay costs no provider call it has already made.
+    """
+    # Imported here, not at module scope: `app.inngest` registers the function that imports
+    # this module, so a top-level import would close the loop. The queue is the outer layer
+    # and knows the service; the service only needs the payload's shape, and only when it
+    # sends.
+    from app.inngest.schemas import TranscriptionRequestedPayload
+
+    await inngest_client.send(
+        inngest.Event(
+            name=SnTranscriptionEvent.REQUESTED,
+            data=TranscriptionRequestedPayload(session_id=session_id).model_dump(),
+        )
+    )
