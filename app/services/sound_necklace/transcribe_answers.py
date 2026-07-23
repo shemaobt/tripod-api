@@ -70,8 +70,20 @@ async def start_transcription(
         .all()
     )
 
+    # Both sides in two queries, not one per answer: a session carries a draft for every
+    # question of every scene and phrase, so a lookup per answer is that many round trips
+    # on the one request the report is waiting for.
+    existing = {
+        draft.resource_path: draft
+        for draft in (
+            await db.execute(
+                select(SnAnswerTranscript).where(SnAnswerTranscript.session_id == session_id)
+            )
+        ).scalars()
+    }
+
     for answer in answers:
-        draft = await db.get(SnAnswerTranscript, (session_id, answer.resource_path))
+        draft = existing.get(answer.resource_path)
         if draft is None:
             draft = SnAnswerTranscript(
                 session_id=session_id, resource_path=answer.resource_path, language=language

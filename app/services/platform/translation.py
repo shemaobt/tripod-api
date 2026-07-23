@@ -39,6 +39,21 @@ Text:
 """
 
 
+_DEFAULT_CLIENT: Any | None = None
+
+
+def _default_client(api_key: str) -> Any:
+    """One client for the process, like the HTTP client in `stt.py`.
+
+    A job translates every answer of a session in a row; a client per answer would open
+    and throw away a connection pool each time, and nothing ever closes them.
+    """
+    global _DEFAULT_CLIENT
+    if _DEFAULT_CLIENT is None:
+        _DEFAULT_CLIENT = genai.Client(api_key=api_key)
+    return _DEFAULT_CLIENT
+
+
 class Translator(Protocol):
     """The provider seam: swapping the model out is one callable."""
 
@@ -68,7 +83,7 @@ async def translate_to_english(
     prompt = TRANSLATION_PROMPT.format(
         language_name=LANGUAGE_NAMES.get(base, source_language), text=text
     )
-    provider = client or genai.Client(api_key=cfg.google_api_key)
+    provider = client or _default_client(cfg.google_api_key)
     try:
         response = await provider.aio.models.generate_content(
             model=TRANSLATION_MODEL, contents=prompt
