@@ -43,10 +43,8 @@ def upgrade() -> None:
             sa.Enum("pending", "ready", "failed", name="sn_transcript_status_enum"),
             nullable=False,
         ),
-        # The interview language (BCP-47) the answer was spoken in: the transcriber's hint,
-        # and the switch that decides whether a translation is needed at all.
         sa.Column("language", sa.String(length=16), nullable=False),
-        # TEXT, not a bounded VARCHAR: a spoken answer has no length the API gets to assume.
+        sa.Column("generation", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("transcript_source", sa.Text(), nullable=True),
         sa.Column("translation_en", sa.Text(), nullable=True),
         sa.Column("error", sa.Text(), nullable=True),

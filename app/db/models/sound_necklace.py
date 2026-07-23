@@ -439,6 +439,11 @@ class SnAnswerTranscript(Base):
 
     The key is the answer's, and the foreign key is composite ON DELETE CASCADE: delete
     or re-record an answer and its draft goes with it, with no cleanup code to forget.
+
+    ``language`` is the interview language the answer was spoken in, as the SPA sends it on
+    the trigger: it is the transcriber's hint and the switch that decides whether a
+    translation is needed. ``generation`` backs the compare-and-swap that keeps a pass in
+    flight from writing its result over a draft a ``force`` has already reset.
     """
 
     __tablename__ = "sn_answer_transcripts"
@@ -448,9 +453,8 @@ class SnAnswerTranscript(Base):
     status: Mapped[TranscriptStatus] = mapped_column(
         _TRANSCRIPT_STATUS_TYPE, default=TranscriptStatus.PENDING
     )
-    # The interview language the answer was spoken in (BCP-47), as sent by the SPA on
-    # the trigger: it is the STT hint and it decides whether a translation is needed.
     language: Mapped[str] = mapped_column(String(16))
+    generation: Mapped[int] = mapped_column(Integer, default=0)
     transcript_source: Mapped[str | None] = mapped_column(Text, nullable=True)
     translation_en: Mapped[str | None] = mapped_column(Text, nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)

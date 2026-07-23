@@ -13,10 +13,11 @@ is what makes it idempotent (``ready`` is never redone), resumable (a lost worke
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 import inngest
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import SnTranscriptionEvent
@@ -52,7 +53,12 @@ async def start_transcription(
     ``force``: retrying a provider outage is the expected path, not an override.
 
     ``force`` is the re-record case: it throws the existing drafts away, because a draft
-    of a take that no longer exists is worse than no draft at all.
+    of a take that no longer exists is worse than no draft at all. It is also the only
+    thing that touches a draft already queued: a plain re-trigger leaves ``pending`` alone,
+    so a pass in flight is not made to throw away an answer it has already paid for.
+
+    Two queries, never one per answer: a session carries a draft for every question of
+    every scene and every phrase, and this runs on the request the report is waiting for.
     """
     answers = (
         (
@@ -66,9 +72,6 @@ async def start_transcription(
         .all()
     )
 
-    # Both sides in two queries, not one per answer: a session carries a draft for every
-    # question of every scene and phrase, so a lookup per answer is that many round trips
-    # on the one request the report is waiting for.
     existing = {
         draft.resource_path: draft
         for draft in (
@@ -81,15 +84,18 @@ async def start_transcription(
     for answer in answers:
         draft = existing.get(answer.resource_path)
         if draft is None:
-            draft = SnAnswerTranscript(
-                session_id=session_id, resource_path=answer.resource_path, language=language
+            db.add(
+                SnAnswerTranscript(
+                    session_id=session_id, resource_path=answer.resource_path, language=language
+                )
             )
-            db.add(draft)
-        elif draft.status == TranscriptStatus.READY and not force:
+            continue
+        if draft.status != TranscriptStatus.FAILED and not force:
             continue
 
         draft.language = language
         draft.status = TranscriptStatus.PENDING
+        draft.generation += 1
         draft.transcript_source = None
         draft.translation_en = None
         draft.error = None
@@ -162,34 +168,62 @@ async def run_pending(
     )
 
     for draft, answer in pending:
+        generation, path, language = draft.generation, draft.resource_path, draft.language
         try:
             audio = await gcs_utils.download_gcs_object(GCS_SN_BUCKET, answer.storage_key)
-            transcript = await stt(audio, language=draft.language, mime_type=answer.content_type)
-            draft.transcript_source = transcript
-            # An English interview is already the English text the report wants. The branch
-            # is here, not only inside the translator, because "transcribe, then translate
-            # if it is not English" is the job's rule — and a call not made is a call not
-            # billed, whichever provider is configured.
-            draft.translation_en = (
+            transcript = await stt(audio, language=language, mime_type=answer.content_type)
+            translation = (
                 transcript
-                if language_hint(draft.language) == "en"
-                else await translator(transcript, source_language=draft.language)
+                if language_hint(language) == "en"
+                else await translator(transcript, source_language=language)
             )
-            draft.status = TranscriptStatus.READY
-            draft.error = None
+            values = {
+                "status": TranscriptStatus.READY,
+                "transcript_source": transcript,
+                "translation_en": translation,
+                "error": None,
+            }
         except Exception as exc:
-            # A failure is this answer's state, never the job's and never a 500. The
-            # message is what a facilitator sees next to a red answer, so it is the
-            # provider's own words rather than a generic one.
-            logger.warning(
-                "transcription failed session=%s path=%s: %s",
-                session_id,
-                draft.resource_path,
-                exc,
-            )
-            draft.status = TranscriptStatus.FAILED
-            draft.error = str(exc)
-        await db.commit()
+            logger.warning("transcription failed session=%s path=%s: %s", session_id, path, exc)
+            values = {"status": TranscriptStatus.FAILED, "error": str(exc)}
+
+        await _write_draft(db, session_id, path, generation=generation, values=values)
+
+
+async def _write_draft(
+    db: AsyncSession,
+    session_id: str,
+    resource_path: str,
+    *,
+    generation: int,
+    values: Mapping[str, object],
+) -> None:
+    """Write a result only if the row is still the one the pass read.
+
+    Compare-and-swap on ``generation``, the way the autosave does on ``version``. A
+    ``force`` that lands while the pass is running has already replaced the recording and
+    reset the row; writing this result over it would leave ``ready`` holding a draft of a
+    take that no longer exists, and the run that ``force`` queued finds nothing pending to
+    heal it. Losing the swap means the answer stays ``pending`` for that run — the work is
+    lost, which is the cheap half of the trade.
+    """
+    written = await db.execute(
+        update(SnAnswerTranscript)
+        .where(
+            SnAnswerTranscript.session_id == session_id,
+            SnAnswerTranscript.resource_path == resource_path,
+            SnAnswerTranscript.generation == generation,
+        )
+        .values(**values)
+    )
+    await db.commit()
+    if not written.rowcount:
+        logger.info(
+            "transcription superseded session=%s path=%s generation=%s",
+            session_id,
+            resource_path,
+            generation,
+        )
 
 
 async def request_transcription(session_id: str) -> None:

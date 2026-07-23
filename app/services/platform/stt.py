@@ -54,6 +54,10 @@ async def transcribe_speech(
     Returns the transcript, which may be empty — a take with no speech is an answer state,
     not a failure. `settings` and `client` are injectable so this runs in tests without
     network.
+
+    Usage is logged in bytes rather than in seconds of audio, which is what is billed: the
+    duration is not knowable without decoding the container, and the byte count is the
+    proxy that costs nothing to measure.
     """
     if not audio:
         raise ValidationError("Audio payload is empty")
@@ -76,8 +80,6 @@ async def transcribe_speech(
         raise _upstream_or_validation_error(response.status_code)
 
     text = str(response.json().get("text") or "").strip()
-    # STT bills by audio duration, which we do not have without decoding the container; the
-    # byte count is the proxy that costs nothing to measure.
     logger.info(
         "platform STT: model=%s language=%s bytes=%d chars=%d",
         cfg.elevenlabs_stt_model,

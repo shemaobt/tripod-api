@@ -11,7 +11,7 @@ human confirms it in the SPA first (PRD v2 §1.1, §12).
 from __future__ import annotations
 
 import logging
-from typing import Any, Protocol
+from typing import Protocol
 
 from google import genai
 
@@ -39,10 +39,10 @@ Text:
 """
 
 
-_DEFAULT_CLIENT: Any | None = None
+_DEFAULT_CLIENT: genai.Client | None = None
 
 
-def _default_client(api_key: str) -> Any:
+def _default_client(api_key: str) -> genai.Client:
     """One client for the process, like the HTTP client in `stt.py`.
 
     A job translates every answer of a session in a row; a client per answer would open
@@ -65,12 +65,20 @@ async def translate_to_english(
     *,
     source_language: str,
     settings: Settings | None = None,
-    client: Any | None = None,
+    client: genai.Client | None = None,
 ) -> str:
     """Translate `text` from `source_language` (BCP-47 locale) into English.
 
     Already-English text and empty text come straight back: every call is billed, and the
     cheapest translation is the one that never leaves.
+
+    An empty reply from the model is an upstream failure, not an empty draft: on screen the
+    two are the same thing, and the second would be confirmed as a silent recording.
+
+    `client` is typed as the real provider client rather than as a structural stand-in: the
+    call reaches through `.aio.models`, so a Protocol would take three nested declarations
+    to say what the concrete type already says. Tests pass a double, which type checking
+    does not see and does not need to.
     """
     base = language_hint(source_language)
     if base == "en" or not text.strip():
@@ -94,8 +102,6 @@ async def translate_to_english(
 
     translation = str(response.text or "").strip()
     if not translation:
-        # An empty draft is indistinguishable from a silent recording, and would be
-        # confirmed as one. Fail the answer instead and let it be retried.
         raise UpstreamServiceError("Translation returned empty text")
 
     logger.info(

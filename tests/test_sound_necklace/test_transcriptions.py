@@ -337,3 +337,36 @@ async def test_a_stranger_cannot_spend_our_provider_budget(
     res = await client.get(f"{SN}/sessions/{session_id}/transcriptions", headers=headers)
     assert res.status_code == 403
     assert no_background == []
+
+
+async def test_a_force_that_lands_mid_pass_wins_over_the_take_it_replaced(
+    client, db_session, session_with_answers, no_background
+) -> None:
+    """A re-record while the pass is running must not be overwritten by the old take.
+
+    The pass read its rows and paid for a transcript of the recording that has since been
+    replaced. Writing it back would leave `ready` holding a draft of a take that no longer
+    exists — and the run the force queued finds nothing pending, so nothing ever heals it.
+    """
+    session_id, headers = session_with_answers
+    await start(client, headers, session_id)
+    forced: list[str] = []
+
+    async def stt_then_rerecord(audio: bytes, *, language: str, mime_type: str) -> str:
+        if not forced:
+            forced.append("once")
+            await record(client, headers, session_id, P1, b"\x1a\x45\xdf\xa3 the new take")
+            await start(client, headers, session_id, force=True)
+        return "transcrição da take velha"
+
+    async def translate(text: str, *, source_language: str) -> str:
+        return f"english of: {text}"
+
+    await sn_service.run_pending(
+        db_session, session_id, stt=stt_then_rerecord, translator=translate
+    )
+
+    body = await progress(client, headers, session_id)
+    superseded = next(a for a in body["answers"] if a["path"] == P1)
+    assert superseded["status"] == "pending"
+    assert superseded["transcript_source"] is None
