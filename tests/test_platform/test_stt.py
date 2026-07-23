@@ -107,3 +107,15 @@ async def test_a_malformed_request_to_elevenlabs_stays_a_business_error() -> Non
         await transcribe_speech(
             WEBM, language="pt-BR", settings=_settings(), client=_client(_err(422))
         )
+
+
+@pytest.mark.parametrize("language", ["", "   ", "-BR"])
+async def test_a_blank_language_never_reaches_the_provider(language: str) -> None:
+    # An empty `language_code` is not the same request as sending no hint at all: the
+    # engine is told to expect a language named nothing.
+    client = _client(_ok())
+
+    with pytest.raises(ValidationError):
+        await transcribe_speech(WEBM, language=language, settings=_settings(), client=client)
+
+    assert client.post.await_count == 0
