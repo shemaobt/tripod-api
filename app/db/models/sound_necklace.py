@@ -470,3 +470,47 @@ class SnAnswerTranscript(Base):
             ondelete="CASCADE",
         ),
     )
+
+
+class SnProjectSettings(Base):
+    """The bead granularity a project cuts at — one row, one decision, one grid.
+
+    ``beadSec`` is the coordinate system the downstream pipeline and the training data
+    are built on: it defines the bead grid and is mixed into ``manifest_id``. Choosing it
+    per session, as the SPA's setup screen used to, let two audios of one project land on
+    two incompatible grids. It is a property of the project, so it lives on the project.
+
+    ``bead_sec`` is nullable and is NOT what the admin sets. The admin sets a LEVEL; the
+    resolved duration is ``granularity_frames[level] * hop_sec``, which comes from each
+    audio's own acousteme (the O8 rule) and so is not known until an audio is cut. The
+    first session on the project stamps it here, and from then on it is the value every
+    later audio has to agree with — the SPA refuses one whose acousteme would resolve
+    differently rather than cutting it on a second grid.
+
+    The level is settable only while the project has no sessions. That is not caution, it
+    is the only arrangement where the invariant holds: changing it afterwards would either
+    contradict the ``bead_sec`` already stamped — leaving the project unable to open
+    another session at all — or split the corpus across two grids, which is the exact
+    thing this table exists to prevent. Re-cutting a project at a new granularity means
+    re-deriving every ``manifest_id`` it has already exported, and that is a migration,
+    not a setting.
+    """
+
+    __tablename__ = "sn_project_settings"
+
+    project_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("projects.id", ondelete="CASCADE"), primary_key=True
+    )
+    granularity_level: Mapped[GranularityLevel] = mapped_column(_GRANULARITY_TYPE)
+    # Stamped by the project's first session, never sent by the admin. Null means the
+    # project has not cut anything yet, so nothing has to agree with anything.
+    bead_sec: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # SET NULL, never CASCADE: the account that chose the granularity is not the setting.
+    # Deleting that user must not take a project's grid with it, and RESTRICT would make a
+    # row here the reason a user cannot be deleted in an app that shares this database.
+    updated_by: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
